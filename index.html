@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="MKH"/>
+<meta name="theme-color" content="#f0a500"/>
+<title>MKH Properti</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0f18;--card:#111827;--bdr:#1e2d40;--a:#f0a500;--g:#00b894;--tx:#e2e8f0;--mt:#64748b;--rd:#ef4444;--pu:#a78bfa}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;overflow-x:hidden}
+input,select{background:#1a2235;border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;color:var(--tx);font-size:15px;font-family:inherit;outline:none;width:100%;display:block;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--a)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+button{-webkit-appearance:none;appearance:none;cursor:pointer;font-family:inherit;border:none;display:block;touch-action:manipulation}
+.mbtn{width:100%;padding:15px;border-radius:12px;font-size:15px;font-weight:700;text-align:center;margin-top:8px}
+.bg{background:var(--g);color:#fff}
+.br{background:var(--rd);color:#fff}
+.ba{background:var(--a);color:#000}
+.bp{background:var(--pu);color:#fff}
+.sm{background:rgba(255,255,255,.07);color:var(--mt);border:1px solid var(--bdr)!important;padding:9px 14px;border-radius:9px;font-size:13px;width:auto}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px}
+.lbl{font-size:11px;color:var(--mt);margin-bottom:6px;display:block;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fld{margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,45,64,.5)}
+.row:last-child{border-bottom:none}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700}
+.st{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:14px}
+.pk{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border-left:4px solid}
+
+/* PAGES */
+.page{display:none;min-height:100vh}
+.page.active{display:block}
+
+/* LOGIN */
+#pg-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+
+/* APP */
+#pg-app{display:none;flex-direction:column;min-height:100vh}
+#pg-app.active{display:flex}
+#topbar{background:#070b12;border-bottom:1px solid var(--bdr);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+#filterbar{background:#070b12;padding:8px 16px;border-bottom:1px solid var(--bdr);display:flex;gap:6px;overflow-x:auto;position:sticky;top:61px;z-index:49}
+#filterbar::-webkit-scrollbar{display:none}
+.fb{padding:6px 14px;border-radius:20px;border:1px solid var(--bdr)!important;background:transparent;color:var(--mt);font-size:11px;font-weight:600;white-space:nowrap}
+.fb.on{background:var(--a)!important;border-color:var(--a)!important;color:#000}
+#maincontent{flex:1;overflow-y:auto;padding:16px;padding-bottom:90px}
+#bottomnav{background:#070b12;border-top:1px solid var(--bdr);padding:8px 0 20px;display:flex;position:fixed;bottom:0;left:0;right:0;z-index:50}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;background:none;border:none}
+.ni .ic{font-size:20px}
+.ni .lb{font-size:9px;font-weight:700;color:var(--mt);text-transform:uppercase}
+.ni.on .lb{color:var(--a)}
+
+/* MORE DRAWER */
+#drawer{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--bdr);border-radius:20px 20px 0 0;padding:16px 16px 30px;z-index:200;transform:translateY(100%);transition:transform .25s;pointer-events:none}
+#drawer.open{transform:translateY(0);pointer-events:all}
+#drawerBg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;display:none}
+#drawerBg.show{display:block}
+
+/* TOAST */
+#toast{position:fixed;top:80px;left:16px;right:16px;z-index:999;display:none;padding:14px;border-radius:12px;font-size:13px;font-weight:700;text-align:center;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN PAGE ═══ -->
+<div id="pg-login">
+  <div style="width:100%;max-width:360px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="width:72px;height:72px;background:linear-gradient(135deg,#f0a500,#00b894);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px">🏗</div>
+      <div style="font-size:24px;font-weight:800">MKH Properti</div>
+      <div style="font-size:13px;color:var(--mt);margin-top:6px">PT. Maha Karya Haluoleo</div>
+    </div>
+    <div class="card">
+      <div id="logErr" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;font-size:13px;color:var(--rd);margin-bottom:14px;text-align:center"></div>
+      <div class="fld">
+        <label class="lbl">Username</label>
+        <input type="text" id="logUser" placeholder="admin" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      </div>
+      <div class="fld">
+        <label class="lbl">Password</label>
+        <input type="password" id="logPass" placeholder="••••••" autocomplete="off"/>
+      </div>
+      <button class="mbtn ba" id="logBtn">🔐 Masuk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP PAGE ═══ -->
+<div id="pg-app">
+  <!-- Topbar -->
+  <div id="topbar">
+    <div style="width:34px;height:34px;background:linear-gradient(135deg,#f0a500,#00b894);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🏗</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">PT. Maha Karya Haluoleo</div>
+      <div id="dbSt" style="font-size:10px;color:var(--mt)">Menghubungkan...</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="sm" id="xlsBtn">⬇ Excel</button>
+      <button class="sm" id="outBtn" style="color:var(--rd)">Keluar</button>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div id="filterbar">
+    <button class="fb on" data-f="ALL">Semua</button>
+    <button class="fb" data-f="AFP">Al Fath</button>
+    <button class="fb" data-f="IH">Introvert</button>
+    <button class="fb" data-f="LL">Loonars</button>
+    <button class="fb" data-f="GCI">Griya Cariu</button>
+  </div>
+
+  <!-- Content -->
+  <div id="maincontent"></div>
+
+  <!-- Bottom Nav -->
+  <div id="bottomnav">
+    <button class="ni on" data-pg="db"><span class="ic">🏠</span><span class="lb">Dashboard</span></button>
+    <button class="ni" data-pg="ast"><span class="ic">🏘</span><span class="lb">Aset</span></button>
+    <button class="ni" data-pg="km"><span class="ic">💰</span><span class="lb">Masuk</span></button>
+    <button class="ni" data-pg="kk"><span class="ic">🧾</span><span class="lb">Keluar</span></button>
+    <button class="ni" id="moreBtn"><span class="ic">☰</span><span class="lb">Lainnya</span></button>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div id="drawerBg"></div>
+<div id="drawer">
+  <div style="width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button data-pg="pap" class="drBtn" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">🔄</span><span style="font-size:11px;font-weight:700;color:var(--pu)">Pinjam</span></button>
+    <button data-pg="jr" class="drBtn" style="background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">📒</span><span style="font-size:11px;font-weight:700;color:var(--a)">Jurnal</span></button>
+    <button data-pg="ns" class="drBtn" style="background:rgba(0,184,148,.1);border:1px solid rgba(0,184,148,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">⚖️</span><span style="font-size:11px;font-weight:700;color:var(--g)">Neraca Saldo</span></button>
+    <button data-pg="lr" class="drBtn" style="background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">📈</span><span style="font-size:11px;font-weight:700;color:var(--a)">Laba Rugi</span></button>
+    <button data-pg="nr" class="drBtn" style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">🏛</span><span style="font-size:11px;font-weight:700;color:#38bdf8">Neraca</span></button>
+    <button data-pg="coa" class="drBtn" style="background:rgba(100,116,139,.1);border:1px solid rgba(100,116,139,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:24px">📋</span><span style="font-size:11px;font-weight:700;color:var(--mt)">COA</span></button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══ FIREBASE ═════════════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyA9I75Xm_d5a4qYa43z0bV4RAiEP-DFMkI",
+  databaseURL:"https://mkh-properti-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"mkh-properti"
+});
+const DB = firebase.database();
+
+// ═══ CONFIG ═══════════════════════════════════════════════════════
+const USERS = {admin:"mkh2025", owner:"haluoleo123"};
+const PR = [
+  {id:"AFP",nama:"Al Fath Puuwatu",   rek:"1901 8811 4444 1", w:"#f0a500"},
+  {id:"IH", nama:"Introvert House",   rek:"4420 1881 4099 04",w:"#00b894"},
+  {id:"LL", nama:"Loonars Living",    rek:"7801 8800 0168 1", w:"#a78bfa"},
+  {id:"GCI",nama:"Griya Cariu Indah", rek:"5018 8000 2715",   w:"#38bdf8"},
+];
+const RC = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005"};
+const COA = [
+  {k:"1-1001",n:"Kas Tunai",g:"Aset Lancar",t:"D"},
+  {k:"1-1002",n:"Bank Al Fath Puuwatu",g:"Aset Lancar",t:"D"},
+  {k:"1-1003",n:"Bank Introvert House",g:"Aset Lancar",t:"D"},
+  {k:"1-1004",n:"Bank Loonars Living",g:"Aset Lancar",t:"D"},
+  {k:"1-1005",n:"Bank Griya Cariu Indah",g:"Aset Lancar",t:"D"},
+  {k:"1-1006",n:"Piutang Antar Proyek",g:"Aset Lancar",t:"D"},
+  {k:"1-2001",n:"Tanah",g:"Aset Tetap",t:"D"},
+  {k:"1-2002",n:"Bangunan",g:"Aset Tetap",t:"D"},
+  {k:"1-2003",n:"Peralatan",g:"Aset Tetap",t:"D"},
+  {k:"2-1001",n:"Utang Distributor",g:"Liabilitas Lancar",t:"K"},
+  {k:"2-1002",n:"Utang Antar Proyek",g:"Liabilitas Lancar",t:"K"},
+  {k:"2-1003",n:"Uang Muka Pembeli",g:"Liabilitas Lancar",t:"K"},
+  {k:"2-2001",n:"KPR/Utang Panjang",g:"Liabilitas Panjang",t:"K"},
+  {k:"3-1001",n:"Modal Pemilik",g:"Ekuitas",t:"K"},
+  {k:"3-1002",n:"Laba Ditahan",g:"Ekuitas",t:"K"},
+  {k:"4-1001",n:"Penjualan Rumah",g:"Pendapatan",t:"K"},
+  {k:"4-1002",n:"Uang Muka Penjualan",g:"Pendapatan",t:"K"},
+  {k:"4-1003",n:"Pendapatan Lain",g:"Pendapatan",t:"K"},
+  {k:"5-1001",n:"Pembelian Material",g:"HPP",t:"D"},
+  {k:"5-1002",n:"Bayar Distributor",g:"HPP",t:"D"},
+  {k:"5-1003",n:"Upah Tukang",g:"HPP",t:"D"},
+  {k:"5-1004",n:"Biaya Subkontraktor",g:"HPP",t:"D"},
+  {k:"6-1001",n:"Gaji Staf",g:"Beban Operasional",t:"D"},
+  {k:"6-1002",n:"Sewa Kantor",g:"Beban Operasional",t:"D"},
+  {k:"6-1003",n:"Listrik & Air",g:"Beban Operasional",t:"D"},
+  {k:"6-1004",n:"Transportasi",g:"Beban Operasional",t:"D"},
+  {k:"6-1005",n:"Perizinan",g:"Beban Operasional",t:"D"},
+  {k:"6-1006",n:"Biaya Pemasaran",g:"Beban Operasional",t:"D"},
+  {k:"6-1007",n:"Beban Lain-lain",g:"Beban Operasional",t:"D"},
+];
+
+// ═══ STATE ════════════════════════════════════════════════════════
+let J=[], A=[], fp="ALL", pg="db";
+
+// ═══ UTILS ════════════════════════════════════════════════════════
+const fmt = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
+const fmts = n => { const a=Math.abs(n||0); return a>=1e9?"Rp "+(a/1e9).toFixed(1)+"M":a>=1e6?"Rp "+(a/1e6).toFixed(1)+"jt":"Rp "+fmt(a); };
+const today = () => new Date().toISOString().slice(0,10);
+const gp = id => PR.find(p=>p.id===id)||{w:"#888",nama:"-",id:"-"};
+const gc = k => COA.find(c=>c.k===k)||{n:"",g:"",t:"D"};
+const gi = id => document.getElementById(id);
+const gv = id => { const e=gi(id); return e?e.value.trim():""; };
+const sv = (id,val) => { const e=gi(id); if(e) e.value=val; };
+const tag = pid => { const p=gp(pid); return `<span class="tag" style="background:${p.w}25;color:${p.w}">${pid}</span>`; };
+
+function showToast(msg,type){
+  const t=gi("toast");
+  t.textContent=msg; t.style.display="block";
+  t.style.background=type==="red"?"#ef4444":type==="amber"?"#f0a500":"#00b894";
+  t.style.color=type==="amber"?"#000":"#fff";
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display="none",3000);
+}
+
+function nextNo(pfx){
+  const nums=J.filter(j=>j.no&&j.no.startsWith(pfx)).map(j=>parseInt(j.no.split("-")[1])||0);
+  return pfx+"-"+String((nums.length?Math.max(...nums):0)+1).padStart(3,"0");
+}
+
+// ═══ LOGIN ════════════════════════════════════════════════════════
+function doLogin(){
+  const u=gv("logUser"), p=gv("logPass");
+  const err=gi("logErr");
+  if(!u||!p){ err.style.display="block"; err.textContent="Isi username dan password!"; return; }
+  if(USERS[u] && USERS[u]===p){
+    err.style.display="none";
+    localStorage.setItem("mkh_auth","1");
+    localStorage.setItem("mkh_user",u);
+    showApp();
+  } else {
+    err.style.display="block";
+    err.textContent="Username atau password salah!";
+  }
+}
+
+function showApp(){
+  gi("pg-login").style.display="none";
+  gi("pg-app").style.display="flex";
+  const u=localStorage.getItem("mkh_user")||"";
+  gi("dbSt").textContent="Halo, "+u;
+  startDB();
+  render();
+}
+
+function doLogout(){
+  if(!confirm("Keluar?")) return;
+  localStorage.removeItem("mkh_auth");
+  DB.ref("data").off();
+  J=[]; A=[];
+  gi("pg-app").style.display="none";
+  gi("pg-login").style.display="flex";
+}
+
+// ═══ FIREBASE ═════════════════════════════════════════════════════
+function startDB(){
+  gi("dbSt").textContent="Menghubungkan...";
+  DB.ref("data/jurnal").on("value", snap=>{
+    J=[];
+    snap.forEach(c=>{ const d=c.val(); J.push({...d,fbKey:c.key,D:+d.D||0,K:+d.K||0}); });
+    gi("dbSt").textContent="● Terhubung";
+    render();
+  });
+  DB.ref("data/aset").on("value", snap=>{
+    A=[];
+    snap.forEach(c=>{ A.push({...c.val(),fbKey:c.key}); });
+    render();
+  });
+}
+
+const dbPush = (path,data) => DB.ref(path).push(data);
+const dbSet  = (path,data) => DB.ref(path).update(data);
+const dbDel  = path => DB.ref(path).remove();
+async function dbDelWhere(path,field,val){
+  const snap=await DB.ref(path).orderByChild(field).equalTo(val).once("value");
+  const u={}; snap.forEach(c=>u[c.key]=null);
+  if(Object.keys(u).length) await DB.ref(path).update(u);
+}
+
+// ═══ SAVE OPS ═════════════════════════════════════════════════════
+async function saveKM(){
+  const tgl=gv("km-tgl"),no=gv("km-no"),pid=gv("km-pid"),rek=gv("km-rek"),
+        jenis=gv("km-jenis"),pembeli=gv("km-pembeli"),uid=gv("km-unit"),
+        nom=parseFloat(gv("km-nom"))||0,ket=gv("km-ket");
+  if(!tgl||!no||!nom) return showToast("Lengkapi tanggal, no & nominal!","red");
+  const apk=jenis==="Penjualan Rumah"?"4-1001":jenis==="Uang Muka / DP"?"4-1002":"4-1003";
+  const blk=uid?(A.find(a=>a.fbKey===uid)||{}).blok||"":"";
+  const ktr=jenis+(blk?" - "+blk:"")+(pembeli?" ("+pembeli+")")+(ket?" - "+ket:"");
+  try{
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:rek,nama:gc(rek).n,proyek:pid,D:nom,K:0});
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:apk,nama:gc(apk).n,proyek:pid,D:0,K:nom});
+    if(uid){ const st=jenis==="Penjualan Rumah"?"terjual":"dp"; await dbSet("data/aset/"+uid,{status:st,pembeli,tgl_jual:tgl}); }
+    showToast("✅ Kas Masuk Rp "+fmt(nom)+" tersimpan!");
+    sv("km-nom",""); sv("km-pembeli",""); sv("km-ket",""); sv("km-no","");
+  } catch(e){ showToast("Gagal: "+e.message,"red"); }
+}
+
+async function saveKK(){
+  const tgl=gv("kk-tgl"),no=gv("kk-no"),pid=gv("kk-pid"),rek=gv("kk-rek"),
+        jenis=gv("kk-jenis"),sup=gv("kk-sup"),
+        nom=parseFloat(gv("kk-nom"))||0,ket=gv("kk-ket");
+  if(!tgl||!no||!nom) return showToast("Lengkapi tanggal, no & nominal!","red");
+  const abk=jenis==="Pembelian Material"?"5-1001":jenis==="Bayar Distributor"?"5-1002":jenis==="Upah Tukang"?"5-1003":jenis==="Biaya Subkon"?"5-1004":"6-1007";
+  const ktr=jenis+(sup?" - "+sup:"")+(ket?" - "+ket:"");
+  try{
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:abk,nama:gc(abk).n,proyek:pid,D:nom,K:0});
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:rek,nama:gc(rek).n,proyek:pid,D:0,K:nom});
+    showToast("✅ Kas Keluar Rp "+fmt(nom)+" tersimpan!");
+    sv("kk-nom",""); sv("kk-sup",""); sv("kk-ket",""); sv("kk-no","");
+  } catch(e){ showToast("Gagal: "+e.message,"red"); }
+}
+
+async function savePAP(){
+  const tgl=gv("pap-tgl"),no=gv("pap-no"),dari=gv("pap-dari"),ke=gv("pap-ke"),
+        nom=parseFloat(gv("pap-nom"))||0,ket=gv("pap-ket");
+  if(!tgl||!no||!nom) return showToast("Lengkapi semua field!","red");
+  if(dari===ke) return showToast("Proyek tidak boleh sama!","red");
+  const nd=gp(dari).nama,nk=gp(ke).nama;
+  const ktr="Pinjam: "+nd+" → "+nk+(ket?" ("+ket+")":"");
+  try{
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:"1-1006",nama:"Piutang Antar Proyek",proyek:dari,D:nom,K:0});
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:RC[dari],nama:"Bank "+nd,proyek:dari,D:0,K:nom});
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:RC[ke],nama:"Bank "+nk,proyek:ke,D:nom,K:0});
+    await dbPush("data/jurnal",{tgl,no,ket:ktr,akun:"2-1002",nama:"Utang Antar Proyek",proyek:ke,D:0,K:nom});
+    showToast("✅ Pinjaman tercatat!");
+    sv("pap-nom",""); sv("pap-ket",""); sv("pap-no","");
+  } catch(e){ showToast("Gagal: "+e.message,"red"); }
+}
+
+async function saveAset(){
+  const pid=gv("ast-pid"),tipe=gv("ast-tipe"),blok=gv("ast-blok"),
+        luas=parseFloat(gv("ast-luas"))||0,harga=parseFloat(gv("ast-harga"))||0,ket=gv("ast-ket");
+  if(!blok||!harga) return showToast("Lengkapi nama unit & harga!","red");
+  try{
+    await dbPush("data/aset",{proyek:pid,tipe,blok,luas,harga,status:"tersedia",pembeli:"",ket});
+    showToast("✅ Aset "+blok+" terdaftar!");
+    sv("ast-blok",""); sv("ast-luas",""); sv("ast-harga",""); sv("ast-ket","");
+  } catch(e){ showToast("Gagal: "+e.message,"red"); }
+}
+
+async function delAset(key){ if(!confirm("Hapus aset?")) return; try{ await dbDel("data/aset/"+key); showToast("🗑 Aset dihapus"); } catch(e){ showToast("Gagal","red"); } }
+async function delJr(no){ if(!confirm("Hapus jurnal "+no+"?")) return; try{ await dbDelWhere("data/jurnal","no",no); showToast("🗑 Jurnal dihapus"); } catch(e){ showToast("Gagal","red"); } }
+
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const fj=fp==="ALL"?J:J.filter(j=>j.proyek===fp);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Tgl","No","Proyek","Keterangan","Kode","Akun","Debet","Kredit"],...fj.map(j=>[j.tgl,j.no,gp(j.proyek).nama,j.ket,j.akun,j.nama,j.D,j.K])]),"Jurnal");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Proyek","Tipe","Blok","Luas","Harga","Status","Pembeli"],...A.map(a=>[gp(a.proyek).nama,a.tipe,a.blok,a.luas,a.harga,a.status,a.pembeli])]),"Aset");
+  XLSX.writeFile(wb,"MKH-"+today()+".xlsx");
+  showToast("📊 Excel didownload!","amber");
+}
+
+// ═══ SALDO ════════════════════════════════════════════════════════
+function calcS(){
+  const s={}; COA.forEach(c=>s[c.k]={...c,D:0,K:0});
+  J.forEach(j=>{ if(!s[j.akun])s[j.akun]={k:j.akun,n:j.nama,g:"",t:"D",D:0,K:0}; s[j.akun].D+=j.D; s[j.akun].K+=j.K; });
+  return s;
+}
+const gs=(k,s)=>{ const a=s[k]; if(!a)return 0; return a.t==="D"?a.D-a.K:a.K-a.D; };
+const sum=(g,s)=>Object.values(s).filter(a=>a.g===g).reduce((t,a)=>t+gs(a.k,s),0);
+const ppend=pid=>J.filter(j=>j.proyek===pid&&gc(j.akun).g==="Pendapatan").reduce((t,j)=>t+j.K,0);
+const pbeban=pid=>J.filter(j=>j.proyek===pid&&(gc(j.akun).g==="HPP"||gc(j.akun).g==="Beban Operasional")).reduce((t,j)=>t+j.D,0);
+
+// ═══ NAV ══════════════════════════════════════════════════════════
+function goPage(p){
+  pg=p;
+  document.querySelectorAll("#bottomnav .ni").forEach(b=>b.classList.remove("on"));
+  const nb=document.querySelector(`#bottomnav [data-pg="${p}"]`);
+  if(nb) nb.classList.add("on"); else gi("moreBtn").classList.add("on");
+  closeDrawer();
+  render();
+}
+
+function openDrawer(){ gi("drawer").classList.add("open"); gi("drawerBg").classList.add("show"); }
+function closeDrawer(){ gi("drawer").classList.remove("open"); gi("drawerBg").classList.remove("show"); }
+
+function setFilter(val){
+  fp=val;
+  document.querySelectorAll("#filterbar .fb").forEach(b=>b.classList.remove("on"));
+  document.querySelector(`#filterbar [data-f="${val}"]`).classList.add("on");
+  render();
+}
+
+function pSel(id,val){
+  const def=val||(fp!=="ALL"?fp:"AFP");
+  return`<select id="${id}">${PR.map(p=>`<option value="${p.id}"${p.id===def?" selected":""}>${p.nama}</option>`).join("")}</select>`;
+}
+function rSel(id,val){
+  const def=val||(fp!=="ALL"?RC[fp]||"1-1001":"1-1001");
+  return`<select id="${id}">
+    <option value="1-1001"${def==="1-1001"?" selected":""}>Kas Tunai</option>
+    <option value="1-1002"${def==="1-1002"?" selected":""}>Al Fath — 1901 8811 4444 1</option>
+    <option value="1-1003"${def==="1-1003"?" selected":""}>Introvert — 4420 1881 4099 04</option>
+    <option value="1-1004"${def==="1-1004"?" selected":""}>Loonars — 7801 8800 0168 1</option>
+    <option value="1-1005"${def==="1-1005"?" selected":""}>Griya Cariu — 5018 8000 2715</option>
+  </select>`;
+}
+
+// ═══ RENDER ═══════════════════════════════════════════════════════
+function render(){
+  const s=calcS();
+  const tP=sum("Pendapatan",s),tH=sum("HPP",s),tO=sum("Beban Operasional",s);
+  const lK=tP-tH, lB=lK-tO;
+  const tAL=sum("Aset Lancar",s),tAT=sum("Aset Tetap",s);
+  const tLL=sum("Liabilitas Lancar",s),tLP=sum("Liabilitas Panjang",s);
+  const tEk=sum("Ekuitas",s)+lB;
+  const fj=fp==="ALL"?J:J.filter(j=>j.proyek===fp);
+  const fa=fp==="ALL"?A:A.filter(a=>a.proyek===fp);
+  const ns=Object.values(s).filter(a=>a.D>0||a.K>0)
+    .map(a=>({...a,sD:a.t==="D"?Math.max(0,a.D-a.K):0,sK:a.t==="K"?Math.max(0,a.K-a.D):0}))
+    .sort((a,b)=>a.k.localeCompare(b.k));
+  const C=gi("maincontent");
+
+  if(pg==="db"){
+    C.innerHTML=`
+    <div class="g4">
+      <div class="st"><div class="lbl">Total Aset</div><div style="font-size:16px;font-weight:800;color:var(--g)">${fmts(tAL+tAT)}</div></div>
+      <div class="st"><div class="lbl">Pendapatan</div><div style="font-size:16px;font-weight:800;color:var(--a)">${fmts(tP)}</div></div>
+      <div class="st"><div class="lbl">Laba Kotor</div><div style="font-size:16px;font-weight:800;color:${lK>=0?"var(--g)":"var(--rd)"}">${fmts(lK)}</div></div>
+      <div class="st"><div class="lbl">Laba Bersih</div><div style="font-size:16px;font-weight:800;color:${lB>=0?"var(--g)":"var(--rd)"}">${fmts(lB)}</div></div>
+    </div>
+    ${PR.map(p=>{
+      const pe=ppend(p.id),be=pbeban(p.id),la=pe-be;
+      const jm=A.filter(a=>a.proyek===p.id).length,tj=A.filter(a=>a.proyek===p.id&&a.status==="terjual").length;
+      return`<div class="pk" style="border-color:${p.w}">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div><div style="font-size:10px;color:${p.w};font-weight:700">${p.id}</div>
+          <div style="font-size:14px;font-weight:800;margin-top:1px">${p.nama}</div>
+          <div style="font-size:9px;color:var(--mt)">${p.rek}</div></div>
+          <div style="text-align:right"><div style="font-size:17px;font-weight:800;color:${p.w}">${fmts(gs(RC[p.id],s))}</div>
+          <div style="font-size:9px;color:var(--mt);margin-top:2px">${jm} unit · ${tj} terjual</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding-top:10px;border-top:1px solid var(--bdr)">
+          <div><div style="font-size:9px;color:var(--mt)">Pendapatan</div><div style="font-size:12px;font-weight:700;color:var(--g)">${fmts(pe)}</div></div>
+          <div><div style="font-size:9px;color:var(--mt)">Beban</div><div style="font-size:12px;font-weight:700;color:var(--rd)">${fmts(be)}</div></div>
+          <div><div style="font-size:9px;color:var(--mt)">Laba</div><div style="font-size:12px;font-weight:700;color:${la>=0?"var(--g)":"var(--rd)"}">${fmts(la)}</div></div>
+        </div></div>`;
+    }).join("")}
+    <div class="card">
+      <div class="lbl" style="margin-bottom:10px">Ringkasan Aset</div>
+      <div class="row"><span style="color:var(--mt)">Total Unit</span><b style="color:var(--a)">${A.length}</b></div>
+      <div class="row"><span style="color:var(--mt)">Tersedia</span><b style="color:var(--g)">${A.filter(a=>a.status==="tersedia").length}</b></div>
+      <div class="row"><span style="color:var(--mt)">DP/Booking</span><b style="color:var(--pu)">${A.filter(a=>a.status==="dp").length}</b></div>
+      <div class="row"><span style="color:var(--mt)">Terjual</span><b style="color:var(--rd)">${A.filter(a=>a.status==="terjual").length}</b></div>
+    </div>
+    <div class="lbl" style="margin-bottom:8px">Transaksi Terbaru</div>
+    ${[...J].reverse().slice(0,8).map(j=>`
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="flex:1;min-width:0">${tag(j.proyek)}
+        <div style="font-size:12px;color:var(--mt);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</div>
+        <div style="font-size:10px;color:var(--mt);margin-top:1px">${j.tgl} · ${j.no}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        ${j.D>0?`<div style="font-size:13px;font-weight:700;color:var(--g)">+${fmts(j.D)}</div>`:""}
+        ${j.K>0?`<div style="font-size:13px;font-weight:700;color:var(--rd)">-${fmts(j.K)}</div>`:""}
+      </div></div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:30px">Belum ada transaksi</div>'}`;
+  }
+
+  else if(pg==="ast"){
+    C.innerHTML=`<div class="card">
+      <div style="font-size:14px;font-weight:700;color:var(--a);margin-bottom:14px">🏠 Daftarkan Unit</div>
+      <div class="fld"><label class="lbl">Proyek</label>${pSel("ast-pid")}</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">Tipe</label><select id="ast-tipe"><option>Tipe 36</option><option>Tipe 45</option><option>Tipe 54</option><option>Tipe 60</option><option>Tipe 70</option><option>Kavling</option><option>Ruko</option><option>Lainnya</option></select></div>
+        <div class="fld"><label class="lbl">Nama/Blok</label><input id="ast-blok" placeholder="A1, B-02..."/></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">Luas (m²)</label><input id="ast-luas" type="number" placeholder="36" inputmode="numeric"/></div>
+        <div class="fld"><label class="lbl">Harga (Rp)</label><input id="ast-harga" type="number" placeholder="350000000" inputmode="numeric"/></div>
+      </div>
+      <div class="fld"><label class="lbl">Keterangan</label><input id="ast-ket" placeholder="Opsional..."/></div>
+      <button class="mbtn ba" id="saveAstBtn">💾 Daftarkan Aset</button>
+    </div>
+    <div class="lbl" style="margin-bottom:8px">${fa.length} Unit Terdaftar</div>
+    ${fa.map(a=>`<div style="background:var(--card);border:1px solid var(--bdr);border-left:3px solid ${a.status==="tersedia"?"var(--g)":a.status==="dp"?"var(--pu)":"var(--rd)"};border-radius:12px;padding:13px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>${tag(a.proyek)}<div style="font-size:15px;font-weight:800;margin-top:4px">${a.blok}</div>
+        <div style="font-size:11px;color:var(--mt)">${a.tipe}${a.luas?" · "+a.luas+" m²":""}</div></div>
+        <div style="text-align:right"><div style="font-size:15px;font-weight:800;color:var(--a)">${fmts(a.harga)}</div>
+        <span class="tag" style="margin-top:4px;background:${a.status==="tersedia"?"var(--g)":a.status==="dp"?"var(--pu)":"var(--rd)"}25;color:${a.status==="tersedia"?"var(--g)":a.status==="dp"?"var(--pu)":"var(--rd)"}">${a.status.toUpperCase()}</span></div>
+      </div>
+      ${a.pembeli?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);font-size:11px;color:var(--mt)">Pembeli: <b>${a.pembeli}</b></div>`:""}
+      ${a.status==="tersedia"?`<button class="delAstBtn" data-key="${a.fbKey}" style="margin-top:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:6px 12px;color:var(--rd);font-size:11px;font-weight:700">🗑 Hapus</button>`:""}
+    </div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:40px">Belum ada aset</div>'}`;
+    gi("saveAstBtn").onclick = saveAset;
+    document.querySelectorAll(".delAstBtn").forEach(b=>b.onclick=()=>delAset(b.dataset.key));
+  }
+
+  else if(pg==="km"){
+    C.innerHTML=`<div class="card">
+      <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:14px">💰 Input Kas Masuk</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">Tanggal</label><input type="date" id="km-tgl" value="${today()}"/></div>
+        <div class="fld"><label class="lbl">No. Transaksi</label>
+          <div style="display:flex;gap:6px">
+            <input id="km-no" placeholder="KM-001" style="flex:1"/>
+            <button class="sm" id="kmAutoBtn">Auto</button>
+          </div>
+        </div>
+      </div>
+      <div class="fld"><label class="lbl">Proyek</label>${pSel("km-pid")}</div>
+      <div class="fld"><label class="lbl">Rekening Tujuan</label>${rSel("km-rek")}</div>
+      <div class="fld"><label class="lbl">Jenis</label>
+        <select id="km-jenis"><option>Penjualan Rumah</option><option>Uang Muka / DP</option><option>Pelunasan KPR</option><option>Pendapatan Lain</option></select>
+      </div>
+      <div class="fld"><label class="lbl">Unit Aset</label>
+        <select id="km-unit"><option value="">-- Pilih unit (opsional) --</option>
+          ${A.filter(a=>a.status!=="terjual").map(a=>`<option value="${a.fbKey}">[${a.proyek}] ${a.blok} — ${fmts(a.harga)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="fld"><label class="lbl">Nama Pembeli</label><input id="km-pembeli" placeholder="Nama pembeli..."/></div>
+      <div class="fld"><label class="lbl">Nominal (Rp)</label><input type="number" id="km-nom" placeholder="0" inputmode="numeric"/></div>
+      <div class="fld"><label class="lbl">Keterangan</label><input id="km-ket" placeholder="Opsional..."/></div>
+      <button class="mbtn bg" id="saveKMBtn">💾 Simpan Kas Masuk</button>
+    </div>
+    <div class="lbl" style="margin-bottom:8px">Riwayat</div>
+    ${J.filter(j=>j.no&&j.no.startsWith("KM")&&j.D>0).reverse().map(j=>`
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="flex:1;min-width:0">${tag(j.proyek)}
+        <div style="font-size:12px;color:var(--mt);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</div>
+        <div style="font-size:10px;color:var(--mt);margin-top:1px">${j.tgl} · ${j.no}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        <div style="font-size:14px;font-weight:800;color:var(--g)">+${fmts(j.D)}</div>
+        <button class="delJrBtn" data-no="${j.no}" style="background:none;border:none;color:var(--rd);font-size:11px;margin-top:2px">🗑</button>
+      </div></div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:30px">Belum ada</div>'}`;
+    gi("saveKMBtn").onclick = saveKM;
+    gi("kmAutoBtn").onclick = ()=>sv("km-no",nextNo("KM"));
+    document.querySelectorAll(".delJrBtn").forEach(b=>b.onclick=()=>delJr(b.dataset.no));
+  }
+
+  else if(pg==="kk"){
+    C.innerHTML=`<div class="card">
+      <div style="font-size:14px;font-weight:700;color:var(--rd);margin-bottom:14px">🧾 Input Kas Keluar</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">Tanggal</label><input type="date" id="kk-tgl" value="${today()}"/></div>
+        <div class="fld"><label class="lbl">No. Transaksi</label>
+          <div style="display:flex;gap:6px">
+            <input id="kk-no" placeholder="KK-001" style="flex:1"/>
+            <button class="sm" id="kkAutoBtn">Auto</button>
+          </div>
+        </div>
+      </div>
+      <div class="fld"><label class="lbl">Proyek</label>${pSel("kk-pid")}</div>
+      <div class="fld"><label class="lbl">Rekening Sumber</label>${rSel("kk-rek")}</div>
+      <div class="fld"><label class="lbl">Jenis</label>
+        <select id="kk-jenis"><option>Pembelian Material</option><option>Bayar Distributor</option><option>Upah Tukang</option><option>Biaya Subkon</option><option>Biaya Operasional</option><option>Lainnya</option></select>
+      </div>
+      <div class="fld"><label class="lbl">Supplier/Vendor</label><input id="kk-sup" placeholder="Nama supplier..."/></div>
+      <div class="fld"><label class="lbl">Nominal (Rp)</label><input type="number" id="kk-nom" placeholder="0" inputmode="numeric"/></div>
+      <div class="fld"><label class="lbl">Keterangan</label><input id="kk-ket" placeholder="Detail..."/></div>
+      <button class="mbtn br" id="saveKKBtn">💾 Simpan Kas Keluar</button>
+    </div>
+    <div class="lbl" style="margin-bottom:8px">Riwayat</div>
+    ${J.filter(j=>j.no&&j.no.startsWith("KK")&&j.D>0).reverse().map(j=>`
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="flex:1;min-width:0">${tag(j.proyek)}
+        <div style="font-size:12px;color:var(--mt);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</div>
+        <div style="font-size:10px;color:var(--mt);margin-top:1px">${j.tgl} · ${j.no}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        <div style="font-size:14px;font-weight:800;color:var(--rd)">-${fmts(j.D)}</div>
+        <button class="delJrBtn" data-no="${j.no}" style="background:none;border:none;color:var(--rd);font-size:11px;margin-top:2px">🗑</button>
+      </div></div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:30px">Belum ada</div>'}`;
+    gi("saveKKBtn").onclick = saveKK;
+    gi("kkAutoBtn").onclick = ()=>sv("kk-no",nextNo("KK"));
+    document.querySelectorAll(".delJrBtn").forEach(b=>b.onclick=()=>delJr(b.dataset.no));
+  }
+
+  else if(pg==="pap"){
+    C.innerHTML=`<div class="card">
+      <div style="font-size:14px;font-weight:700;color:var(--pu);margin-bottom:14px">🔄 Pinjam Antar Proyek</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">Tanggal</label><input type="date" id="pap-tgl" value="${today()}"/></div>
+        <div class="fld"><label class="lbl">No. Transaksi</label>
+          <div style="display:flex;gap:6px">
+            <input id="pap-no" placeholder="PAP-001" style="flex:1"/>
+            <button class="sm" id="papAutoBtn">Auto</button>
+          </div>
+        </div>
+      </div>
+      <div class="fld"><label class="lbl">Dana DARI</label><select id="pap-dari">${PR.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}</select></div>
+      <div class="fld"><label class="lbl">Dana KE</label><select id="pap-ke">${PR.map((p,i)=>`<option value="${p.id}"${i===1?" selected":""}>${p.nama}</option>`).join("")}</select></div>
+      <div class="fld"><label class="lbl">Nominal (Rp)</label><input type="number" id="pap-nom" placeholder="0" inputmode="numeric"/></div>
+      <div class="fld"><label class="lbl">Keterangan</label><input id="pap-ket" placeholder="Alasan..."/></div>
+      <button class="mbtn bp" id="savePAPBtn">💾 Catat Pinjaman</button>
+    </div>
+    ${J.filter(j=>j.no&&j.no.startsWith("PAP")&&j.akun==="1-1006").map(j=>`
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:11px;color:var(--pu);font-weight:700">${j.no} · ${j.tgl}</div>
+      <div style="font-size:12px;color:var(--mt);margin-top:2px">${j.ket}</div></div>
+      <div style="font-size:14px;font-weight:800;color:var(--pu)">${fmts(j.D)}</div>
+    </div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:30px">Belum ada</div>'}`;
+    gi("savePAPBtn").onclick = savePAP;
+    gi("papAutoBtn").onclick = ()=>sv("pap-no",nextNo("PAP"));
+  }
+
+  else if(pg==="jr"){
+    C.innerHTML=`<div class="lbl" style="margin-bottom:8px">Jurnal — ${fj.length} Entri</div>`+
+    ([...fj].reverse().map(j=>`
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;gap:6px;align-items:center">${tag(j.proyek)}
+          <span style="font-size:10px;color:var(--a);font-weight:700">${j.no}</span>
+          <span style="font-size:10px;color:var(--mt)">${j.tgl}</span>
+        </div>
+        <button class="delJrBtn" data-no="${j.no}" style="background:none;border:none;color:var(--rd);font-size:13px">🗑</button>
+      </div>
+      <div style="font-size:12px;color:var(--mt);margin-bottom:3px">${j.ket}</div>
+      <div style="font-size:10px;color:var(--mt);font-family:monospace">${j.akun} · ${j.nama}</div>
+      <div style="display:flex;gap:12px;margin-top:6px">
+        ${j.D>0?`<span style="font-size:12px;font-weight:700;color:var(--g)">D: ${fmts(j.D)}</span>`:""}
+        ${j.K>0?`<span style="font-size:12px;font-weight:700;color:var(--rd)">K: ${fmts(j.K)}</span>`:""}
+      </div></div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:40px">Belum ada</div>');
+    document.querySelectorAll(".delJrBtn").forEach(b=>b.onclick=()=>delJr(b.dataset.no));
+  }
+
+  else if(pg==="ns"){
+    C.innerHTML=`<div class="lbl" style="margin-bottom:8px">Neraca Saldo</div>`+
+    ns.map(a=>`<div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:10px;color:var(--a);font-family:monospace">${a.k}</div><div style="font-size:12px;font-weight:600">${a.n}</div><div style="font-size:10px;color:var(--mt)">${a.g}</div></div>
+      <div style="text-align:right">
+        ${a.sD>0?`<div style="font-size:12px;font-weight:700;color:var(--g)">${fmts(a.sD)}</div>`:""}
+        ${a.sK>0?`<div style="font-size:12px;font-weight:700;color:var(--a)">${fmts(a.sK)}</div>`:""}
+      </div></div>`).join("")||'<div style="text-align:center;color:var(--mt);padding:40px">Belum ada</div>';
+  }
+
+  else if(pg==="lr"){
+    C.innerHTML=`
+    <div class="card" style="text-align:center;margin-bottom:12px"><div style="font-weight:800;font-size:15px">PT. Maha Karya Haluoleo</div><div style="color:var(--a);font-size:12px;margin-top:3px">LAPORAN LABA RUGI</div></div>
+    ${[{t:"PENDAPATAN",g:"Pendapatan",tot:tP,c:"var(--g)"},{t:"BEBAN PROYEK",g:"HPP",tot:tH,c:"var(--rd)"},{t:"BEBAN OPERASIONAL",g:"Beban Operasional",tot:tO,c:"var(--pu)"}].map(gr=>`
+    <div class="card"><div style="font-size:10px;font-weight:700;color:${gr.c};margin-bottom:10px;text-transform:uppercase">${gr.t}</div>
+      ${Object.values(s).filter(a=>a.g===gr.g).map(a=>({...a,sv:a.t==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.sv>0).map(a=>`
+      <div class="row"><span style="font-size:12px;color:var(--mt)">${a.n}</span><span style="font-size:12px;color:${gr.c};font-weight:600">${fmts(a.sv)}</span></div>`).join("")}
+      <div class="row" style="font-weight:700;border-top:1px solid var(--bdr);padding-top:8px;margin-top:4px"><span>Total</span><span style="color:${gr.c}">${fmts(gr.tot)}</span></div>
+    </div>`).join("")}
+    <div class="card" style="background:var(--bdr)"><div class="row"><span style="font-weight:700">LABA KOTOR</span><span style="font-weight:700;color:${lK>=0?"var(--g)":"var(--rd)"}">${fmts(lK)}</span></div></div>
+    <div class="card" style="background:${lB>=0?"#0d2a1e":"#2a0d0d"};border-color:${lB>=0?"var(--g)":"var(--rd)"}">
+      <div class="row"><span style="font-size:15px;font-weight:800">LABA BERSIH</span><span style="font-size:15px;font-weight:800;color:${lB>=0?"var(--g)":"var(--rd)"}">${fmts(lB)}</span></div>
+      ${tP>0?`<div style="font-size:10px;color:var(--mt);margin-top:4px">Net Margin: ${((lB/tP)*100).toFixed(1)}%</div>`:""}
+    </div>`;
+  }
+
+  else if(pg==="nr"){
+    const bal=Math.abs((tAL+tAT)-(tLL+tLP+tEk))<1;
+    C.innerHTML=`
+    <div class="card"><div style="font-size:11px;font-weight:700;color:var(--g);margin-bottom:10px">ASET</div>
+      ${[{l:"Aset Lancar",g:"Aset Lancar",tot:tAL},{l:"Aset Tetap",g:"Aset Tetap",tot:tAT}].map(gr=>`
+      <div style="margin-bottom:10px"><div style="font-size:9px;color:var(--mt);font-weight:700;margin-bottom:4px;text-transform:uppercase">${gr.l}</div>
+        ${Object.values(s).filter(a=>a.g===gr.g).map(a=>({...a,sv:a.t==="D"?a.D-a.K:a.K-a.D})).filter(a=>a.sv!==0).map(a=>`
+        <div class="row"><span style="font-size:11px;color:var(--mt)">${a.n}</span><span style="font-size:11px">${fmts(a.sv)}</span></div>`).join("")}
+        <div class="row" style="font-weight:700"><span>Total ${gr.l}</span><span style="color:var(--g)">${fmts(gr.tot)}</span></div>
+      </div>`).join("")}
+      <div style="background:var(--bdr);border-radius:8px;padding:10px;display:flex;justify-content:space-between;font-weight:800"><span>TOTAL ASET</span><span style="color:var(--g)">${fmts(tAL+tAT)}</span></div>
+    </div>
+    <div class="card"><div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:10px">LIABILITAS & EKUITAS</div>
+      ${[{l:"Liabilitas Lancar",g:"Liabilitas Lancar",tot:tLL},{l:"Liabilitas Panjang",g:"Liabilitas Panjang",tot:tLP}].map(gr=>`
+      <div style="margin-bottom:10px"><div style="font-size:9px;color:var(--mt);font-weight:700;margin-bottom:4px;text-transform:uppercase">${gr.l}</div>
+        ${Object.values(s).filter(a=>a.g===gr.g).map(a=>({...a,sv:a.t==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.sv>0).map(a=>`
+        <div class="row"><span style="font-size:11px;color:var(--mt)">${a.n}</span><span style="font-size:11px">${fmts(a.sv)}</span></div>`).join("")}
+        <div class="row" style="font-weight:700"><span>Total</span><span style="color:var(--a)">${fmts(gr.tot)}</span></div>
+      </div>`).join("")}
+      <div style="margin-bottom:10px"><div style="font-size:9px;color:var(--mt);font-weight:700;margin-bottom:4px;text-transform:uppercase">Ekuitas</div>
+        ${Object.values(s).filter(a=>a.g==="Ekuitas").map(a=>({...a,sv:a.t==="K"?a.K-a.D:a.D-a.K})).map(a=>`
+        <div class="row"><span style="font-size:11px;color:var(--mt)">${a.n}</span><span style="font-size:11px">${fmts(a.sv)}</span></div>`).join("")}
+        <div class="row"><span style="font-size:11px;color:var(--mt)">Laba Bersih Periode</span><span style="font-size:11px;color:${lB>=0?"var(--g)":"var(--rd)"}">${fmts(lB)}</span></div>
+        <div class="row" style="font-weight:700"><span>Total Ekuitas</span><span style="color:var(--g)">${fmts(tEk)}</span></div>
+      </div>
+      <div style="background:var(--bdr);border-radius:8px;padding:10px;display:flex;justify-content:space-between;font-weight:800"><span>TOTAL L+E</span><span style="color:var(--a)">${fmts(tLL+tLP+tEk)}</span></div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;font-weight:700;color:${bal?"var(--g)":"var(--rd)"}">${bal?"✓ Neraca Balance":"⚠ Neraca Tidak Balance"}</div>
+    </div>`;
+  }
+
+  else if(pg==="coa"){
+    const kats=["Aset Lancar","Aset Tetap","Liabilitas Lancar","Liabilitas Panjang","Ekuitas","Pendapatan","HPP","Beban Operasional"];
+    C.innerHTML=kats.map(kat=>`<div class="card"><div style="font-size:10px;font-weight:700;color:var(--a);margin-bottom:8px;text-transform:uppercase">${kat}</div>
+      ${COA.filter(a=>a.g===kat).map(a=>`<div class="row">
+        <div><div style="font-size:10px;color:var(--a);font-family:monospace">${a.k}</div><div style="font-size:12px">${a.n}</div></div>
+        <span class="tag" style="background:${a.t==="D"?"var(--g)":"var(--a)"}25;color:${a.t==="D"?"var(--g)":"var(--a)"}">${a.t==="D"?"Debet":"Kredit"}</span>
+      </div>`).join("")}</div>`).join("");
+  }
+}
+
+// ═══ EVENT LISTENERS ══════════════════════════════════════════════
+// Login button
+gi("logBtn").addEventListener("click", doLogin);
+gi("logPass").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+// Nav buttons
+document.querySelectorAll("#bottomnav [data-pg]").forEach(b=>{
+  b.addEventListener("click", ()=>goPage(b.dataset.pg));
+});
+gi("moreBtn").addEventListener("click", openDrawer);
+gi("drawerBg").addEventListener("click", closeDrawer);
+document.querySelectorAll(".drBtn").forEach(b=>{
+  b.addEventListener("click", ()=>goPage(b.dataset.pg));
+});
+
+// Filter buttons
+document.querySelectorAll("#filterbar .fb").forEach(b=>{
+  b.addEventListener("click", ()=>setFilter(b.dataset.f));
+});
+
+// Top buttons
+gi("xlsBtn").addEventListener("click", exportExcel);
+gi("outBtn").addEventListener("click", doLogout);
+
+// ═══ INIT ═════════════════════════════════════════════════════════
+if(localStorage.getItem("mkh_auth")==="1"){
+  showApp();
+} else {
+  gi("pg-login").style.display="flex";
+}
+</script>
+</body>
+</html>
