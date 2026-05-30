@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PT. Maha Karya Haluoleo — Sistem Keuangan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0b0f18;--card:#111827;--border:#1e2d40;
+    --accent:#f0a500;--accent2:#00b894;--text:#e2e8f0;
+    --muted:#64748b;--danger:#ef4444;--purple:#a78bfa;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;min-height:100vh;display:flex;flex-direction:column}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s}
+  input:focus,select:focus{border-color:var(--accent)}
+  button{cursor:pointer;font-family:inherit}
+  table{width:100%;border-collapse:collapse}
+  th{padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:8px 14px;font-size:11px;color:var(--text);border-bottom:1px solid rgba(30,45,64,.4)}
+  tr:hover td{background:rgba(30,45,64,.4)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .btn{padding:10px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+  .btn:hover{opacity:.85}
+  .btn-green{background:var(--accent2);color:#fff}
+  .btn-red{background:var(--danger);color:#fff}
+  .btn-amber{background:var(--accent);color:#000}
+  .btn-purple{background:var(--purple);color:#fff}
+  .btn-ghost{background:var(--border);color:var(--muted)}
+  .btn-full{width:100%;padding:12px}
+  .label{font-size:10px;color:var(--muted);margin-bottom:4px;display:block;letter-spacing:.03em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700}
+  .section-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+  #toast{position:fixed;top:20px;right:20px;z-index:9999;display:none;padding:12px 18px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:320px}
+  #loader{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(11,15,24,.85);z-index:8888;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div id="loader">
+  <div class="spinner"></div>
+  <div style="font-size:12px;color:var(--muted)">Memuat data...</div>
+</div>
+
+<!-- TOP BAR -->
+<div style="background:#070b12;border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏗</div>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:700">PT. Maha Karya Haluoleo</div>
+    <div style="font-size:9px;color:var(--muted)">Sistem Keuangan Properti & Kontraktor</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <select id="filterProyek" onchange="setFilter(this.value)" style="width:auto;font-size:11px;padding:6px 10px">
+      <option value="ALL">Semua Proyek</option>
+      <option value="AFP">Al Fath Puuwatu</option>
+      <option value="IH">Introvert House</option>
+      <option value="LL">Loonars Living</option>
+      <option value="GCI">Griya Cariu Indah</option>
+    </select>
+    <button class="btn btn-green" style="padding:7px 14px;font-size:11px" onclick="exportExcel()">⬇ Export Excel</button>
+    <button class="btn btn-purple" style="padding:7px 14px;font-size:11px" onclick="window.open('laporan-keuangan.html','_blank')" title="Laporan Keuangan KAP">📄 Laporan KAP</button>
+    <button class="btn btn-ghost" style="padding:7px 14px;font-size:11px" onclick="logout()" title="Keluar">🔒 Keluar</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div style="background:#070b12;border-bottom:1px solid var(--border);display:flex;align-items:center">
+  <div id="nav" style="display:flex;overflow-x:auto;padding:0 12px;flex:1"></div>
+</div>
+
+<!-- CONTENT -->
+<div id="content" style="flex:1;overflow-y:auto;padding:16px 20px"></div>
+
+<script>
+// ── AUTH GUARD ────────────────────────────────────────────────────
+(function authGuard(){
+  const token = sessionStorage.getItem("sb_access_token");
+  if(!token){ window.location.href = "login.html"; return; }
+  // Verifikasi token ke Supabase
+  const SB_URL_CHECK = "https://gluoioiimapyhchdasfl.supabase.co";
+  const SB_KEY_CHECK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+  fetch(`${SB_URL_CHECK}/auth/v1/user`,{
+    headers:{"apikey":SB_KEY_CHECK,"Authorization":"Bearer "+token}
+  }).then(r=>{ if(!r.ok){ sessionStorage.clear(); window.location.href="login.html"; }});
+})();
+
+function logout(){
+  sessionStorage.clear();
+  window.location.href = "login.html";
+}
+
+// ── SUPABASE CONFIG ───────────────────────────────────────────────
+const SB_URL         = "https://gluoioiimapyhchdasfl.supabase.co";
+const SB_KEY         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+const SB_SERVICE_KEY = "GANTI_DENGAN_SERVICE_ROLE_KEY_ANDA"; // ← GANTI INI
+const HEADERS        = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
+
+// ── SUPABASE API ──────────────────────────────────────────────────
+async function sbGet(table, params=""){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}&order=id.asc`,{headers:{...HEADERS,"Prefer":"return=representation"}});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(table, rows){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`,{method:"POST",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify(rows)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpdate(table, id, data){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:"PATCH",headers:{...HEADERS,"Prefer":"return=representation"},body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table, id){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:"DELETE",headers:HEADERS});
+  if(!r.ok) throw new Error(await r.text());
+}
+
+// ── MASTER DATA ───────────────────────────────────────────────────
+const PERUSAHAAN = "PT. Maha Karya Haluoleo";
+const PROYEK = [
+  {id:"AFP",nama:"Al Fath Puuwatu",   rek:"1901 8811 4444 1", bank:"BSI",warna:"#f0a500"},
+  {id:"IH", nama:"Introvert House",   rek:"4420 1881 4099 04",bank:"BSI",warna:"#00b894"},
+  {id:"LL", nama:"Loonars Living",    rek:"7801 8800 0168 1", bank:"BSI",warna:"#a78bfa"},
+  {id:"GCI",nama:"Griya Cariu Indah", rek:"5018 8000 2715",   bank:"BSI",warna:"#38bdf8"},
+];
+const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005"};
+const COA = [
+  {kode:"1-1001",nama:"Kas Tunai",               kat:"Aset Lancar",       tipe:"D"},
+  {kode:"1-1002",nama:"Bank Al Fath Puuwatu",    kat:"Aset Lancar",       tipe:"D",rek:"1901 8811 4444 1"},
+  {kode:"1-1003",nama:"Bank Introvert House",    kat:"Aset Lancar",       tipe:"D",rek:"4420 1881 4099 04"},
+  {kode:"1-1004",nama:"Bank Loonars Living",     kat:"Aset Lancar",       tipe:"D",rek:"7801 8800 0168 1"},
+  {kode:"1-1005",nama:"Bank Griya Cariu Indah",  kat:"Aset Lancar",       tipe:"D",rek:"5018 8000 2715"},
+  {kode:"1-1006",nama:"Piutang Antar Proyek",    kat:"Aset Lancar",       tipe:"D"},
+  {kode:"1-1007",nama:"Piutang Pembeli",         kat:"Aset Lancar",       tipe:"D"},
+  {kode:"1-2001",nama:"Tanah",                   kat:"Aset Tetap",        tipe:"D"},
+  {kode:"1-2002",nama:"Bangunan / Konstruksi",   kat:"Aset Tetap",        tipe:"D"},
+  {kode:"1-2003",nama:"Peralatan",               kat:"Aset Tetap",        tipe:"D"},
+  {kode:"2-1001",nama:"Utang Usaha Distributor", kat:"Liabilitas Lancar", tipe:"K"},
+  {kode:"2-1002",nama:"Utang Antar Proyek",      kat:"Liabilitas Lancar", tipe:"K"},
+  {kode:"2-1003",nama:"Uang Muka Pembeli",       kat:"Liabilitas Lancar", tipe:"K"},
+  {kode:"2-1004",nama:"Utang Bank",              kat:"Liabilitas Lancar", tipe:"K"},
+  {kode:"2-2001",nama:"KPR / Utang Jk Panjang",  kat:"Liabilitas Panjang",tipe:"K"},
+  {kode:"3-1001",nama:"Modal Pemilik",           kat:"Ekuitas",           tipe:"K"},
+  {kode:"3-1002",nama:"Laba Ditahan",            kat:"Ekuitas",           tipe:"K"},
+  {kode:"4-1001",nama:"Penjualan Rumah",         kat:"Pendapatan",        tipe:"K"},
+  {kode:"4-1002",nama:"Uang Muka Penjualan",     kat:"Pendapatan",        tipe:"K"},
+  {kode:"4-1003",nama:"Pendapatan Lain",         kat:"Pendapatan",        tipe:"K"},
+  {kode:"5-1001",nama:"Pembelian Material",      kat:"HPP",               tipe:"D"},
+  {kode:"5-1002",nama:"Bayar Distributor",       kat:"HPP",               tipe:"D"},
+  {kode:"5-1003",nama:"Biaya Upah Tukang",       kat:"HPP",               tipe:"D"},
+  {kode:"5-1004",nama:"Biaya Subkontraktor",     kat:"HPP",               tipe:"D"},
+  {kode:"5-1005",nama:"Biaya Overhead Proyek",   kat:"HPP",               tipe:"D"},
+  {kode:"6-1001",nama:"Gaji Staf",               kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1002",nama:"Sewa Kantor",             kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1003",nama:"Listrik & Air",           kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1004",nama:"Transportasi",            kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1005",nama:"Perizinan & Notaris",     kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1006",nama:"Biaya Pemasaran",         kat:"Beban Operasional", tipe:"D"},
+  {kode:"6-1007",nama:"Beban Lain-lain",         kat:"Beban Operasional", tipe:"D"},
+];
+const MENUS = ["Dashboard","Aset","Kas Masuk","Kas Keluar","Pinjam Antar Proyek","Utang Bank","Jurnal","Neraca Saldo","Laba Rugi","Neraca","COA","Users"];
+
+// STATE
+let jurnal = [];
+let aset   = [];
+let utangBank = [];
+let usersProyek = [];
+let filterProyek = "ALL";
+let activeMenu   = "Dashboard";
+
+// ── HELPERS ──────────────────────────────────────────────────────
+const fmt  = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
+const today = () => new Date().toISOString().slice(0,10);
+const getP  = id => PROYEK.find(p=>p.id===id)||{warna:"#888",nama:"-",id:"-"};
+
+function showLoader(msg="Menyimpan..."){
+  document.getElementById("loader").style.display="flex";
+  document.getElementById("loader").querySelector("div+div").textContent=msg;
+}
+function hideLoader(){ document.getElementById("loader").style.display="none"; }
+
+function toast(msg, type="green"){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.display="block";
+  t.style.background=type==="green"?"#00b894":type==="red"?"#ef4444":"#f0a500";
+  t.style.color=type==="amber"?"#000":"#fff";
+  setTimeout(()=>t.style.display="none",3500);
+}
+
+function nextNo(prefix){
+  const nums=jurnal.filter(j=>j.no&&j.no.startsWith(prefix)).map(j=>parseInt(j.no.split("-")[1])||0);
+  return `${prefix}-${String((nums.length?Math.max(...nums):0)+1).padStart(3,"0")}`;
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────
+async function loadAll(){
+  showLoader("Memuat data dari database...");
+  try{
+    [jurnal, aset, utangBank, usersProyek] = await Promise.all([
+      sbGet("jurnal","select=*"),
+      sbGet("aset","select=*"),
+      sbGet("utang_bank","select=*").catch(()=>[]),
+      sbGet("users_proyek","select=*").catch(()=>[]),
+    ]);
+    // normalize field names (supabase lowercase)
+    jurnal = jurnal.map(j=>({...j, D:parseFloat(j.d)||0, K:parseFloat(j.k)||0}));
+    utangBank = utangBank.map(u=>({...u, pokok:parseFloat(u.pokok)||0, potongan_per_unit:parseFloat(u.potongan_per_unit)||0, terbayar:parseFloat(u.terbayar)||0}));
+  }catch(e){
+    toast("Gagal memuat data: "+e.message,"red");
+  }
+  hideLoader();
+  renderMenu();
+}
+
+// ── SALDO CALC ────────────────────────────────────────────────────
+function calcSaldo(){
+  const s={};
+  COA.forEach(a=>{s[a.kode]={...a,D:0,K:0}});
+  jurnal.forEach(j=>{
+    if(!s[j.akun]) s[j.akun]={kode:j.akun,nama:j.nama,kat:"",tipe:"D",D:0,K:0};
+    s[j.akun].D += j.D||0;
+    s[j.akun].K += j.K||0;
+  });
+  return s;
+}
+function getSaldo(kode,sm){ const a=sm[kode]; if(!a) return 0; return a.tipe==="D"?a.D-a.K:a.K-a.D; }
+function sumKat(kat,sm){ return Object.values(sm).filter(a=>a.kat===kat).reduce((s,a)=>s+getSaldo(a.kode,sm),0); }
+function proyekSaldo(pid,sm){ return getSaldo(REK_COA[pid],sm)+getSaldo("1-1001",sm); }
+function proyekPend(pid){ return jurnal.filter(j=>j.proyek===pid&&COA.find(c=>c.kode===j.akun&&c.kat==="Pendapatan")).reduce((s,j)=>s+j.K,0); }
+function proyekBeban(pid){ return jurnal.filter(j=>j.proyek===pid&&COA.find(c=>c.kode===j.akun&&(c.kat==="HPP"||c.kat==="Beban Operasional"))).reduce((s,j)=>s+j.D,0); }
+
+// ── KAS MASUK ─────────────────────────────────────────────────────
+async function simpanKM(){
+  const tgl=v("km-tgl"),no=v("km-no"),pid=v("km-proyek"),rek=v("km-rek"),
+        jenis=v("km-jenis"),pembeli=v("km-pembeli"),unitId=v("km-unit"),
+        nominal=parseFloat(v("km-nominal"))||0,ket=v("km-ket");
+  if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama=COA.find(c=>c.kode===rek)?.nama||"";
+  const akunPend=jenis==="Penjualan Rumah"?"4-1001":jenis==="Uang Muka / DP"?"4-1002":"4-1003";
+  const pendNama=COA.find(c=>c.kode===akunPend)?.nama||"Pendapatan";
+  const keterangan=`${jenis}${unitId?" - "+aset.find(a=>a.id==unitId)?.blok:""}${pembeli?" ("+pembeli+")":""}${ket?" - "+ket:""}`;
+  showLoader("Menyimpan kas masuk...");
+  try{
+    const rows = await sbInsert("jurnal",[
+      {tgl,no,ket:keterangan,akun:rek,    nama:rekNama, proyek:pid,d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:akunPend,nama:pendNama,proyek:pid,d:0,k:nominal},
+    ]);
+    rows.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    if(unitId){
+      const st=jenis==="Penjualan Rumah"?"terjual":"dp";
+      await sbUpdate("aset",unitId,{status:st,pembeli,tgl_jual:tgl});
+      const idx=aset.findIndex(a=>a.id==unitId);
+      if(idx>-1){aset[idx].status=st;aset[idx].pembeli=pembeli;aset[idx].tgl_jual=tgl;}
+    }
+    // ── AUTO POTONG UTANG BANK ──────────────────────────────────
+    // Hanya untuk transaksi penjualan rumah, cek utang aktif proyek
+    if(jenis==="Penjualan Rumah"){
+      const utangAktif = utangBank.filter(u=>
+        u.proyek===pid && (u.terbayar||0) < u.pokok && (u.potongan_per_unit||0)>0
+      );
+      for(const ub of utangAktif){
+        const sisa = ub.pokok - (ub.terbayar||0);
+        const potong = Math.min(ub.potongan_per_unit, sisa);
+        if(potong <= 0) continue;
+
+        // Update terbayar di tabel utang_bank
+        const terbayarBaru = (ub.terbayar||0) + potong;
+        await sbUpdate("utang_bank", ub.id, {terbayar: terbayarBaru});
+        const idx2 = utangBank.findIndex(u=>u.id===ub.id);
+        if(idx2>-1) utangBank[idx2].terbayar = terbayarBaru;
+
+        // Catat jurnal potongan otomatis
+        const noAuto = "APT-"+no;
+        const ketAuto = `[AUTO] Potongan utang ${ub.jenis} ${ub.bank} dari penjualan${unitId?" unit "+aset.find(a=>a.id==unitId)?.blok:""}`;
+        const rekAuto = REK_COA[pid] || "1-1001";
+        const rekAutoNama = COA.find(c=>c.kode===rekAuto)?.nama||"Bank";
+        const jAuto = await sbInsert("jurnal",[
+          {tgl,no:noAuto,ket:ketAuto,akun:"2-2001",nama:"KPR / Utang Jk Panjang",proyek:pid,d:potong,k:0},
+          {tgl,no:noAuto,ket:ketAuto,akun:rekAuto,nama:rekAutoNama,proyek:pid,d:0,k:potong},
+        ]);
+        jAuto.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+
+        const sisaBaru = ub.pokok - terbayarBaru;
+        toast(`✅ Kas Masuk tersimpan. Utang ${ub.bank} otomatis terpotong Rp ${fmt(potong)} — Sisa: Rp ${fmt(sisaBaru)}`,"amber");
+      }
+      if(utangAktif.length===0){
+        toast(`✅ Kas Masuk Rp ${fmt(nominal)} berhasil disimpan!`);
+      }
+    } else {
+      toast(`✅ Kas Masuk Rp ${fmt(nominal)} berhasil disimpan!`);
+    }
+    setV("km-nominal","");setV("km-pembeli","");setV("km-ket","");setV("km-no","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── KAS KELUAR ────────────────────────────────────────────────────
+async function simpanKK(){
+  const tgl=v("kk-tgl"),no=v("kk-no"),pid=v("kk-proyek"),rek=v("kk-rek"),
+        jenis=v("kk-jenis"),supplier=v("kk-supplier"),
+        nominal=parseFloat(v("kk-nominal"))||0,ket=v("kk-ket");
+  if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama=COA.find(c=>c.kode===rek)?.nama||"";
+  const akunBbn=jenis==="Pembelian Material"?"5-1001":jenis==="Bayar Distributor"?"5-1002":jenis==="Upah Tukang"?"5-1003":jenis==="Biaya Subkon"?"5-1004":"6-1007";
+  const bbnNama=COA.find(c=>c.kode===akunBbn)?.nama||jenis;
+  const keterangan=`${jenis}${supplier?" - "+supplier:""}${ket?" - "+ket:""}`;
+  showLoader("Menyimpan kas keluar...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl,no,ket:keterangan,akun:akunBbn,nama:bbnNama,proyek:pid,d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:rek,    nama:rekNama, proyek:pid,d:0,k:nominal},
+    ]);
+    rows.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast(`✅ Kas Keluar Rp ${fmt(nominal)} berhasil disimpan!`);
+    setV("kk-nominal","");setV("kk-supplier","");setV("kk-ket","");setV("kk-no","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── PINJAM ANTAR PROYEK ───────────────────────────────────────────
+async function simpanPAP(){
+  const tgl=v("pap-tgl"),no=v("pap-no"),dari=v("pap-dari"),ke=v("pap-ke"),
+        nominal=parseFloat(v("pap-nominal"))||0,ket=v("pap-ket");
+  if(!tgl||!no||!nominal) return toast("Lengkapi semua field!","red");
+  if(dari===ke) return toast("Proyek asal dan tujuan tidak boleh sama!","red");
+  const nmDari=getP(dari).nama,nmKe=getP(ke).nama;
+  const keterangan=`Pinjam antar proyek: ${nmDari} → ${nmKe}${ket?" ("+ket+")":""}`;
+  showLoader("Menyimpan pinjaman...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl,no,ket:keterangan,akun:"1-1006",nama:"Piutang Antar Proyek",proyek:dari,d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:REK_COA[dari],nama:`Bank ${nmDari}`,proyek:dari,d:0,k:nominal},
+      {tgl,no,ket:keterangan,akun:REK_COA[ke],  nama:`Bank ${nmKe}`,  proyek:ke,  d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:"2-1002",nama:"Utang Antar Proyek",proyek:ke,  d:0,k:nominal},
+    ]);
+    rows.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast(`✅ Pinjaman Rp ${fmt(nominal)} dari ${nmDari} ke ${nmKe} tersimpan!`);
+    setV("pap-nominal","");setV("pap-ket","");setV("pap-no","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── ASET ──────────────────────────────────────────────────────────
+async function simpanAset(){
+  const pid=v("ast-proyek"),tipe=v("ast-tipe"),blok=v("ast-blok"),
+        luas=parseFloat(v("ast-luas"))||0,harga=parseFloat(v("ast-harga"))||0,ket=v("ast-ket");
+  if(!blok||!harga) return toast("Lengkapi nama unit dan harga!","red");
+  showLoader("Menyimpan aset...");
+  try{
+    const rows=await sbInsert("aset",[{proyek:pid,tipe,blok,luas,harga,status:"tersedia",pembeli:"",ket}]);
+    aset.push(...rows);
+    toast(`✅ Aset ${blok} berhasil didaftarkan!`);
+    setV("ast-blok","");setV("ast-luas","");setV("ast-harga","");setV("ast-ket","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+async function hapusAset(id){
+  if(!confirm("Hapus aset ini?")) return;
+  showLoader("Menghapus...");
+  try{
+    await sbDelete("aset",id);
+    aset=aset.filter(a=>a.id!==id);
+    toast("🗑 Aset dihapus");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+async function hapusJurnal(no){
+  if(!confirm(`Hapus semua jurnal dengan no ${no}?`)) return;
+  showLoader("Menghapus jurnal...");
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/jurnal?no=eq.${encodeURIComponent(no)}`,{method:"DELETE",headers:HEADERS});
+    if(!r.ok) throw new Error(await r.text());
+    jurnal=jurnal.filter(j=>j.no!==no);
+    toast("🗑 Jurnal dihapus");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const fj=filterProyek==="ALL"?jurnal:jurnal.filter(j=>j.proyek===filterProyek);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ["Tanggal","No","Proyek","Keterangan","Kode Akun","Nama Akun","Debet","Kredit"],
+    ...fj.map(j=>[j.tgl,j.no,getP(j.proyek).nama,j.ket,j.akun,j.nama,j.D,j.K])
+  ]),"Jurnal");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ["Proyek","Tipe","Blok/Unit","Luas (m²)","Harga (Rp)","Status","Pembeli","Tgl Jual","Keterangan"],
+    ...aset.map(a=>[getP(a.proyek).nama,a.tipe,a.blok,a.luas,a.harga,a.status,a.pembeli,a.tgl_jual,a.ket])
+  ]),"Daftar Aset");
+  PROYEK.forEach(pr=>{
+    const rows=jurnal.filter(j=>j.proyek===pr.id);
+    const p=proyekPend(pr.id),b=proyekBeban(pr.id);
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+      [pr.nama],[pr.rek],[""],
+      ["Tanggal","No","Keterangan","Kode","Nama Akun","Debet","Kredit"],
+      ...rows.map(j=>[j.tgl,j.no,j.ket,j.akun,j.nama,j.D,j.K]),
+      ["","","","","Total",rows.reduce((s,j)=>s+j.D,0),rows.reduce((s,j)=>s+j.K,0)],
+      [""],["","Pendapatan","",p],["","Beban","",b],["","LABA","",p-b],
+    ]),pr.id);
+  });
+  XLSX.writeFile(wb,`MahaKarya-${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("📊 Excel berhasil didownload!","amber");
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────
+function v(id){ const el=document.getElementById(id); return el?el.value:""; }
+function setV(id,val){ const el=document.getElementById(id); if(el) el.value=val; }
+function setFilter(val){ filterProyek=val; renderMenu(); }
+function proyekTag(pid){ const p=getP(pid); return `<span class="tag" style="background:${p.warna}25;color:${p.warna}">${pid}</span>`; }
+function proyekSelect(id){
+  return `<select id="${id}" onchange="syncRek('${id}')">
+    ${PROYEK.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}
+  </select>`;
+}
+function rekSelect(id){
+  return `<select id="${id}">
+    <option value="1-1001">Kas Tunai</option>
+    <option value="1-1002">Al Fath Puuwatu — 1901 8811 4444 1</option>
+    <option value="1-1003">Introvert House — 4420 1881 4099 04</option>
+    <option value="1-1004">Loonars Living — 7801 8800 0168 1</option>
+    <option value="1-1005">Griya Cariu Indah — 5018 8000 2715</option>
+  </select>`;
+}
+function syncRek(proyekSelId){
+  const pid=v(proyekSelId);
+  const rekId=proyekSelId.replace("proyek","rek");
+  const el=document.getElementById(rekId);
+  if(el) el.value=REK_COA[pid]||"1-1001";
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+function renderNav(){
+  document.getElementById("nav").innerHTML=MENUS.map(m=>`
+    <button onclick="setMenu('${m}')" style="padding:10px 12px;background:none;border:none;cursor:pointer;font-size:10px;font-weight:700;color:${activeMenu===m?"var(--accent)":"var(--muted)"};border-bottom:2px solid ${activeMenu===m?"var(--accent)":"transparent"};white-space:nowrap;letter-spacing:.04em;font-family:inherit">
+      ${m.toUpperCase()}
+    </button>`).join("");
+}
+function setMenu(m){ activeMenu=m; renderNav(); renderMenu(); }
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderMenu(){
+  const sm=calcSaldo();
+  const totalPend=sumKat("Pendapatan",sm),totalHPP=sumKat("HPP",sm),totalOps=sumKat("Beban Operasional",sm);
+  const labaKotor=totalPend-totalHPP, labaBersih=labaKotor-totalOps;
+  const totalAL=sumKat("Aset Lancar",sm),totalAT=sumKat("Aset Tetap",sm);
+  const totalLL=sumKat("Liabilitas Lancar",sm),totalLP=sumKat("Liabilitas Panjang",sm);
+  const totalEk=sumKat("Ekuitas",sm)+labaBersih;
+  const ns=Object.values(sm).filter(a=>a.D>0||a.K>0).map(a=>({...a,sD:a.tipe==="D"?Math.max(0,a.D-a.K):0,sK:a.tipe==="K"?Math.max(0,a.K-a.D):0})).sort((a,b)=>a.kode.localeCompare(b.kode));
+  const fj=filterProyek==="ALL"?jurnal:jurnal.filter(j=>j.proyek===filterProyek);
+  const C=document.getElementById("content");
+
+  // ── DASHBOARD ──
+  if(activeMenu==="Dashboard"){
+    C.innerHTML=`
+    <div class="section-title">Saldo Rekening Per Proyek</div>
+    <div class="grid4" style="margin-bottom:20px">
+      ${PROYEK.map(p=>{
+        const pend=proyekPend(p.id),beban=proyekBeban(p.id),laba=pend-beban;
+        const jml=aset.filter(a=>a.proyek===p.id).length;
+        const terjual=aset.filter(a=>a.proyek===p.id&&a.status==="terjual").length;
+        return `<div class="card" style="margin-bottom:0;border-left:3px solid ${p.warna};padding:14px 16px">
+          <div style="font-size:10px;color:${p.warna};font-weight:700">${p.id}</div>
+          <div style="font-size:12px;font-weight:700;margin:2px 0">${p.nama}</div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:8px">${p.rek} · ${p.bank}</div>
+          <div style="font-size:15px;font-weight:700;color:${p.warna}">Rp ${fmt(proyekSaldo(p.id,sm))}</div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <div><div style="font-size:9px;color:var(--muted)">Pendapatan</div><div style="font-size:11px;color:var(--accent2)">Rp ${fmt(pend)}</div></div>
+            <div style="text-align:right"><div style="font-size:9px;color:var(--muted)">Beban</div><div style="font-size:11px;color:var(--danger)">Rp ${fmt(beban)}</div></div>
+          </div>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+            <span style="font-size:9px;color:var(--muted)">Laba</span>
+            <span style="font-size:11px;font-weight:700;color:${laba>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(laba)}</span>
+          </div>
+          <div style="margin-top:5px;font-size:9px;color:var(--muted)">${jml} unit · ${terjual} terjual</div>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="grid4" style="margin-bottom:16px">
+      ${[{l:"Total Aset",v:totalAL+totalAT,c:"var(--accent2)",i:"🏢"},{l:"Total Pendapatan",v:totalPend,c:"var(--accent)",i:"📈"},{l:"Laba Kotor",v:labaKotor,c:labaKotor>=0?"var(--accent2)":"var(--danger)",i:"💰"},{l:"Laba Bersih",v:labaBersih,c:labaBersih>=0?"var(--accent2)":"var(--danger)",i:"✅"}]
+        .map(k=>`<div class="card" style="margin-bottom:0;padding:12px 14px">
+          <div style="font-size:18px;margin-bottom:4px">${k.i}</div>
+          <div class="label">${k.l}</div>
+          <div style="font-size:14px;font-weight:700;color:${k.c};margin-top:4px">Rp ${fmt(k.v)}</div>
+        </div>`).join("")}
+    </div>
+    <div class="card">
+      <div class="section-title">Ringkasan Aset</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
+        <div>Total Unit: <b style="color:var(--accent)">${aset.length}</b></div>
+        <div>Tersedia: <b style="color:var(--accent2)">${aset.filter(a=>a.status==="tersedia").length}</b></div>
+        <div>DP/Booking: <b style="color:var(--purple)">${aset.filter(a=>a.status==="dp").length}</b></div>
+        <div>Terjual: <b style="color:var(--danger)">${aset.filter(a=>a.status==="terjual").length}</b></div>
+        <div>Nilai Total: <b style="color:var(--accent)">Rp ${fmt(aset.reduce((s,a)=>s+a.harga,0))}</b></div>
+        <div>Nilai Tersedia: <b style="color:var(--accent2)">Rp ${fmt(aset.filter(a=>a.status==="tersedia").reduce((s,a)=>s+a.harga,0))}</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Transaksi Terbaru</div>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th></tr></thead>
+      <tbody>${[...jurnal].reverse().slice(0,10).map(j=>`<tr>
+        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td>${proyekTag(j.proyek)}</td>
+        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
+        <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
+      </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada transaksi</td></tr>'}
+      </tbody></table></div>
+    </div>`;
+  }
+
+  // ── ASET ──
+  else if(activeMenu==="Aset"){
+    const fAset=filterProyek==="ALL"?aset:aset.filter(a=>a.proyek===filterProyek);
+    C.innerHTML=`
+    <div style="max-width:700px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:16px">🏠 DAFTARKAN ASET / UNIT PROPERTI</div>
+      <div class="grid2">
+        <div><label class="label">Proyek</label>${proyekSelect("ast-proyek")}</div>
+        <div><label class="label">Tipe Properti</label>
+          <select id="ast-tipe"><option>Rumah Tipe 36</option><option>Rumah Tipe 45</option><option>Rumah Tipe 54</option><option>Rumah Tipe 60</option><option>Rumah Tipe 70</option><option>Kavling</option><option>Ruko</option><option>Lainnya</option></select>
+        </div>
+        <div><label class="label">Nama Unit / Blok</label><input id="ast-blok" placeholder="Mis: Blok A1, Unit B-02"/></div>
+        <div><label class="label">Luas Bangunan (m²)</label><input id="ast-luas" type="number" placeholder="36"/></div>
+        <div style="grid-column:1/-1"><label class="label">Harga Jual (Rp)</label><input id="ast-harga" type="number" placeholder="350000000"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="label">Keterangan</label><input id="ast-ket" placeholder="Spesifikasi, lokasi, dll..."/></div>
+      <div style="margin-top:14px"><button class="btn btn-amber btn-full" onclick="simpanAset()">💾 Daftarkan Aset</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Daftar Aset — ${fAset.length} Unit</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        ${["tersedia","dp","terjual"].map(s=>`<div style="font-size:11px">
+          <span class="tag" style="background:${s==="tersedia"?"var(--accent2)":s==="dp"?"var(--purple)":"var(--danger)"}30;color:${s==="tersedia"?"var(--accent2)":s==="dp"?"var(--purple)":"var(--danger)"}">
+            ${s.toUpperCase()}
+          </span> <b>${fAset.filter(a=>a.status===s).length}</b>
+        </div>`).join("")}
+        <div style="margin-left:auto;font-size:11px;color:var(--muted)">
+          Nilai tersedia: <b style="color:var(--accent2)">Rp ${fmt(fAset.filter(a=>a.status==="tersedia").reduce((s,a)=>s+a.harga,0))}</b>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Proyek</th><th>Tipe</th><th>Unit/Blok</th><th>Luas</th><th style="text-align:right">Harga</th><th>Status</th><th>Pembeli</th><th></th></tr></thead>
+      <tbody>${fAset.length?fAset.map(a=>`<tr>
+        <td>${proyekTag(a.proyek)}</td>
+        <td style="color:var(--muted);font-size:10px">${a.tipe}</td>
+        <td style="font-weight:700">${a.blok}</td>
+        <td style="color:var(--muted)">${a.luas?a.luas+" m²":"-"}</td>
+        <td style="text-align:right;color:var(--accent);font-weight:700">${fmt(a.harga)}</td>
+        <td><span class="tag" style="background:${a.status==="tersedia"?"var(--accent2)":a.status==="dp"?"var(--purple)":"var(--danger)"}25;color:${a.status==="tersedia"?"var(--accent2)":a.status==="dp"?"var(--purple)":"var(--danger)"}">${a.status}</span></td>
+        <td style="color:var(--muted);font-size:10px">${a.pembeli||"-"}</td>
+        <td>${a.status==="tersedia"?`<button onclick="hapusAset(${a.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px">🗑</button>`:""}</td>
+      </tr>`).join(""):'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada aset terdaftar</td></tr>'}
+      </tbody></table></div>
+    </div></div>`;
+  }
+
+  // ── KAS MASUK ──
+  else if(activeMenu==="Kas Masuk"){
+    const pid=filterProyek!=="ALL"?filterProyek:"AFP";
+    C.innerHTML=`
+    <div style="max-width:620px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:16px">💰 INPUT KAS MASUK — PENJUALAN RUMAH</div>
+      <div class="grid2">
+        <div><label class="label">Tanggal</label><input type="date" id="km-tgl" value="${today()}"/></div>
+        <div><label class="label">No. Transaksi</label>
+          <div style="display:flex;gap:6px"><input id="km-no" placeholder="KM-001"/>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px;white-space:nowrap" onclick="setV('km-no',nextNo('KM'))">Auto</button></div>
+        </div>
+        <div><label class="label">Proyek</label>${proyekSelect("km-proyek")}</div>
+        <div><label class="label">Rekening Tujuan</label>${rekSelect("km-rek")}</div>
+        <div><label class="label">Jenis Pemasukan</label>
+          <select id="km-jenis"><option>Penjualan Rumah</option><option>Uang Muka / DP</option><option>Pelunasan KPR</option><option>Pendapatan Lain</option></select>
+        </div>
+        <div><label class="label">Pilih Unit Aset</label>
+          <select id="km-unit">
+            <option value="">-- Pilih unit (opsional) --</option>
+            ${aset.filter(a=>a.status!=="terjual").map(a=>`<option value="${a.id}">[${a.proyek}] ${a.blok} — Rp ${fmt(a.harga)}</option>`).join("")}
+          </select>
+        </div>
+        <div><label class="label">Nama Pembeli</label><input id="km-pembeli" placeholder="Nama pembeli / klien"/></div>
+        <div><label class="label">Nominal (Rp)</label><input type="number" id="km-nominal" placeholder="0"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="label">Keterangan</label><input id="km-ket" placeholder="Opsional..."/></div>
+      <div style="margin-top:14px"><button class="btn btn-green btn-full" onclick="simpanKM()">💾 Simpan Kas Masuk</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Riwayat Kas Masuk</div>
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th></th></tr></thead>
+      <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("KM")&&j.D>0).reverse().map(j=>`<tr>
+        <td>${j.tgl}</td><td style="color:var(--accent2)">${j.no}</td>
+        <td>${proyekTag(j.proyek)}</td>
+        <td style="color:var(--muted)">${j.ket}</td>
+        <td style="text-align:right;color:var(--accent2);font-weight:700">Rp ${fmt(j.D)}</td>
+        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+      </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
+      </tbody></table>
+    </div></div>`;
+    document.getElementById("km-proyek").value=pid;
+    document.getElementById("km-rek").value=REK_COA[pid];
+  }
+
+  // ── KAS KELUAR ──
+  else if(activeMenu==="Kas Keluar"){
+    const pid=filterProyek!=="ALL"?filterProyek:"AFP";
+    C.innerHTML=`
+    <div style="max-width:620px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:16px">🧾 INPUT KAS KELUAR — MATERIAL & DISTRIBUTOR</div>
+      <div class="grid2">
+        <div><label class="label">Tanggal</label><input type="date" id="kk-tgl" value="${today()}"/></div>
+        <div><label class="label">No. Transaksi</label>
+          <div style="display:flex;gap:6px"><input id="kk-no" placeholder="KK-001"/>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="setV('kk-no',nextNo('KK'))">Auto</button></div>
+        </div>
+        <div><label class="label">Proyek</label>${proyekSelect("kk-proyek")}</div>
+        <div><label class="label">Rekening Sumber</label>${rekSelect("kk-rek")}</div>
+        <div><label class="label">Jenis Pengeluaran</label>
+          <select id="kk-jenis"><option>Pembelian Material</option><option>Bayar Distributor</option><option>Upah Tukang</option><option>Biaya Subkon</option><option>Biaya Operasional</option><option>Lainnya</option></select>
+        </div>
+        <div><label class="label">Supplier / Distributor</label><input id="kk-supplier" placeholder="Nama supplier / vendor"/></div>
+        <div style="grid-column:1/-1"><label class="label">Nominal (Rp)</label><input type="number" id="kk-nominal" placeholder="0"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="label">Keterangan</label><input id="kk-ket" placeholder="Detail barang / pekerjaan..."/></div>
+      <div style="margin-top:14px"><button class="btn btn-red btn-full" onclick="simpanKK()">💾 Simpan Kas Keluar</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Riwayat Kas Keluar</div>
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th></th></tr></thead>
+      <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("KK")&&j.D>0).reverse().map(j=>`<tr>
+        <td>${j.tgl}</td><td style="color:var(--danger)">${j.no}</td>
+        <td>${proyekTag(j.proyek)}</td>
+        <td style="color:var(--muted)">${j.ket}</td>
+        <td style="text-align:right;color:var(--danger);font-weight:700">Rp ${fmt(j.D)}</td>
+        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+      </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
+      </tbody></table>
+    </div></div>`;
+    document.getElementById("kk-proyek").value=pid;
+    document.getElementById("kk-rek").value=REK_COA[pid];
+  }
+
+  // ── PINJAM ANTAR PROYEK ──
+  else if(activeMenu==="Pinjam Antar Proyek"){
+    C.innerHTML=`
+    <div style="max-width:560px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:16px">🔄 PINJAM ANTAR PROYEK</div>
+      <div style="padding:10px 14px;background:#a78bfa15;border:1px solid #a78bfa30;border-radius:8px;font-size:11px;color:var(--purple);margin-bottom:14px;line-height:1.6">
+        Mencatat peminjaman dana antar proyek. Otomatis buat jurnal <b>Piutang</b> (pemberi) dan <b>Utang Antar Proyek</b> (penerima).
+      </div>
+      <div class="grid2">
+        <div><label class="label">Tanggal</label><input type="date" id="pap-tgl" value="${today()}"/></div>
+        <div><label class="label">No. Transaksi</label>
+          <div style="display:flex;gap:6px"><input id="pap-no" placeholder="PAP-001"/>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="setV('pap-no',nextNo('PAP'))">Auto</button></div>
+        </div>
+        <div><label class="label">Dana DARI Proyek</label>
+          <select id="pap-dari">${PROYEK.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}</select>
+          <div id="saldo-dari" style="font-size:9px;color:var(--muted);margin-top:3px">Saldo: Rp ${fmt(proyekSaldo("AFP",sm))}</div>
+        </div>
+        <div><label class="label">Dana KE Proyek</label>
+          <select id="pap-ke">${PROYEK.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}</select>
+        </div>
+        <div style="grid-column:1/-1"><label class="label">Nominal (Rp)</label><input type="number" id="pap-nominal" placeholder="0"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="label">Keterangan</label><input id="pap-ket" placeholder="Alasan peminjaman..."/></div>
+      <div style="margin-top:14px"><button class="btn btn-purple btn-full" onclick="simpanPAP()">💾 Catat Pinjaman</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Riwayat Pinjaman</div>
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Keterangan</th><th style="text-align:right">Nominal</th></tr></thead>
+      <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("PAP")&&j.akun==="1-1006").map(j=>`<tr>
+        <td>${j.tgl}</td><td style="color:var(--purple)">${j.no}</td>
+        <td style="color:var(--muted)">${j.ket}</td>
+        <td style="text-align:right;color:var(--purple);font-weight:700">Rp ${fmt(j.D)}</td>
+      </tr>`).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Belum ada pinjaman</td></tr>'}
+      </tbody></table>
+    </div></div>`;
+    document.getElementById("pap-ke").value="IH";
+  }
+
+  // ── JURNAL ──
+  else if(activeMenu==="Jurnal"){
+    C.innerHTML=`
+    <div class="card">
+      <div class="section-title">Jurnal Umum — ${fj.length} Entri</div>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th>Kode</th><th>Nama Akun</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th><th></th></tr></thead>
+      <tbody>${[...fj].reverse().map(j=>`<tr>
+        <td>${j.tgl}</td>
+        <td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td>${proyekTag(j.proyek)}</td>
+        <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="font-size:10px;font-family:monospace">${j.akun}</td>
+        <td>${j.nama}</td>
+        <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
+        <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
+        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+      </tr>`).join("")||'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Belum ada jurnal</td></tr>'}
+      </tbody></table></div>
+    </div>`;
+  }
+
+  // ── NERACA SALDO ──
+  else if(activeMenu==="Neraca Saldo"){
+    C.innerHTML=`
+    <div class="card">
+      <div class="section-title">Neraca Saldo</div>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Kode</th><th>Nama Akun</th><th>Kategori</th><th style="text-align:right">Saldo Debet</th><th style="text-align:right">Saldo Kredit</th></tr></thead>
+      <tbody>
+      ${ns.map(a=>`<tr>
+        <td style="font-family:monospace;color:var(--accent);font-size:10px">${a.kode}</td>
+        <td>${a.nama}</td><td style="color:var(--muted);font-size:10px">${a.kat}</td>
+        <td style="text-align:right;color:var(--accent2)">${a.sD>0?fmt(a.sD):"-"}</td>
+        <td style="text-align:right;color:var(--accent)">${a.sK>0?fmt(a.sK):"-"}</td>
+      </tr>`).join("")||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
+      <tr style="background:var(--border)">
+        <td colspan="3" style="padding:9px 14px;font-weight:700">TOTAL</td>
+        <td style="text-align:right;padding:9px 14px;font-weight:700;color:var(--accent2)">${fmt(ns.reduce((s,a)=>s+a.sD,0))}</td>
+        <td style="text-align:right;padding:9px 14px;font-weight:700;color:var(--accent)">${fmt(ns.reduce((s,a)=>s+a.sK,0))}</td>
+      </tr></tbody></table></div>
+    </div>`;
+  }
+
+  // ── LABA RUGI ──
+  else if(activeMenu==="Laba Rugi"){
+    C.innerHTML=`
+    <div style="max-width:600px"><div class="card">
+      <div style="text-align:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:700">${PERUSAHAAN}</div>
+        <div style="font-size:12px;color:var(--accent);margin-top:3px">LAPORAN LABA RUGI</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Periode Berjalan</div>
+      </div>
+      ${[{title:"PENDAPATAN",kat:"Pendapatan",total:totalPend,tc:"var(--accent2)"},
+         {title:"BEBAN PROYEK / HPP",kat:"HPP",total:totalHPP,tc:"var(--danger)"},
+         {title:"BEBAN OPERASIONAL",kat:"Beban Operasional",total:totalOps,tc:"var(--purple)"}].map(g=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:${g.tc};margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">${g.title}</div>
+        ${Object.values(sm).filter(a=>a.kat===g.kat).map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.s>0).map(a=>`
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(30,45,64,.3)">
+          <span style="font-size:11px;color:var(--muted)">${a.kode} — ${a.nama}</span>
+          <span style="font-size:11px;color:${g.tc}">Rp ${fmt(a.s)}</span>
+        </div>`).join("")}
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--border);font-weight:700">
+          <span style="font-size:11px">Total ${g.title}</span>
+          <span style="font-size:11px;color:${g.tc}">Rp ${fmt(g.total)}</span>
+        </div>
+      </div>`).join("")}
+      <div style="background:var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;font-weight:700">
+        <span>LABA KOTOR</span><span style="color:${labaKotor>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(labaKotor)}</span>
+      </div>
+      <div style="background:${labaBersih>=0?"#0d2a1e":"#2a0d0d"};border:1px solid ${labaBersih>=0?"var(--accent2)":"var(--danger)"};border-radius:8px;padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;font-weight:700">
+          <span style="font-size:14px">LABA BERSIH</span>
+          <span style="font-size:14px;color:${labaBersih>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(labaBersih)}</span>
+        </div>
+        ${totalPend>0?`<div style="font-size:10px;color:var(--muted);margin-top:3px">Net Margin: ${((labaBersih/totalPend)*100).toFixed(1)}%</div>`:""}
+      </div>
+    </div></div>`;
+  }
+
+  // ── NERACA ──
+  else if(activeMenu==="Neraca"){
+    const isBalance=Math.abs((totalAL+totalAT)-(totalLL+totalLP+totalEk))<1;
+    C.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">ASET</div>
+      ${[{l:"ASET LANCAR",k:"Aset Lancar",t:totalAL},{l:"ASET TETAP",k:"Aset Tetap",t:totalAT}].map(g=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${g.l}</div>
+        ${Object.values(sm).filter(a=>a.kat===g.k).map(a=>({...a,s:a.tipe==="D"?a.D-a.K:a.K-a.D})).filter(a=>a.s!==0).map(a=>`
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
+          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+        </div>`).join("")}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);font-weight:700">
+          <span style="font-size:11px">Total</span><span style="font-size:11px;color:var(--accent2)">${fmt(g.t)}</span>
+        </div>
+      </div>`).join("")}
+      <div style="background:var(--border);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;font-weight:700">
+        <span>TOTAL ASET</span><span style="color:var(--accent2)">Rp ${fmt(totalAL+totalAT)}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">LIABILITAS & EKUITAS</div>
+      ${[{l:"LIABILITAS LANCAR",k:"Liabilitas Lancar",t:totalLL},{l:"LIABILITAS PANJANG",k:"Liabilitas Panjang",t:totalLP}].map(g=>`
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${g.l}</div>
+        ${Object.values(sm).filter(a=>a.kat===g.k).map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.s>0).map(a=>`
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
+          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+        </div>`).join("")}
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-weight:700">
+          <span style="font-size:10px">Total</span><span style="font-size:10px;color:var(--accent)">${fmt(g.t)}</span>
+        </div>
+      </div>`).join("")}
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">EKUITAS</div>
+        ${Object.values(sm).filter(a=>a.kat==="Ekuitas").map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).map(a=>`
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
+          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+        </div>`).join("")}
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
+          <span style="font-size:10px;color:var(--muted)">Laba Bersih Periode</span>
+          <span style="font-size:10px;color:${labaBersih>=0?"var(--accent2)":"var(--danger)"}">${fmt(labaBersih)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-weight:700">
+          <span style="font-size:10px">Total Ekuitas</span><span style="font-size:10px;color:var(--accent2)">${fmt(totalEk)}</span>
+        </div>
+      </div>
+      <div style="background:var(--border);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;font-weight:700">
+        <span>TOTAL L+E</span><span style="color:var(--accent)">Rp ${fmt(totalLL+totalLP+totalEk)}</span>
+      </div>
+      <div style="text-align:center;margin-top:8px;font-size:9px;color:${isBalance?"var(--accent2)":"var(--danger)"}">
+        ${isBalance?"✓ Neraca Balance":"⚠ Neraca Tidak Balance"}
+      </div>
+    </div></div>`;
+  }
+
+
+  // ── UTANG BANK ──
+  else if(activeMenu==="Utang Bank"){
+    const ubFilter = filterProyek==="ALL" ? utangBank : utangBank.filter(u=>u.proyek===filterProyek);
+    C.innerHTML=`
+    <div class="grid2" style="gap:16px;margin-bottom:16px">
+      <div class="card" style="margin-bottom:0">
+        <div class="section-title">Tambah Utang Bank</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <span class="label">Proyek</span>
+            ${proyekSelect("ub-proyek")}
+          </div>
+          <div>
+            <span class="label">Jenis Utang</span>
+            <select id="ub-jenis">
+              <option value="Kredit Konstruksi">Kredit Konstruksi (KMK)</option>
+              <option value="Utang Tanah">Utang Tanah</option>
+              <option value="Utang Modal Kerja">Utang Modal Kerja</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <span class="label">Nama Bank</span>
+            <input id="ub-bank" placeholder="BSI, BRI, BNI, dll" type="text"/>
+          </div>
+          <div>
+            <span class="label">No. Rekening / Akad</span>
+            <input id="ub-noakad" placeholder="No akad pinjaman" type="text"/>
+          </div>
+          <div>
+            <span class="label">Pokok Pinjaman (Rp)</span>
+            <input id="ub-pokok" type="number" placeholder="500000000"/>
+          </div>
+          <div>
+            <span class="label">Potongan per Unit Terjual (Rp)</span>
+            <input id="ub-potunit" type="number" placeholder="50000000"/>
+          </div>
+          <div>
+            <span class="label">Tanggal Akad</span>
+            <input id="ub-tgl" type="date"/>
+          </div>
+          <div>
+            <span class="label">Jatuh Tempo</span>
+            <input id="ub-jttempo" type="date"/>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <span class="label">Keterangan</span>
+          <input id="ub-ket" type="text" placeholder="Keterangan tambahan"/>
+        </div>
+        <button class="btn btn-amber btn-full" onclick="simpanUtang()">+ Catat Utang Bank</button>
+      </div>
+
+      <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:center">
+        <div style="text-align:center;padding:20px">
+          <div style="font-size:28px;margin-bottom:12px">⚡</div>
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Pemotongan Otomatis Aktif</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7">
+            Setiap ada <b style="color:var(--text)">Penjualan Rumah</b> di menu Kas Masuk,<br/>
+            utang bank proyek terkait akan <b style="color:var(--accent2)">otomatis terpotong</b><br/>
+            sesuai nilai <b style="color:var(--text)">Potongan per Unit</b> yang sudah diset.<br/><br/>
+            <span style="color:var(--accent)">Tidak perlu input pembayaran manual.</span>
+          </div>
+          <div style="margin-top:16px;padding:10px 14px;background:rgba(0,184,148,0.08);border:1px solid rgba(0,184,148,0.2);border-radius:8px;font-size:10px;color:var(--accent2)">
+            Riwayat potongan otomatis tercatat di menu Jurnal<br/>dengan prefix <b>APT-</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAFTAR UTANG -->
+    <div class="card">
+      <div class="section-title">Daftar Utang Bank ${filterProyek!=="ALL"?"— "+getP(filterProyek).nama:""}</div>
+      ${ubFilter.length===0?`<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Belum ada utang bank tercatat</div>`:`
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Proyek</th><th>Jenis</th><th>Bank</th>
+          <th>Pokok</th><th>Terbayar</th><th>Sisa</th>
+          <th>Pot/Unit</th><th>Progress</th><th>J.Tempo</th><th></th>
+        </tr></thead>
+        <tbody>
+        ${ubFilter.map(u=>{
+          const sisa=u.pokok-(u.terbayar||0);
+          const pct=u.pokok>0?Math.min(100,((u.terbayar||0)/u.pokok)*100):0;
+          const p=getP(u.proyek);
+          const lunas=sisa<=0;
+          return `<tr>
+            <td><span class="tag" style="background:${p.warna}22;color:${p.warna}">${u.proyek}</span></td>
+            <td style="font-size:11px">${u.jenis||"-"}</td>
+            <td style="font-size:11px">${u.bank||"-"}</td>
+            <td style="font-size:11px">Rp ${fmt(u.pokok)}</td>
+            <td style="font-size:11px;color:var(--accent2)">Rp ${fmt(u.terbayar||0)}</td>
+            <td style="font-size:11px;color:${lunas?"var(--accent2)":"var(--danger)"}">
+              ${lunas?"✓ LUNAS":"Rp "+fmt(sisa)}
+            </td>
+            <td style="font-size:11px;color:var(--accent)">Rp ${fmt(u.potongan_per_unit||0)}</td>
+            <td style="min-width:100px">
+              <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:${lunas?"var(--accent2)":"var(--accent)"}"></div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);margin-top:2px">${pct.toFixed(1)}%</div>
+            </td>
+            <td style="font-size:10px;color:var(--muted)">${u.jt_tempo||"-"}</td>
+            <td>
+              <button class="btn btn-red" style="padding:4px 8px;font-size:10px" onclick="hapusUtang(${u.id})">✕</button>
+            </td>
+          </tr>`;
+        }).join("")}
+        </tbody>
+      </table>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap">
+        <div><span style="font-size:10px;color:var(--muted)">Total Pokok</span><br/><span style="font-weight:700;color:var(--danger)">Rp ${fmt(ubFilter.reduce((s,u)=>s+u.pokok,0))}</span></div>
+        <div><span style="font-size:10px;color:var(--muted)">Total Terbayar</span><br/><span style="font-weight:700;color:var(--accent2)">Rp ${fmt(ubFilter.reduce((s,u)=>s+(u.terbayar||0),0))}</span></div>
+        <div><span style="font-size:10px;color:var(--muted)">Total Sisa Utang</span><br/><span style="font-weight:700;color:var(--danger)">Rp ${fmt(ubFilter.reduce((s,u)=>s+Math.max(0,u.pokok-(u.terbayar||0)),0))}</span></div>
+      </div>
+      `}
+    </div>
+    `;
+  }
+
+
+  // ── USERS ──
+  else if(activeMenu==="Users"){
+    C.innerHTML=`
+    <div class="grid2" style="gap:16px">
+
+      <!-- Form tambah user -->
+      <div class="card" style="margin-bottom:0">
+        <div class="section-title">👤 Tambah Admin Proyek</div>
+        <div style="margin-bottom:10px">
+          <span class="label">Email Admin</span>
+          <input type="email" id="usr-email" placeholder="admin@email.com"/>
+        </div>
+        <div style="margin-bottom:10px">
+          <span class="label">Password</span>
+          <input type="password" id="usr-pw" placeholder="Min. 6 karakter"/>
+        </div>
+        <div style="margin-bottom:10px">
+          <span class="label">Assign ke Proyek</span>
+          <select id="usr-proyek">
+            ${PROYEK.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}
+          </select>
+        </div>
+        <div style="margin-bottom:14px">
+          <span class="label">Nama Admin (Opsional)</span>
+          <input type="text" id="usr-nama" placeholder="Nama lengkap admin"/>
+        </div>
+        <button class="btn btn-green btn-full" onclick="tambahUser()">+ Buat Akun Admin</button>
+        <div style="margin-top:10px;padding:10px;background:rgba(0,184,148,0.06);border:1px solid rgba(0,184,148,0.15);border-radius:8px;font-size:10px;color:var(--muted);line-height:1.6">
+          Admin yang dibuat hanya bisa akses halaman <b style="color:var(--text)">admin-proyek.html</b> dan hanya melihat data proyek yang di-assign.
+        </div>
+      </div>
+
+      <!-- Info & daftar users -->
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="section-title">ℹ️ Link Halaman Admin Proyek</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Bagikan link ini ke admin proyek:</div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;color:var(--accent);word-break:break-all">
+            ${window.location.origin}/admin-proyek.html
+          </div>
+          <button class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:10px;width:100%" onclick="navigator.clipboard.writeText(window.location.origin+'/admin-proyek.html');toast('Link disalin!','amber')">📋 Salin Link</button>
+        </div>
+
+        <div class="card" style="margin-bottom:0">
+          <div class="section-title">Daftar Admin Proyek (${usersProyek.length})</div>
+          ${usersProyek.length===0
+            ? `<div style="color:var(--muted);font-size:11px;text-align:center;padding:20px">Belum ada admin proyek</div>`
+            : `<table><thead><tr><th>Email</th><th>Proyek</th><th>Nama</th><th></th></tr></thead><tbody>
+              ${usersProyek.map(u=>{
+                const p=PROYEK.find(pr=>pr.id===u.proyek_id)||{warna:"#888",nama:u.proyek_id};
+                return `<tr>
+                  <td style="font-size:11px">${u.email}</td>
+                  <td><span class="tag" style="background:${p.warna}22;color:${p.warna}">${u.proyek_id}</span></td>
+                  <td style="font-size:11px;color:var(--muted)">${u.nama||"-"}</td>
+                  <td><button class="btn btn-red" style="padding:3px 8px;font-size:10px" onclick="hapusUser(${u.id},'${u.email}')">✕</button></td>
+                </tr>`;
+              }).join("")}
+            </tbody></table>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── COA ──
+  else if(activeMenu==="COA"){
+    const kats=["Aset Lancar","Aset Tetap","Liabilitas Lancar","Liabilitas Panjang","Ekuitas","Pendapatan","HPP","Beban Operasional"];
+    C.innerHTML=`
+    <div class="card">
+      <div class="section-title">Chart of Accounts — ${COA.length} Akun</div>
+      ${kats.map(kat=>`
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">${kat}</div>
+        <table style="margin-bottom:0"><tbody>
+        ${COA.filter(a=>a.kat===kat).map(a=>`<tr>
+          <td style="font-family:monospace;color:var(--accent);width:100px;font-size:10px">${a.kode}</td>
+          <td>${a.nama}</td>
+          ${a.rek?`<td style="color:var(--muted);font-size:10px">${a.rek}</td>`:"<td></td>"}
+          <td style="width:70px"><span class="tag" style="background:${a.tipe==="D"?"var(--accent2)":"var(--accent)"}30;color:${a.tipe==="D"?"var(--accent2)":"var(--accent)"}">${a.tipe==="D"?"Debet":"Kredit"}</span></td>
+        </tr>`).join("")}
+        </tbody></table>
+      </div>`).join("")}
+    </div>`;
+  }
+}
+
+
+
+// ── USER MANAGEMENT ───────────────────────────────────────────────
+async function tambahUser(){
+  const email = document.getElementById("usr-email")?.value?.trim();
+  const pw    = document.getElementById("usr-pw")?.value;
+  const pid   = document.getElementById("usr-proyek")?.value;
+  const nama  = document.getElementById("usr-nama")?.value?.trim();
+  if(!email||!pw||!pid) return toast("Lengkapi email, password, dan proyek!","red");
+  if(pw.length<6) return toast("Password minimal 6 karakter!","red");
+  if(usersProyek.find(u=>u.email===email)) return toast("Email sudah terdaftar!","red");
+
+  showLoader("Membuat akun admin...");
+  try{
+    // 1. Buat akun di Supabase Auth menggunakan service role key
+    if(SB_SERVICE_KEY==="GANTI_DENGAN_SERVICE_ROLE_KEY_ANDA"){
+      throw new Error("Service role key belum diisi di file index.html!");
+    }
+    const authRes = await fetch(`${SB_URL}/auth/v1/admin/users`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey": SB_SERVICE_KEY,
+        "Authorization": "Bearer " + SB_SERVICE_KEY
+      },
+      body:JSON.stringify({email, password:pw, email_confirm:true})
+    });
+    if(!authRes.ok){
+      const err = await authRes.json();
+      throw new Error(err.msg||err.message||"Gagal membuat akun di Supabase");
+    }
+
+    // 2. Simpan mapping user → proyek
+    const rows = await sbInsert("users_proyek",[{email, proyek_id:pid, nama:nama||email}]);
+    usersProyek.push(...rows);
+
+    toast(`✅ Admin ${email} berhasil dibuat untuk proyek ${pid}!`);
+    document.getElementById("usr-email").value="";
+    document.getElementById("usr-pw").value="";
+    document.getElementById("usr-nama").value="";
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+async function hapusUser(id, email){
+  if(!confirm(`Hapus akses admin ${email}? Akun Supabase Auth tidak ikut terhapus.`)) return;
+  showLoader("Menghapus...");
+  try{
+    await sbDelete("users_proyek", id);
+    usersProyek = usersProyek.filter(u=>u.id!==id);
+    toast(`Akses ${email} dicabut`,"amber");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── UTANG BANK FUNCTIONS ──────────────────────────────────────────
+async function simpanUtang(){
+  const pid=v("ub-proyek"),jenis=v("ub-jenis"),bank=v("ub-bank"),
+        noakad=v("ub-noakad"),pokok=parseFloat(v("ub-pokok"))||0,
+        potUnit=parseFloat(v("ub-potunit"))||0,
+        tgl=v("ub-tgl"),jttempo=v("ub-jttempo"),ket=v("ub-ket");
+  if(!pid||!pokok||!bank) return toast("Lengkapi proyek, bank, dan pokok pinjaman!","red");
+  showLoader("Menyimpan utang bank...");
+  try{
+    // Simpan ke tabel utang_bank
+    const rows=await sbInsert("utang_bank",[{
+      proyek:pid, jenis, bank, no_akad:noakad,
+      pokok, potongan_per_unit:potUnit,
+      tgl_akad:tgl||null, jt_tempo:jttempo||null,
+      terbayar:0, ket
+    }]);
+    utangBank.push(...rows.map(u=>({...u,pokok:parseFloat(u.pokok)||0,potongan_per_unit:parseFloat(u.potongan_per_unit)||0,terbayar:parseFloat(u.terbayar)||0})));
+
+    // Catat di jurnal: Debet Kas/Bank, Kredit Utang Bank
+    const rekNama=COA.find(c=>c.kode===REK_COA[pid])?.nama||"Bank "+pid;
+    const no="UTG-"+String(utangBank.length).padStart(3,"0");
+    const ket2=`Penerimaan utang ${jenis} — ${bank}${noakad?" ("+noakad+")":""}`;
+    const jRows=await sbInsert("jurnal",[
+      {tgl:tgl||today(),no,ket:ket2,akun:REK_COA[pid],nama:rekNama,proyek:pid,d:pokok,k:0},
+      {tgl:tgl||today(),no,ket:ket2,akun:"2-2001",nama:"KPR / Utang Jk Panjang",proyek:pid,d:0,k:pokok},
+    ]);
+    jRows.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+
+    toast(`✅ Utang ${bank} Rp ${fmt(pokok)} berhasil dicatat!`);
+    ["ub-bank","ub-noakad","ub-pokok","ub-potunit","ub-tgl","ub-jttempo","ub-ket"].forEach(id=>setV(id,""));
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+async function bayarUtang(){
+  const uid=v("pay-utang-id"),tgl=v("pay-tgl"),no=v("pay-no"),
+        nominal=parseFloat(v("pay-nominal"))||0,
+        rek=v("pay-rek"),ket=v("pay-ket");
+  if(!uid||!nominal||!tgl||!no) return toast("Lengkapi semua field pembayaran!","red");
+  const ub=utangBank.find(u=>String(u.id)===String(uid));
+  if(!ub) return toast("Utang tidak ditemukan","red");
+  const sisa=ub.pokok-(ub.terbayar||0);
+  if(nominal>sisa) return toast(`Pembayaran melebihi sisa utang Rp ${fmt(sisa)}!`,"red");
+
+  showLoader("Menyimpan pembayaran...");
+  try{
+    const terbayarBaru=(ub.terbayar||0)+nominal;
+    await sbUpdate("utang_bank",ub.id,{terbayar:terbayarBaru});
+    const idx=utangBank.findIndex(u=>u.id===ub.id);
+    if(idx>-1) utangBank[idx].terbayar=terbayarBaru;
+
+    // Jurnal: Debet Utang Bank, Kredit Kas/Bank
+    const rekNama=COA.find(c=>c.kode===rek)?.nama||rek;
+    const ketJ=`Pembayaran utang ${ub.jenis} — ${ub.bank}${ket?" ("+ket+")":""}`;
+    const jRows=await sbInsert("jurnal",[
+      {tgl,no,ket:ketJ,akun:"2-2001",nama:"KPR / Utang Jk Panjang",proyek:ub.proyek,d:nominal,k:0},
+      {tgl,no,ket:ketJ,akun:rek,nama:rekNama,proyek:ub.proyek,d:0,k:nominal},
+    ]);
+    jRows.forEach(r=>jurnal.push({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+
+    const sisaBaru=ub.pokok-terbayarBaru;
+    toast(`✅ Pembayaran Rp ${fmt(nominal)} tercatat. Sisa utang: Rp ${fmt(sisaBaru)}`);
+    ["pay-nominal","pay-no","pay-ket"].forEach(id=>setV(id,""));
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+async function hapusUtang(id){
+  if(!confirm("Hapus data utang ini? Jurnal terkait tidak ikut terhapus.")) return;
+  showLoader("Menghapus...");
+  try{
+    await sbDelete("utang_bank",id);
+    utangBank=utangBank.filter(u=>u.id!==id);
+    toast("Data utang dihapus","amber");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); renderMenu();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+renderNav();
+loadAll();
+</script>
+</body>
+</html>
