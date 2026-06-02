@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Proyek — PT. Maha Karya Haluoleo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f18;--card:#111827;--border:#1e2d40;
+  --accent:#f0a500;--accent2:#00b894;--text:#e2e8f0;
+  --muted:#64748b;--danger:#ef4444;--purple:#a78bfa;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;min-height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--accent)}
+button{cursor:pointer;font-family:inherit}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 14px;font-size:11px;color:var(--text);border-bottom:1px solid rgba(30,45,64,.4)}
+tr:hover td{background:rgba(30,45,64,.4)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-green{background:var(--accent2);color:#fff}
+.btn-red{background:var(--danger);color:#fff}
+.btn-amber{background:var(--accent);color:#000}
+.btn-ghost{background:var(--border);color:var(--muted)}
+.btn-full{width:100%;padding:12px;margin-top:4px}
+.label{font-size:10px;color:var(--muted);margin-bottom:4px;display:block;letter-spacing:.03em;text-transform:uppercase}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700}
+.section-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#toast{position:fixed;top:20px;right:20px;z-index:9999;display:none;padding:12px 18px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:320px}
+#loader{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(11,15,24,.85);z-index:8888;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NAV TABS */
+.nav-tab{padding:10px 14px;background:none;border:none;cursor:pointer;font-size:10px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:.04em;font-family:inherit;transition:all .2s}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Stats card */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat-val{font-size:16px;font-weight:700;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div id="loader"><div class="spinner"></div><div style="font-size:12px;color:var(--muted)">Memuat...</div></div>
+
+<!-- TOP BAR -->
+<div style="background:#070b12;border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px">
+  <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏗</div>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12px;font-weight:700">PT. Maha Karya Haluoleo</div>
+    <div id="proyek-label" style="font-size:9px;color:var(--muted)">Memuat proyek...</div>
+  </div>
+  <div style="text-align:right">
+    <div id="user-email" style="font-size:9px;color:var(--muted)"></div>
+    <button class="btn btn-ghost" style="padding:5px 10px;font-size:10px;margin-top:3px" onclick="logout()">🔒 Keluar</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div style="background:#070b12;border-bottom:1px solid var(--border);display:flex;overflow-x:auto">
+  <button class="nav-tab active" onclick="setTab('dashboard')">📊 DASHBOARD</button>
+  <button class="nav-tab" onclick="setTab('kas-masuk')">💰 KAS MASUK</button>
+  <button class="nav-tab" onclick="setTab('bahan')">🧱 BAHAN</button>
+  <button class="nav-tab" onclick="setTab('tukang')">👷 TUKANG</button>
+  <button class="nav-tab" onclick="setTab('laporan')">📋 LAPORAN</button>
+</div>
+
+<!-- CONTENT -->
+<div id="content" style="flex:1;overflow-y:auto;padding:16px"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+
+// ── TELEGRAM NOTIF ──────────────────────────────────────────────────────────
+const TG_TOKEN="8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8";
+const TG_CHAT="6948663174";
+async function sendTG(msg){try{const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_CHAT}&parse_mode=HTML&text=${encodeURIComponent(msg)}`;await fetch(url,{method:"GET",mode:"no-cors"})}catch(e){console.warn("TG:",e)}}
+const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
+
+const PROYEK_LIST = [
+  {id:"AFP",nama:"Al Fath Puuwatu",  rek:"1901 8811 4444 1", bank:"BSI",warna:"#f0a500"},
+  {id:"IH", nama:"Introvert House",  rek:"4420 1881 4099 04",bank:"BSI",warna:"#00b894"},
+  {id:"LL", nama:"Loonars Living",   rek:"7801 8800 0168 1", bank:"BSI",warna:"#a78bfa"},
+  {id:"GCI",nama:"Griya Cariu Indah",rek:"5018 8000 2715",   bank:"BSI",warna:"#38bdf8"},
+];
+const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005"};
+
+// ── STATE ─────────────────────────────────────────────────────────
+let USER_EMAIL = "";
+let MY_PROYEK  = null; // {id, nama, warna, ...}
+let jurnal      = [];
+let tukang      = [];
+let bayarTukangList = [];
+let aset        = [];
+let activeTab   = "dashboard";
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const fmt   = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
+const today = () => new Date().toISOString().slice(0,10);
+const v     = id => document.getElementById(id)?.value||"";
+const setV  = (id,val) => { const el=document.getElementById(id); if(el) el.value=val; };
+
+function showLoader(msg="Memuat..."){
+  document.getElementById("loader").style.display="flex";
+  document.getElementById("loader").querySelector("div+div").textContent=msg;
+}
+function hideLoader(){ document.getElementById("loader").style.display="none"; }
+
+function toast(msg, type="green"){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.display="block";
+  t.style.background=type==="green"?"#00b894":type==="red"?"#ef4444":"#f0a500";
+  t.style.color=type==="amber"?"#000":"#fff";
+  setTimeout(()=>t.style.display="none",4000);
+}
+
+function setTab(tab){
+  activeTab=tab;
+  document.querySelectorAll(".nav-tab").forEach(b=>b.classList.remove("active"));
+  event.target.classList.add("active");
+  render();
+}
+
+async function sbGet(table, params=""){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}&order=id.desc`,{headers:{...H,"Prefer":"return=representation"}});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(table, rows){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(rows)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table, id){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:"DELETE",headers:H});
+  if(!r.ok) throw new Error(await r.text());
+}
+
+// ── AUTH & SESSION ────────────────────────────────────────────────
+async function init(){
+  showLoader("Memeriksa sesi...");
+  const token = sessionStorage.getItem("sb_access_token");
+  const email = sessionStorage.getItem("sb_user_email");
+  if(!token){ window.location.href="login.html"; return; }
+
+  // Verifikasi token
+  const r = await fetch(`${SB_URL}/auth/v1/user`,{
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+token}
+  });
+  if(!r.ok){ sessionStorage.clear(); window.location.href="login.html"; return; }
+
+  USER_EMAIL = email || (await r.json()).email || "";
+  document.getElementById("user-email").textContent = USER_EMAIL;
+
+  // Ambil proyek yang di-assign ke user ini
+  showLoader("Mengambil data proyek...");
+  try{
+    const rows = await sbGet("users_proyek",`email=eq.${encodeURIComponent(USER_EMAIL)}&select=*`);
+    if(!rows || rows.length===0){
+      document.getElementById("content").innerHTML=`
+        <div style="text-align:center;padding:60px 20px">
+          <div style="font-size:40px;margin-bottom:16px">🚫</div>
+          <div style="font-size:14px;font-weight:700;color:var(--danger)">Akses Ditolak</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">
+            Akun <b>${USER_EMAIL}</b> belum di-assign ke proyek manapun.<br/>
+            Hubungi administrator untuk mendapatkan akses.
+          </div>
+        </div>`;
+      hideLoader(); return;
+    }
+    const pid = rows[0].proyek_id;
+    MY_PROYEK = PROYEK_LIST.find(p=>p.id===pid);
+    if(!MY_PROYEK){ toast("Proyek tidak ditemukan","red"); hideLoader(); return; }
+
+    document.getElementById("proyek-label").textContent = `Admin — ${MY_PROYEK.nama}`;
+    document.getElementById("proyek-label").style.color = MY_PROYEK.warna;
+
+    await loadData();
+  }catch(e){
+    toast("Gagal: "+e.message,"red");
+    hideLoader();
+  }
+}
+
+async function loadData(){
+  showLoader("Memuat data proyek...");
+  try{
+    const pid = MY_PROYEK.id;
+    [jurnal, tukang, bayarTukangList, aset] = await Promise.all([
+      sbGet("jurnal",`proyek=eq.${pid}&select=*`),
+      sbGet("tukang_borongan",`proyek=eq.${pid}&select=*`).catch(()=>[]),
+      sbGet("bayar_tukang",`proyek=eq.${pid}&select=*`).catch(()=>[]),
+      sbGet("aset",`proyek=eq.${pid}&select=*`).catch(()=>[]),
+    ]);
+    jurnal = jurnal.map(j=>({...j,D:parseFloat(j.d)||0,K:parseFloat(j.k)||0}));
+    tukang = tukang.map(t=>({...t,
+      nilai_kontrak:parseFloat(t.nilai_kontrak)||0,
+      harga_per_unit:parseFloat(t.harga_per_unit)||0,
+      total_unit:parseFloat(t.total_unit)||0,
+      terbayar:parseFloat(t.terbayar)||0,
+      unit_selesai:parseFloat(t.unit_selesai)||0,
+    }));
+    bayarTukangList = bayarTukangList.map(b=>({...b,
+      nominal:parseFloat(b.nominal)||0,
+      unit_minggu:parseFloat(b.unit_minggu)||0,
+    }));
+  }catch(e){ toast("Gagal memuat: "+e.message,"red"); }
+  hideLoader();
+  render();
+}
+
+function logout(){ sessionStorage.clear(); window.location.href="login.html"; }
+
+// ── KALKULASI ─────────────────────────────────────────────────────
+function totalKeluar(kat){
+  return jurnal.filter(j=>{
+    if(kat==="bahan") return ["5-1001","5-1002"].includes(j.akun);
+    if(kat==="tukang") return ["5-1003","5-1004"].includes(j.akun);
+    return false;
+  }).reduce((s,j)=>s+j.D,0);
+}
+function totalMasuk(){
+  return jurnal.filter(j=>["4-1001","4-1002","4-1003"].includes(j.akun)).reduce((s,j)=>s+j.K,0);
+}
+function saldoKas(){
+  const rekKode = REK_COA[MY_PROYEK.id];
+  const masuk = jurnal.filter(j=>j.akun===rekKode).reduce((s,j)=>s+j.D,0);
+  const keluar= jurnal.filter(j=>j.akun===rekKode).reduce((s,j)=>s+j.K,0);
+  return masuk-keluar;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function render(){
+  const C = document.getElementById("content");
+  const p = MY_PROYEK;
+  if(!p) return;
+
+  // ── DASHBOARD ──
+  if(activeTab==="dashboard"){
+    const totMasuk   = totalMasuk();
+    const totBahan   = totalKeluar("bahan");
+    const totTukang  = totalKeluar("tukang");
+    const totKeluar  = totBahan+totTukang;
+    const kas        = saldoKas();
+    const tkAktif    = tukang.filter(t=>t.terbayar<t.nilai_kontrak);
+    const tkSisaBayar= tukang.reduce((s,t)=>s+Math.max(0,t.nilai_kontrak-t.terbayar),0);
+
+    C.innerHTML=`
+    <div style="border-left:3px solid ${p.warna};padding-left:12px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:${p.warna}">${p.id} — ${p.nama}</div>
+      <div style="font-size:9px;color:var(--muted)">${p.bank} · ${p.rek}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="stat-card" style="border-left:3px solid var(--accent2)">
+        <div class="label">Saldo Kas Proyek</div>
+        <div class="stat-val" style="color:var(--accent2)">Rp ${fmt(kas)}</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--accent)">
+        <div class="label">Total Pendapatan</div>
+        <div class="stat-val" style="color:var(--accent)">Rp ${fmt(totMasuk)}</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid #38bdf8">
+        <div class="label">Pengeluaran Bahan</div>
+        <div class="stat-val" style="color:#38bdf8">Rp ${fmt(totBahan)}</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--purple)">
+        <div class="label">Bayar Tukang/Kontraktor</div>
+        <div class="stat-val" style="color:var(--purple)">Rp ${fmt(totTukang)}</div>
+      </div>
+    </div>
+
+    <!-- Ringkasan Tukang Aktif -->
+    <div class="card">
+      <div class="section-title">Tukang / Kontraktor Aktif</div>
+      ${tkAktif.length===0
+        ? `<div style="color:var(--muted);font-size:11px;text-align:center;padding:16px">Tidak ada kontrak aktif</div>`
+        : tkAktif.map(t=>{
+            const sisa=t.nilai_kontrak-t.terbayar;
+            const pct=Math.min(100,(t.terbayar/t.nilai_kontrak)*100);
+            return `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:12px;font-weight:700">${t.nama}</div>
+                <div style="font-size:10px;color:var(--muted)">${t.item||"-"}</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:10px;color:var(--muted)">Kontrak: <b style="color:var(--text)">Rp ${fmt(t.nilai_kontrak)}</b></span>
+                <span style="font-size:10px;color:var(--danger)">Sisa: <b>Rp ${fmt(sisa)}</b></span>
+              </div>
+              <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:var(--accent2)"></div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);margin-top:2px">${pct.toFixed(1)}% terbayar</div>
+            </div>`;
+          }).join("")
+      }
+      ${tkAktif.length>0?`
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-size:11px;color:var(--muted)">Total Sisa Bayar Tukang</span>
+        <span style="font-size:12px;font-weight:700;color:var(--danger)">Rp ${fmt(tkSisaBayar)}</span>
+      </div>`:""}
+    </div>
+
+    <!-- Transaksi Terakhir -->
+    <div class="card">
+      <div class="section-title">Transaksi Terakhir (10)</div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tgl</th><th>Keterangan</th><th>Debet</th><th>Kredit</th></tr></thead>
+        <tbody>
+          ${jurnal.slice(0,10).map(j=>`<tr>
+            <td style="white-space:nowrap">${j.tgl||"-"}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket||"-"}</td>
+            <td style="color:var(--danger)">${j.D>0?"Rp "+fmt(j.D):"-"}</td>
+            <td style="color:var(--accent2)">${j.K>0?"Rp "+fmt(j.K):"-"}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+
+  // ── KAS MASUK ──
+  else if(activeTab==="kas-masuk"){
+    const noKM = "KM-"+String(jurnal.filter(j=>j.no?.startsWith("KM")).length+1).padStart(3,"0");
+    const rekKode = REK_COA[p.id];
+    const blokOptions = aset.length>0
+      ? aset.map(a=>"<option value='"+a.blok+"'>"+a.blok+(a.pembeli?" — "+a.pembeli:"")+"</option>").join("")
+      : "<option value=''>-- Belum ada unit --</option>";
+    const kmList = jurnal.filter(j=>["4-1001","4-1002","4-1003"].includes(j.akun));
+
+    C.innerHTML="<div class='card'>"
+      +"<div class='section-title'>Input Kas Masuk — "+p.nama+"</div>"
+      +"<div class='grid2' style='margin-bottom:10px'>"
+      +"<div><span class='label'>Tanggal</span><input type='date' id='km-tgl' value='"+today()+"'/></div>"
+      +"<div><span class='label'>No Transaksi</span><input type='text' id='km-no' value='"+noKM+"'/></div>"
+      +"</div>"
+      +"<div style='margin-bottom:10px'><span class='label'>Pilih Blok / Unit</span>"
+      +"<select id='km-blok'>"+blokOptions+"</select></div>"
+      +"<div style='margin-bottom:10px'><span class='label'>Jenis Penerimaan</span>"
+      +"<select id='km-jenis'>"
+      +"<option>Uang Muka / DP</option>"
+      +"<option>Cicilan Pembeli</option>"
+      +"<option>Pelunasan</option>"
+      +"<option>Pendapatan Lain</option>"
+      +"</select></div>"
+      +"<div style='margin-bottom:10px'><span class='label'>Nama Pembeli</span>"
+      +"<input type='text' id='km-pembeli' placeholder='Nama pembeli atau sumber dana'/></div>"
+      +"<div class='grid2' style='margin-bottom:10px'>"
+      +"<div><span class='label'>Nominal (Rp)</span><input type='number' id='km-nominal' placeholder='0'/></div>"
+      +"<div><span class='label'>Via</span><select id='km-via'>"
+      +"<option value='"+rekKode+"'>Transfer Bank "+p.bank+"</option>"
+      +"<option value='1-1001'>Tunai</option>"
+      +"</select></div></div>"
+      +"<div style='margin-bottom:14px'><span class='label'>Keterangan</span>"
+      +"<input type='text' id='km-ket' placeholder='Keterangan tambahan'/></div>"
+      +"<div style='display:flex;gap:10px'>"
+      +"<button class='btn btn-green' style='flex:1' onclick='simpanKasMasuk()'>+ Simpan</button>"
+      +"<button class='btn btn-amber' style='flex:1' onclick='simpanDanCetakKwitansi()'>🖨 Simpan & Cetak Kwitansi</button>"
+      +"</div></div>"
+
+      +"<div class='card'>"
+      +"<div class='section-title'>Riwayat Kas Masuk ("+kmList.length+")</div>"
+      +"<div style='overflow-x:auto'><table>"
+      +"<thead><tr><th>Tgl</th><th>No</th><th>Keterangan</th><th>Nominal</th><th></th></tr></thead>"
+      +"<tbody>"
+      +(kmList.map(j=>
+        "<tr>"
+        +"<td>"+j.tgl+"</td>"
+        +"<td style='color:var(--accent)'>"+j.no+"</td>"
+        +"<td style='max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+j.ket+"</td>"
+        +"<td style='color:var(--accent2)'>Rp "+fmt(j.K)+"</td>"
+        +"<td><button class='btn btn-ghost' style='padding:3px 8px;font-size:10px' onclick='cetakKwitansiDariJurnal("+JSON.stringify(j)+")'>🖨</button></td>"
+        +"</tr>"
+      ).join("") || "<tr><td colspan='5' style='text-align:center;color:var(--muted)'>Belum ada data</td></tr>")
+      +"</tbody></table></div></div>";
+  }
+
+  // ── BAHAN ──
+  else if(activeTab==="bahan"){
+    const noKK = "KK-"+String(jurnal.filter(j=>j.no?.startsWith("KK")).length+1).padStart(3,"0");
+    const rekKode = REK_COA[p.id];
+    const bahanList = jurnal.filter(j=>["5-1001","5-1002"].includes(j.akun));
+    C.innerHTML=`
+    <div class="card">
+      <div class="section-title">Input Pembelian Bahan — ${p.nama}</div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><span class="label">Tanggal</span><input type="date" id="bh-tgl" value="${today()}"/></div>
+        <div><span class="label">No Transaksi</span><input type="text" id="bh-no" value="${noKK}"/></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <span class="label">Jenis Pembelian</span>
+        <select id="bh-jenis">
+          <option value="5-1001">Pembelian Material</option>
+          <option value="5-1002">Bayar Distributor</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
+        <span class="label">Nama Supplier / Toko</span>
+        <input type="text" id="bh-supplier" placeholder="Nama toko atau supplier"/>
+      </div>
+      <div style="margin-bottom:10px">
+        <span class="label">Nama Bahan / Item</span>
+        <input type="text" id="bh-item" placeholder="Semen, pasir, besi, dll"/>
+      </div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><span class="label">Nominal (Rp)</span><input type="number" id="bh-nominal" placeholder="0"/></div>
+        <div><span class="label">Bayar Via</span>
+          <select id="bh-rek">
+            <option value="${rekKode}">Transfer Bank ${p.bank}</option>
+            <option value="1-1001">Tunai</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <span class="label">Keterangan</span>
+        <input type="text" id="bh-ket" placeholder="Keterangan tambahan"/>
+      </div>
+      <button class="btn btn-amber btn-full" onclick="simpanBahan()">+ Simpan Pembelian Bahan</button>
+    </div>
+
+    <!-- Ringkasan -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="section-title" style="margin-bottom:0">Total Pengeluaran Bahan</div>
+        <div style="font-size:15px;font-weight:700;color:#38bdf8">Rp ${fmt(totalKeluar("bahan"))}</div>
+      </div>
+    </div>
+
+    <!-- Riwayat -->
+    <div class="card">
+      <div class="section-title">Riwayat Pembelian Bahan</div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tgl</th><th>No</th><th>Keterangan</th><th>Nominal</th></tr></thead>
+        <tbody>
+          ${bahanList.map(j=>`<tr>
+            <td>${j.tgl||"-"}</td>
+            <td style="color:var(--accent)">${j.no||"-"}</td>
+            <td>${j.ket||"-"}</td>
+            <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
+          </tr>`).join("")||`<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+
+  // ── TUKANG ──
+  else if(activeTab==="tukang"){
+    const rekKode = REK_COA[p.id];
+    const noTK = "TK-"+String(bayarTukangList.length+1).padStart(3,"0");
+
+    // Build tukang options
+    const aktif = tukang.filter(t=>t.terbayar<t.nilai_kontrak);
+    const tkOptions = aktif.length===0
+      ? "<option value=''>-- Belum ada kontrak aktif --</option>"
+      : aktif.map(t=>{
+          const sisaUnit=(t.total_unit||0)-(t.unit_selesai||0);
+          const sisaUang=t.nilai_kontrak-t.terbayar;
+          return "<option value='"+t.id+"' data-harga='"+(t.harga_per_unit||0)+"' data-sisa-unit='"+sisaUnit+"' data-sisa-uang='"+sisaUang+"'>"+t.nama+" — "+(t.item||"-")+"</option>";
+        }).join("");
+
+    // Build rekap rows
+    const rekapRows = tukang.map(t=>{
+      const sisaUang=t.nilai_kontrak-t.terbayar;
+      const unitSelesai=t.unit_selesai||0;
+      const sisaUnit=(t.total_unit||0)-unitSelesai;
+      const pctUang=t.nilai_kontrak>0?Math.min(100,(t.terbayar/t.nilai_kontrak)*100):0;
+      const pctUnit=(t.total_unit||0)>0?Math.min(100,(unitSelesai/(t.total_unit||1))*100):0;
+      const lunas=sisaUang<=0;
+      const riwayat=bayarTukangList.filter(b=>b.tukang_id===t.id);
+      const riwayatRows=riwayat.map(b=>"<tr><td>"+(b.minggu||"-")+"</td><td style='color:var(--accent)'>"+(b.blok_selesai||"-")+"</td><td style='text-align:center'>"+(b.unit_minggu||0)+"</td><td style='color:var(--accent2)'>Rp "+fmt(b.nominal)+"</td><td style='color:var(--muted)'>"+(b.tgl||"-")+"</td></tr>").join("");
+      return "<div style='margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)'>"
+        +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>"
+        +"<div><div style='font-size:12px;font-weight:700'>"+t.nama+"</div>"
+        +"<div style='font-size:10px;color:var(--muted)'>"+(t.item||"-")+" | Blok: "+(t.blok||"-")+"</div></div>"
+        +"<span class='tag' style='background:"+(lunas?"var(--accent2)":"var(--accent)")+"22;color:"+(lunas?"var(--accent2)":"var(--accent)))")+"'>"+(lunas?"✓ LUNAS":"AKTIF")+"</span></div>"
+        +"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px'>"
+        +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>KONTRAK</div><div style='font-size:11px;font-weight:700'>Rp "+fmt(t.nilai_kontrak)+"</div></div>"
+        +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>TERBAYAR</div><div style='font-size:11px;font-weight:700;color:var(--accent2)'>Rp "+fmt(t.terbayar)+"</div></div>"
+        +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>SISA UANG</div><div style='font-size:11px;font-weight:700;color:"+(lunas?"var(--accent2)":"var(--danger)")+"'>Rp "+fmt(sisaUang)+"</div></div>"
+        +"</div>"
+        +"<div style='margin-bottom:5px'><div style='display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px'><span>Pembayaran</span><span>"+pctUang.toFixed(1)+"%</span></div>"
+        +"<div style='background:var(--border);border-radius:3px;height:5px'><div style='width:"+pctUang+"%;height:100%;background:var(--accent2);border-radius:3px'></div></div></div>"
+        +"<div style='margin-bottom:8px'><div style='display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px'><span>Volume ("+unitSelesai+"/"+(t.total_unit||0)+" unit)</span><span>Sisa "+sisaUnit+" unit</span></div>"
+        +"<div style='background:var(--border);border-radius:3px;height:5px'><div style='width:"+pctUnit+"%;height:100%;background:var(--accent);border-radius:3px'></div></div></div>"
+        +(riwayat.length>0?"<div style='font-size:9px;color:var(--muted);font-weight:700;margin-bottom:4px'>RIWAYAT MINGGUAN</div><div style='overflow-x:auto'><table><thead><tr><th>Periode</th><th>Blok</th><th>Unit</th><th>Nominal</th><th>Tgl</th></tr></thead><tbody>"+riwayatRows+"</tbody></table></div>":"")
+        +"</div>";
+    }).join("");
+
+    C.innerHTML="<div class='card'>"
+      +"<div class='section-title'>➕ Daftarkan Tukang / Kontraktor</div>"
+      +"<div class='grid2' style='margin-bottom:10px'>"
+      +"<div><span class='label'>Nama Tukang</span><input type='text' id='tk-nama' placeholder='Nama lengkap'/></div>"
+      +"<div><span class='label'>Jenis Pekerjaan</span><input type='text' id='tk-item' placeholder='Pasang keramik, dll'/></div>"
+      +"</div>"
+      +"<div class='grid2' style='margin-bottom:10px'>"
+      +"<div><span class='label'>Total Unit Dikontrak</span><input type='number' id='tk-total-unit' placeholder='50' oninput='hitungKontrak()'/></div>"
+      +"<div><span class='label'>Harga per Unit (Rp)</span><input type='number' id='tk-harga-unit' placeholder='500000' oninput='hitungKontrak()'/></div>"
+      +"</div>"
+      +"<div style='margin-bottom:10px'><span class='label'>Blok yang Dikerjakan</span><input type='text' id='tk-blok' placeholder='A1-A10 atau semua blok'/></div>"
+      +"<div class='grid2' style='margin-bottom:10px'>"
+      +"<div><span class='label'>Tanggal Mulai</span><input type='date' id='tk-tgl'/></div>"
+      +"<div><span class='label'>Total Nilai Kontrak</span><div id='tk-total-preview' style='background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;color:var(--accent)'>Rp 0</div></div>"
+      +"</div>"
+      +"<div style='margin-bottom:12px'><span class='label'>Keterangan</span><input type='text' id='tk-ket' placeholder='Keterangan tambahan'/></div>"
+      +"<button class='btn btn-green btn-full' onclick='daftarTukang()'>+ Daftarkan Kontrak</button>"
+      +"</div>"
+
+      +"<div class='card'>"
+      +"<div class='section-title'>💵 Bayar Mingguan</div>"
+      +(aktif.length===0
+        ? "<div style='color:var(--muted);font-size:11px;text-align:center;padding:20px'>Belum ada kontrak aktif</div>"
+        : "<div style='margin-bottom:10px'><span class='label'>Pilih Tukang</span><select id='pay-tk-id' onchange='updateSisaInfo()'>"+tkOptions+"</select></div>"
+        +"<div id='sisa-info' style='background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.2);border-radius:8px;padding:10px;margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap'>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>SISA UNIT</span><br/><b id='si-unit' style='color:var(--accent)'>-</b></div>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>SISA UANG</span><br/><b id='si-uang' style='color:var(--danger)'>-</b></div>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>HARGA/UNIT</span><br/><b id='si-harga' style='color:var(--accent2)'>-</b></div>"
+        +"</div>"
+        +"<div class='grid2' style='margin-bottom:10px'>"
+        +"<div><span class='label'>Periode / Minggu ke</span><input type='text' id='pay-tk-minggu' placeholder='Minggu 1, 12-19 Mei'/></div>"
+        +"<div><span class='label'>Tanggal Bayar</span><input type='date' id='pay-tk-tgl' value='"+today()+"'/></div>"
+        +"</div>"
+        +"<div class='grid2' style='margin-bottom:10px'>"
+        +"<div><span class='label'>Unit Selesai Minggu Ini</span><input type='number' id='pay-tk-unit' placeholder='0' oninput='autoHitungBayar()'/></div>"
+        +"<div><span class='label'>Blok Selesai</span><input type='text' id='pay-tk-blok' placeholder='A1, A2'/></div>"
+        +"</div>"
+        +"<div class='grid2' style='margin-bottom:12px'>"
+        +"<div><span class='label'>Nominal (Rp)</span><input type='number' id='pay-tk-nominal' placeholder='Otomatis dihitung'/></div>"
+        +"<div><span class='label'>Bayar Via</span><select id='pay-tk-rek'><option value='"+rekKode+"'>Bank "+p.bank+"</option><option value='1-1001'>Tunai</option></select></div>"
+        +"</div>"
+        +"<button class='btn btn-purple btn-full' onclick='bayarTukang()'>✓ Catat Pembayaran</button>"
+      )
+      +"</div>"
+
+      +"<div class='card'>"
+      +"<div class='section-title'>📊 Rekap Tukang ("+tukang.length+")</div>"
+      +(tukang.length===0
+        ? "<div style='color:var(--muted);font-size:11px;text-align:center;padding:20px'>Belum ada tukang terdaftar</div>"
+        : rekapRows
+        +"<div style='padding-top:10px;border-top:2px solid var(--border);display:flex;gap:16px;flex-wrap:wrap;align-items:center'>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>TOTAL KONTRAK</span><br/><b style='color:var(--accent)'>Rp "+fmt(tukang.reduce((s,t)=>s+t.nilai_kontrak,0))+"</b></div>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>TOTAL TERBAYAR</span><br/><b style='color:var(--accent2)'>Rp "+fmt(tukang.reduce((s,t)=>s+t.terbayar,0))+"</b></div>"
+        +"<div><span style='font-size:9px;color:var(--muted)'>TOTAL SISA</span><br/><b style='color:var(--danger)'>Rp "+fmt(tukang.reduce((s,t)=>s+Math.max(0,t.nilai_kontrak-t.terbayar),0))+"</b></div>"
+        +"<button class='btn btn-amber' style='margin-left:auto;padding:8px 16px;font-size:11px' onclick='cetakLaporanGaji()'>🖨 Cetak Laporan Gaji</button>"
+        +"</div>"
+      )
+      +"</div>";
+
+    setTimeout(updateSisaInfo, 100);
+  }
+
+  // ── LAPORAN ──
+  else if(activeTab==="laporan"){
+    const totBahan  = totalKeluar("bahan");
+    const totTukang = totalKeluar("tukang");
+    const totMasuk  = totalMasuk();
+    const kas       = saldoKas();
+    const bahanList = jurnal.filter(j=>["5-1001","5-1002"].includes(j.akun));
+    const tukangList= jurnal.filter(j=>["5-1003","5-1004"].includes(j.akun));
+
+    C.innerHTML=`
+    <!-- Ringkasan -->
+    <div class="card">
+      <div class="section-title">Ringkasan Keuangan — ${p.nama}</div>
+      <table>
+        <tbody>
+          <tr><td style="color:var(--muted)">Total Kas Masuk</td><td style="text-align:right;color:var(--accent2);font-weight:700">Rp ${fmt(totMasuk)}</td></tr>
+          <tr><td style="color:var(--muted)">Pengeluaran Bahan</td><td style="text-align:right;color:var(--danger)">Rp ${fmt(totBahan)}</td></tr>
+          <tr><td style="color:var(--muted)">Bayar Tukang / Kontraktor</td><td style="text-align:right;color:var(--danger)">Rp ${fmt(totTukang)}</td></tr>
+          <tr style="border-top:2px solid var(--border)">
+            <td style="font-weight:700">Saldo Kas Proyek</td>
+            <td style="text-align:right;font-weight:700;color:${kas>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(kas)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Laporan Tukang -->
+    <div class="card">
+      <div class="section-title">Laporan Pembayaran Tukang / Kontraktor</div>
+      ${tukang.length===0
+        ? `<div style="color:var(--muted);font-size:11px;text-align:center;padding:16px">Belum ada data tukang</div>`
+        : tukang.map(t=>{
+            const sisa=t.nilai_kontrak-t.terbayar;
+            const pct=t.nilai_kontrak>0?Math.min(100,(t.terbayar/t.nilai_kontrak)*100):0;
+            const riwayat=tukangList.filter(j=>j.ket&&j.ket.includes(t.nama));
+            return `<div style="margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                <div>
+                  <div style="font-size:12px;font-weight:700">${t.nama}</div>
+                  <div style="font-size:10px;color:var(--muted)">${t.item||"-"}</div>
+                </div>
+                <span class="tag" style="background:${sisa<=0?"var(--accent2)":"var(--accent)"}22;color:${sisa<=0?"var(--accent2)":"var(--accent)"}">
+                  ${sisa<=0?"LUNAS":"AKTIF"}
+                </span>
+              </div>
+              <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
+                <div><span style="font-size:9px;color:var(--muted)">KONTRAK</span><br/><b>Rp ${fmt(t.nilai_kontrak)}</b></div>
+                <div><span style="font-size:9px;color:var(--muted)">TERBAYAR</span><br/><b style="color:var(--accent2)">Rp ${fmt(t.terbayar)}</b></div>
+                <div><span style="font-size:9px;color:var(--muted)">SISA</span><br/><b style="color:${sisa<=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(sisa)}</b></div>
+              </div>
+              <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;margin-bottom:4px">
+                <div style="width:${pct}%;height:100%;background:var(--accent2)"></div>
+              </div>
+              <div style="font-size:9px;color:var(--muted)">${pct.toFixed(1)}% terbayar</div>
+            </div>`;
+          }).join("")
+      }
+      <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+        <span style="font-size:11px;font-weight:700">Total Sisa Bayar Semua Tukang</span>
+        <span style="font-size:12px;font-weight:700;color:var(--danger)">Rp ${fmt(tukang.reduce((s,t)=>s+Math.max(0,t.nilai_kontrak-t.terbayar),0))}</span>
+      </div>
+    </div>
+
+    <!-- Riwayat Pembelian Bahan -->
+    <div class="card">
+      <div class="section-title">Riwayat Pembelian Bahan (${bahanList.length} transaksi)</div>
+      <div style="text-align:right;margin-bottom:10px;font-size:12px;font-weight:700;color:#38bdf8">
+        Total: Rp ${fmt(totBahan)}
+      </div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tgl</th><th>Keterangan</th><th>Nominal</th></tr></thead>
+        <tbody>
+          ${bahanList.map(j=>`<tr>
+            <td>${j.tgl||"-"}</td>
+            <td>${j.ket||"-"}</td>
+            <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
+          </tr>`).join("")||`<tr><td colspan="3" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+}
+
+// ── SIMPAN KAS MASUK ──────────────────────────────────────────────
+function getKMData(){
+  return {
+    tgl:v("km-tgl"), no:v("km-no"), jenis:v("km-jenis"),
+    blok:v("km-blok"), pembeli:v("km-pembeli"),
+    nominal:parseFloat(v("km-nominal"))||0,
+    via:v("km-via"), ket:v("km-ket")
+  };
+}
+
+async function simpanKasMasuk(){
+  const d=getKMData();
+  if(!d.tgl||!d.no||!d.nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama="Bank "+MY_PROYEK.bank;
+  const akunPend=d.jenis==="Uang Muka / DP"?"4-1002":"4-1001";
+  const keterangan=d.jenis+(d.blok?" - Blok "+d.blok:"")+(d.pembeli?" a/n "+d.pembeli:"")+(d.ket?" ("+d.ket+")":"");
+  showLoader("Menyimpan...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl:d.tgl,no:d.no,ket:keterangan,akun:d.via,nama:rekNama,proyek:MY_PROYEK.id,d:d.nominal,k:0},
+      {tgl:d.tgl,no:d.no,ket:keterangan,akun:akunPend,nama:"Pendapatan",proyek:MY_PROYEK.id,d:0,k:d.nominal},
+    ]);
+    rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast("✅ Kas Masuk Rp "+fmt(d.nominal)+" tersimpan!");
+    setV("km-pembeli","");setV("km-nominal","");setV("km-ket","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+async function simpanDanCetakKwitansi(){
+  const d=getKMData();
+  if(!d.tgl||!d.no||!d.nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama="Bank "+MY_PROYEK.bank;
+  const akunPend=d.jenis==="Uang Muka / DP"?"4-1002":"4-1001";
+  const keterangan=d.jenis+(d.blok?" - Blok "+d.blok:"")+(d.pembeli?" a/n "+d.pembeli:"")+(d.ket?" ("+d.ket+")":"");
+  showLoader("Menyimpan...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl:d.tgl,no:d.no,ket:keterangan,akun:d.via,nama:rekNama,proyek:MY_PROYEK.id,d:d.nominal,k:0},
+      {tgl:d.tgl,no:d.no,ket:keterangan,akun:akunPend,nama:"Pendapatan",proyek:MY_PROYEK.id,d:0,k:d.nominal},
+    ]);
+    rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast("✅ Tersimpan! Membuka kwitansi...");
+    setV("km-pembeli","");setV("km-nominal","");setV("km-ket","");
+    setTimeout(()=>bukaCetakKwitansi({
+      no:d.no, tgl:d.tgl, jenis:d.jenis,
+      blok:d.blok, pembeli:d.pembeli,
+      nominal:d.nominal, proyek:MY_PROYEK.nama, ket:d.ket
+    }), 500);
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+function cetakKwitansiDariJurnal(j){
+  // Parse keterangan untuk ambil info
+  bukaCetakKwitansi({
+    no:j.no, tgl:j.tgl,
+    jenis:j.ket||"-", blok:"", pembeli:"",
+    nominal:j.K||0, proyek:MY_PROYEK.nama, ket:""
+  });
+}
+
+function bukaCetakKwitansi(data){
+  const tglFmt = new Date(data.tgl).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  const fmtRp = n=>"Rp "+new Intl.NumberFormat("id-ID").format(Math.round(n));
+  
+  // Terbilang sederhana
+  function terbilang(n){
+    const sat=["","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan",
+               "sepuluh","sebelas","dua belas","tiga belas","empat belas","lima belas",
+               "enam belas","tujuh belas","delapan belas","sembilan belas"];
+    const pul=["","","dua puluh","tiga puluh","empat puluh","lima puluh",
+               "enam puluh","tujuh puluh","delapan puluh","sembilan puluh"];
+    if(n<20) return sat[n];
+    if(n<100) return pul[Math.floor(n/10)]+(n%10?" "+sat[n%10]:"");
+    if(n<1000) return (n===100?"seratus":sat[Math.floor(n/100)]+" ratus")+(n%100?" "+terbilang(n%100):"");
+    if(n<1000000) return terbilang(Math.floor(n/1000))+" ribu"+(n%1000?" "+terbilang(n%1000):"");
+    if(n<1000000000) return terbilang(Math.floor(n/1000000))+" juta"+(n%1000000?" "+terbilang(n%1000000):"");
+    return terbilang(Math.floor(n/1000000000))+" miliar"+(n%1000000000?" "+terbilang(n%1000000000):"");
+  }
+
+  const w = window.open("","_blank","width=800,height=600");
+  w.document.write(`<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"/>
+  <title>Kwitansi ${data.no}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Times New Roman',serif;background:#fff;color:#111;padding:32px;max-width:720px;margin:0 auto}
+    .logo-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #111}
+    .logo-bar img{height:56px;object-fit:contain}
+    .title{text-align:center;margin-bottom:20px}
+    .title h1{font-size:22pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .title .no{font-size:11pt;color:#555;margin-top:4px}
+    .box{border:2px solid #111;border-radius:4px;padding:16px 20px;margin-bottom:16px}
+    .row{display:flex;margin-bottom:8px;font-size:11pt}
+    .row .lbl{width:180px;color:#555;flex-shrink:0}
+    .row .val{flex:1;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:2px}
+    .nominal-box{background:#f8f8f8;border:2px solid #111;border-radius:4px;padding:14px 20px;text-align:center;margin-bottom:16px}
+    .nominal-box .rp{font-size:20pt;font-weight:700}
+    .nominal-box .terbilang{font-size:10pt;color:#555;font-style:italic;margin-top:4px;text-transform:capitalize}
+    .footer{display:flex;justify-content:space-between;margin-top:32px}
+    .sig{text-align:center;width:200px}
+    .sig-line{border-top:1px solid #111;margin-top:70px;padding-top:6px;font-size:10pt}
+    .watermark{text-align:center;margin-top:24px;font-size:9pt;color:#aaa;border-top:1px solid #eee;padding-top:12px}
+    @media print{
+      body{padding:16px}
+      .no-print{display:none}
+    }
+  </style>
+  </head><body>
+
+  <!-- LOGO BAR -->
+  <div class="logo-bar">
+    <img src="https://raw.githubusercontent.com/loonarsliving/mkh-properti/refs/heads/main/IMG_0966.png" alt="MKH"/>
+    <img src="https://raw.githubusercontent.com/loonarsliving/mkh-properti/refs/heads/main/IMG_1739.png" alt="Loonars"/>
+  </div>
+
+  <!-- JUDUL -->
+  <div class="title">
+    <h1>Kwitansi Pembayaran</h1>
+    <div class="no">No: ${data.no} &nbsp;|&nbsp; Tanggal: ${tglFmt}</div>
+  </div>
+
+  <!-- NOMINAL -->
+  <div class="nominal-box">
+    <div class="rp">${fmtRp(data.nominal)}</div>
+    <div class="terbilang"># ${terbilang(Math.round(data.nominal))} rupiah #</div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="box">
+    <div class="row"><span class="lbl">Telah diterima dari</span><span class="val">${data.pembeli||"_______________"}</span></div>
+    <div class="row"><span class="lbl">Untuk pembayaran</span><span class="val">${data.jenis}</span></div>
+    <div class="row"><span class="lbl">Blok / Unit</span><span class="val">${data.blok||"_______________"}</span></div>
+    <div class="row"><span class="lbl">Proyek</span><span class="val">${data.proyek}</span></div>
+    ${data.ket?`<div class="row"><span class="lbl">Keterangan</span><span class="val">${data.ket}</span></div>`:""}
+  </div>
+
+  <!-- TANDA TANGAN -->
+  <div class="footer">
+    <div class="sig">
+      <div style="font-size:10pt">Pembeli / Penyetor,</div>
+      <div class="sig-line">( _____________________ )</div>
+    </div>
+    <div class="sig">
+      <div style="font-size:10pt">Yang Menerima,</div>
+      <div class="sig-line">( _____________________ )</div>
+    </div>
+  </div>
+
+  <div class="watermark">PT. Maha Karya Haluoleo &bull; Sistem Keuangan Digital</div>
+
+  <!-- TOMBOL CETAK -->
+  <div class="no-print" style="text-align:center;margin-top:24px">
+    <button onclick="window.print()" style="padding:12px 32px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🖨 Cetak / Simpan PDF</button>
+  </div>
+
+  <script>setTimeout(()=>window.print(),800);<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// ── SIMPAN BAHAN ──────────────────────────────────────────────────
+async function simpanBahan(){
+  const tgl=v("bh-tgl"),no=v("bh-no"),jenis=v("bh-jenis"),
+        supplier=v("bh-supplier"),item=v("bh-item"),
+        nominal=parseFloat(v("bh-nominal"))||0,
+        rek=v("bh-rek"),ket=v("bh-ket");
+  if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+MY_PROYEK.bank;
+  const akunNama=jenis==="5-1001"?"Pembelian Material":"Bayar Distributor";
+  const keterangan=`${akunNama}${item?" - "+item:""}${supplier?" ("+supplier+")":""}${ket?" | "+ket:""}`;
+  showLoader("Menyimpan...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl,no,ket:keterangan,akun:jenis,nama:akunNama,proyek:MY_PROYEK.id,d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:rek,nama:rekNama,proyek:MY_PROYEK.id,d:0,k:nominal},
+    ]);
+    rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast(`✅ Pembelian bahan Rp ${fmt(nominal)} tersimpan!`);
+    const tgBahan=`🧱 <b>PEMBELIAN BAHAN BARU</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n📦 Item: <b>${item||"—"}</b>\n🏪 Supplier: <b>${supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📝 Ket: ${ket||"—"}\n\n👤 Admin: <b>${MY_EMAIL||"Admin"}</b>`;
+    await sendTG(tgBahan);
+    setV("bh-supplier","");setV("bh-item","");setV("bh-nominal","");setV("bh-ket","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+// ── DAFTARKAN TUKANG ──────────────────────────────────────────────
+// ── HELPER TUKANG UI ─────────────────────────────────────────────
+function hitungKontrak(){
+  const unit=parseFloat(document.getElementById("tk-total-unit")?.value)||0;
+  const harga=parseFloat(document.getElementById("tk-harga-unit")?.value)||0;
+  const total=unit*harga;
+  const el=document.getElementById("tk-total-preview");
+  if(el) el.textContent="Rp "+new Intl.NumberFormat("id-ID").format(total);
+}
+
+function updateSisaInfo(){
+  const sel=document.getElementById("pay-tk-id");
+  if(!sel||!sel.options[sel.selectedIndex]) return;
+  const opt=sel.options[sel.selectedIndex];
+  document.getElementById("si-unit").textContent=opt.dataset.sisaUnit+" unit";
+  document.getElementById("si-uang").textContent="Rp "+new Intl.NumberFormat("id-ID").format(opt.dataset.sisaUang);
+  document.getElementById("si-harga").textContent="Rp "+new Intl.NumberFormat("id-ID").format(opt.dataset.harga)+"/unit";
+  // Reset nominal
+  setV("pay-tk-nominal","");
+  setV("pay-tk-unit","");
+}
+
+function autoHitungBayar(){
+  const sel=document.getElementById("pay-tk-id");
+  if(!sel||!sel.options[sel.selectedIndex]) return;
+  const harga=parseFloat(sel.options[sel.selectedIndex].dataset.harga)||0;
+  const unit=parseFloat(document.getElementById("pay-tk-unit")?.value)||0;
+  const nominal=unit*harga;
+  setV("pay-tk-nominal", nominal>0?nominal:"");
+}
+
+async function daftarTukang(){
+  const nama=v("tk-nama"),item=v("tk-item"),
+        totalUnit=parseFloat(v("tk-total-unit"))||0,
+        hargaUnit=parseFloat(v("tk-harga-unit"))||0,
+        blok=v("tk-blok"),tgl=v("tk-tgl"),ket=v("tk-ket");
+  if(!nama||!totalUnit||!hargaUnit) return toast("Lengkapi nama, total unit, dan harga per unit!","red");
+  const nilaiKontrak=totalUnit*hargaUnit;
+  showLoader("Mendaftarkan...");
+  try{
+    const rows=await sbInsert("tukang_borongan",[{
+      proyek:MY_PROYEK.id,nama,item,blok,
+      total_unit:totalUnit,harga_per_unit:hargaUnit,
+      nilai_kontrak:nilaiKontrak,terbayar:0,unit_selesai:0,
+      tgl_mulai:tgl||null,ket
+    }]);
+    tukang.unshift(...rows.map(t=>({...t,
+      nilai_kontrak:parseFloat(t.nilai_kontrak)||0,
+      harga_per_unit:parseFloat(t.harga_per_unit)||0,
+      total_unit:parseFloat(t.total_unit)||0,
+      terbayar:parseFloat(t.terbayar)||0,
+      unit_selesai:parseFloat(t.unit_selesai)||0,
+    })));
+    toast("✅ "+nama+" berhasil didaftarkan! Kontrak: Rp "+new Intl.NumberFormat("id-ID").format(nilaiKontrak));
+    ["tk-nama","tk-item","tk-total-unit","tk-harga-unit","tk-blok","tk-ket"].forEach(id=>setV(id,""));
+    const el=document.getElementById("tk-total-preview");
+    if(el) el.textContent="Rp 0";
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+// ── BAYAR TUKANG MINGGUAN ────────────────────────────────────────
+async function bayarTukang(){
+  const tid=v("pay-tk-id"),tgl=v("pay-tk-tgl"),
+        minggu=v("pay-tk-minggu"),blokSelesai=v("pay-tk-blok"),
+        unitMinggu=parseFloat(v("pay-tk-unit"))||0,
+        nominal=parseFloat(v("pay-tk-nominal"))||0,
+        rek=v("pay-tk-rek");
+  if(!tid||!nominal||!tgl) return toast("Lengkapi tukang, tanggal, dan nominal!","red");
+  const tk=tukang.find(t=>String(t.id)===String(tid));
+  if(!tk) return toast("Tukang tidak ditemukan","red");
+  const sisa=tk.nilai_kontrak-tk.terbayar;
+  if(nominal>sisa) return toast("Melebihi sisa kontrak Rp "+fmt(sisa)+"!","red");
+
+  showLoader("Menyimpan pembayaran...");
+  try{
+    const no="TK-"+String(bayarTukangList.length+1).padStart(3,"0");
+    const terbayarBaru=tk.terbayar+nominal;
+    const unitSelesaiBaru=(tk.unit_selesai||0)+unitMinggu;
+
+    // Update tukang_borongan
+    await fetch(SB_URL+"/rest/v1/tukang_borongan?id=eq."+tk.id,{
+      method:"PATCH",headers:{...H,"Prefer":"return=representation"},
+      body:JSON.stringify({terbayar:terbayarBaru,unit_selesai:unitSelesaiBaru})
+    });
+    const idx=tukang.findIndex(t=>t.id===tk.id);
+    if(idx>-1){tukang[idx].terbayar=terbayarBaru;tukang[idx].unit_selesai=unitSelesaiBaru;}
+
+    // Simpan ke tabel bayar_tukang
+    const bRows=await sbInsert("bayar_tukang",[{
+      proyek:MY_PROYEK.id,tukang_id:tk.id,tukang_nama:tk.nama,
+      minggu,blok_selesai:blokSelesai,unit_minggu:unitMinggu,
+      nominal,rek,tgl,no
+    }]);
+    bayarTukangList.unshift(...bRows.map(b=>({...b,nominal:parseFloat(b.nominal)||0,unit_minggu:parseFloat(b.unit_minggu)||0})));
+
+    // Catat jurnal
+    const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+MY_PROYEK.bank;
+    const ketJ="Bayar tukang: "+tk.nama+(tk.item?" ("+tk.item+")":"")+
+               (blokSelesai?" Blok "+blokSelesai:"")+
+               (minggu?" — "+minggu:"");
+    const jRows=await sbInsert("jurnal",[
+      {tgl,no,ket:ketJ,akun:"5-1003",nama:"Biaya Upah Tukang",proyek:MY_PROYEK.id,d:nominal,k:0},
+      {tgl,no,ket:ketJ,akun:rek,nama:rekNama,proyek:MY_PROYEK.id,d:0,k:nominal},
+    ]);
+    jRows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+
+    const sisaBaru=tk.nilai_kontrak-terbayarBaru;
+    const sisaUnit=tk.total_unit-unitSelesaiBaru;
+    toast("✅ Bayar "+tk.nama+" Rp "+fmt(nominal)+". Sisa uang: Rp "+fmt(sisaBaru)+" | Sisa unit: "+sisaUnit);
+    const tgTukang=`👷 <b>PEMBAYARAN TUKANG</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n👤 Tukang: <b>${tk.nama}</b>\n🔨 Pekerjaan: <b>${tk.item||"—"}</b>\n💰 Dibayar: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📊 Sisa Kontrak: <b>Rp ${fmt(sisaBaru)}</b>\n🧱 Sisa Unit: <b>${sisaUnit}</b>`;
+    await sendTG(tgTukang);
+    ["pay-tk-unit","pay-tk-blok","pay-tk-nominal","pay-tk-minggu"].forEach(id=>setV(id,""));
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+// ── CETAK LAPORAN GAJI TUKANG ────────────────────────────────────
+function cetakLaporanGaji(){
+  const p = MY_PROYEK;
+  const tglCetak = new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const fmtRp = n=>"Rp "+new Intl.NumberFormat("id-ID").format(Math.round(n||0));
+
+  // Ambil minggu terakhir dari bayarTukangList
+  const mingguList = [...new Set(bayarTukangList.map(b=>b.minggu).filter(Boolean))];
+  const mingguTerakhir = mingguList[0]||"-";
+  const bayarMingguIni = bayarTukangList.filter(b=>b.minggu===mingguTerakhir);
+
+  const w = window.open("","_blank","width=900,height=700");
+  
+  // Build tabel gaji minggu ini
+  const barisGajiMingguIni = bayarMingguIni.length>0
+    ? bayarMingguIni.map((b,i)=>
+        "<tr>"
+        +"<td style='text-align:center'>"+(i+1)+"</td>"
+        +"<td style='font-weight:700'>"+b.tukang_nama+"</td>"
+        +"<td style='text-align:center'>"+b.blok_selesai+"</td>"
+        +"<td style='text-align:center'>"+b.unit_minggu+" unit</td>"
+        +"<td style='text-align:right;font-weight:700;color:#2d6a4f'>"+fmtRp(b.nominal)+"</td>"
+        +"</tr>"
+      ).join("")
+    : "<tr><td colspan='5' style='text-align:center;color:#999'>Belum ada pembayaran minggu ini</td></tr>";
+
+  const totalMingguIni = bayarMingguIni.reduce((s,b)=>s+b.nominal,0);
+
+  // Build tabel rekap sisa kontrak
+  const barisSisa = tukang.map((t,i)=>{
+    const sisa=t.nilai_kontrak-t.terbayar;
+    const sisaUnit=(t.total_unit||0)-(t.unit_selesai||0);
+    const pct=t.nilai_kontrak>0?Math.min(100,(t.terbayar/t.nilai_kontrak)*100):0;
+    const lunas=sisa<=0;
+    return "<tr>"
+      +"<td style='text-align:center'>"+(i+1)+"</td>"
+      +"<td style='font-weight:700'>"+t.nama+"</td>"
+      +"<td>"+( t.item||"-")+"</td>"
+      +"<td style='text-align:right'>"+fmtRp(t.nilai_kontrak)+"</td>"
+      +"<td style='text-align:right;color:#2d6a4f'>"+fmtRp(t.terbayar)+"</td>"
+      +"<td style='text-align:right;color:"+(lunas?"#2d6a4f":"#c0392b")+"'>"+( lunas?"✓ LUNAS":fmtRp(sisa))+"</td>"
+      +"<td style='text-align:center'>"+(lunas?"✓":sisaUnit+" unit")+"</td>"
+      +"<td style='text-align:center'>"
+      +"<div style='background:#eee;border-radius:4px;height:8px;width:80px;display:inline-block;vertical-align:middle'>"
+      +"<div style='width:"+pct.toFixed(0)+"%;height:100%;background:"+(lunas?"#2d6a4f":"#f0a500")+";border-radius:4px'></div>"
+      +"</div> "+pct.toFixed(0)+"%"
+      +"</td>"
+      +"</tr>";
+  }).join("");
+
+  const totalKontrak = tukang.reduce((s,t)=>s+t.nilai_kontrak,0);
+  const totalTerbayar = tukang.reduce((s,t)=>s+t.terbayar,0);
+  const totalSisa = tukang.reduce((s,t)=>s+Math.max(0,t.nilai_kontrak-t.terbayar),0);
+
+  w.document.write(`<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"/>
+  <title>Laporan Gaji Tukang — ${p.nama}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Times New Roman',serif;background:#fff;color:#111;padding:28px;max-width:900px;margin:0 auto;font-size:10.5pt}
+    .logo-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #111}
+    .logo-bar img{height:48px;object-fit:contain}
+    .header{text-align:center;margin-bottom:20px}
+    .header h1{font-size:16pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+    .header .sub{font-size:10pt;color:#555;margin-top:4px}
+    .info-bar{display:flex;gap:24px;background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:10px 16px;margin-bottom:18px;flex-wrap:wrap}
+    .info-bar div{font-size:10pt}
+    .info-bar span{color:#555;font-size:9pt;display:block}
+    .sec{font-size:11pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid #111}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10pt}
+    th{background:#111;color:#fff;padding:7px 10px;text-align:left;font-size:9pt;font-weight:700}
+    td{padding:6px 10px;border-bottom:1px solid #e0e0e0;vertical-align:middle}
+    tr:nth-child(even) td{background:#f9f9f9}
+    .total-row td{font-weight:700;border-top:2px solid #111;background:#f0f0f0}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+    .sum-box{border:2px solid #111;border-radius:4px;padding:12px;text-align:center}
+    .sum-box .val{font-size:14pt;font-weight:700;margin-top:4px}
+    .sum-box .lbl{font-size:9pt;color:#555;text-transform:uppercase;letter-spacing:.04em}
+    .footer{display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #ccc}
+    .sig{text-align:center;width:180px}
+    .sig-line{border-top:1px solid #111;margin-top:60px;padding-top:4px;font-size:9.5pt}
+    .watermark{text-align:center;margin-top:20px;font-size:8.5pt;color:#aaa}
+    @media print{body{padding:12px}.no-print{display:none}}
+  </style>
+  </head><body>
+
+  <div class="logo-bar">
+    <img src="https://raw.githubusercontent.com/loonarsliving/mkh-properti/refs/heads/main/IMG_0966.png" alt="MKH"/>
+    <img src="https://raw.githubusercontent.com/loonarsliving/mkh-properti/refs/heads/main/IMG_1739.png" alt="Loonars"/>
+  </div>
+
+  <div class="header">
+    <h1>Laporan Gaji Tukang / Kontraktor</h1>
+    <div class="sub">${p.nama} &bull; Dicetak: ${tglCetak}</div>
+  </div>
+
+  <div class="info-bar">
+    <div><span>Proyek</span>${p.nama}</div>
+    <div><span>Periode Minggu Ini</span>${mingguTerakhir}</div>
+    <div><span>Total Tukang</span>${tukang.length} orang</div>
+    <div><span>Dibuat oleh</span>${USER_EMAIL}</div>
+  </div>
+
+  <!-- RINGKASAN -->
+  <div class="summary">
+    <div class="sum-box">
+      <div class="lbl">Gaji Minggu Ini</div>
+      <div class="val" style="color:#2d6a4f">${fmtRp(totalMingguIni)}</div>
+    </div>
+    <div class="sum-box">
+      <div class="lbl">Total Terbayar s/d Ini</div>
+      <div class="val" style="color:#f0a500">${fmtRp(totalTerbayar)}</div>
+    </div>
+    <div class="sum-box">
+      <div class="lbl">Sisa Kontrak Semua Tukang</div>
+      <div class="val" style="color:#c0392b">${fmtRp(totalSisa)}</div>
+    </div>
+  </div>
+
+  <!-- GAJI MINGGU INI -->
+  <div class="sec">Pembayaran Minggu Ini — ${mingguTerakhir}</div>
+  <table>
+    <thead><tr><th>#</th><th>Nama Tukang</th><th>Blok Selesai</th><th>Unit</th><th style="text-align:right">Gaji Dibayar</th></tr></thead>
+    <tbody>${barisGajiMingguIni}</tbody>
+    <tr class="total-row">
+      <td colspan="4">TOTAL DIBAYAR MINGGU INI</td>
+      <td style="text-align:right">${fmtRp(totalMingguIni)}</td>
+    </tr>
+  </table>
+
+  <!-- REKAP SISA KONTRAK -->
+  <div class="sec">Rekap Status Kontrak & Sisa Gaji</div>
+  <table>
+    <thead><tr><th>#</th><th>Nama</th><th>Pekerjaan</th><th style="text-align:right">Kontrak</th><th style="text-align:right">Terbayar</th><th style="text-align:right">Sisa</th><th style="text-align:center">Sisa Unit</th><th style="text-align:center">Progress</th></tr></thead>
+    <tbody>${barisSisa}</tbody>
+    <tr class="total-row">
+      <td colspan="3">TOTAL</td>
+      <td style="text-align:right">${fmtRp(totalKontrak)}</td>
+      <td style="text-align:right">${fmtRp(totalTerbayar)}</td>
+      <td style="text-align:right;color:#c0392b">${fmtRp(totalSisa)}</td>
+      <td colspan="2"></td>
+    </tr>
+  </table>
+
+  <!-- TANDA TANGAN -->
+  <div class="footer">
+    <div class="sig">
+      <div style="font-size:9.5pt">Mengetahui,</div>
+      <div class="sig-line">( _____________________ )<br/>Admin Proyek</div>
+    </div>
+    <div class="sig">
+      <div style="font-size:9.5pt">Menyetujui,</div>
+      <div class="sig-line">( _____________________ )<br/>Direktur</div>
+    </div>
+  </div>
+
+  <div class="watermark">PT. Maha Karya Haluoleo &bull; Laporan dibuat otomatis oleh Sistem Keuangan Digital</div>
+
+  <div class="no-print" style="text-align:center;margin-top:20px">
+    <button onclick="window.print()" style="padding:12px 32px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 Cetak / Simpan PDF</button>
+  </div>
+  <script>setTimeout(()=>window.print(),800);<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
