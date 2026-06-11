@@ -83,7 +83,7 @@ const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
 
 // ── TELEGRAM NOTIF ──────────────────────────────────────────────────────────
-const TG_TOKEN="8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8";
+const TG_TOKEN="8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8"; // token lama dipakai kembali atas keputusan owner
 // Chat ID per proyek - notifikasi dikirim ke grup masing-masing
 const TG_CHAT_MAP={
   "AFP":"-1003825705531",  // Grup Alfath Puuwatu
@@ -92,6 +92,7 @@ const TG_CHAT_MAP={
   "GCI":"-1003889729458",  // Grup Griya Cariu Indah
 };
 async function sendTG(msg){
+  if(!TG_TOKEN) return; // token kosong = skip notif tanpa error
   try{
     const chatId = TG_CHAT_MAP[MY_PROYEK?.id] || "-5180682189";
     const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${chatId}&parse_mode=HTML&text=${encodeURIComponent(msg)}`;
@@ -398,7 +399,7 @@ function render(){
         +"<td style='color:var(--accent)'>"+j.no+"</td>"
         +"<td style='max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+j.ket+"</td>"
         +"<td style='color:var(--accent2)'>Rp "+fmt(j.K)+"</td>"
-        +"<td><button class='btn btn-ghost' style='padding:3px 8px;font-size:10px' onclick='cetakKwitansiDariJurnal("+JSON.stringify(j)+")'>🖨</button></td>"
+        +"<td><button class='btn btn-ghost' style='padding:3px 8px;font-size:10px' onclick='cetakKwitansiDariJurnal("+j.id+")'>🖨</button></td>"
         +"</tr>"
       ).join("") || "<tr><td colspan='5' style='text-align:center;color:var(--muted)'>Belum ada data</td></tr>")
       +"</tbody></table></div></div>";
@@ -503,7 +504,7 @@ function render(){
         +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>"
         +"<div><div style='font-size:12px;font-weight:700'>"+t.nama+"</div>"
         +"<div style='font-size:10px;color:var(--muted)'>"+(t.item||"-")+" | Blok: "+(t.blok||"-")+"</div></div>"
-        +"<span class='tag' style='background:"+(lunas?"var(--accent2)":"var(--accent)")+"22;color:"+(lunas?"var(--accent2)":"var(--accent)))")+"'>"+(lunas?"✓ LUNAS":"AKTIF")+"</span></div>"
+        +"<span class='tag' style='background:"+(lunas?"var(--accent2)":"var(--accent)")+"22;color:"+(lunas?"var(--accent2)":"var(--accent)")+"'>"+(lunas?"✓ LUNAS":"AKTIF")+"</span></div>"
         +"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px'>"
         +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>KONTRAK</div><div style='font-size:11px;font-weight:700'>Rp "+fmt(t.nilai_kontrak)+"</div></div>"
         +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>TERBAYAR</div><div style='font-size:11px;font-weight:700;color:var(--accent2)'>Rp "+fmt(t.terbayar)+"</div></div>"
@@ -677,6 +678,7 @@ function getKMData(){
 async function simpanKasMasuk(){
   const d=getKMData();
   if(!d.tgl||!d.no||!d.nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  try{const _r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"KM"})});if(_r.ok){d.no="KM-"+String(await _r.json()).padStart(3,"0");}}catch(e){}
   const rekNama="Bank "+MY_PROYEK.bank;
   const akunPend=d.jenis==="Uang Muka / DP"?"4-1002":"4-1001";
   const keterangan=d.jenis+(d.blok?" - Blok "+d.blok:"")+(d.pembeli?" a/n "+d.pembeli:"")+(d.ket?" ("+d.ket+")":"");
@@ -698,6 +700,7 @@ async function simpanKasMasuk(){
 async function simpanDanCetakKwitansi(){
   const d=getKMData();
   if(!d.tgl||!d.no||!d.nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  try{const _r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"KM"})});if(_r.ok){d.no="KM-"+String(await _r.json()).padStart(3,"0");}}catch(e){}
   const rekNama="Bank "+MY_PROYEK.bank;
   const akunPend=d.jenis==="Uang Muka / DP"?"4-1002":"4-1001";
   const keterangan=d.jenis+(d.blok?" - Blok "+d.blok:"")+(d.pembeli?" a/n "+d.pembeli:"")+(d.ket?" ("+d.ket+")":"");
@@ -721,7 +724,9 @@ async function simpanDanCetakKwitansi(){
   hideLoader(); render();
 }
 
-function cetakKwitansiDariJurnal(j){
+function cetakKwitansiDariJurnal(jid){
+  const j=jurnal.find(x=>String(x.id)===String(jid));
+  if(!j) return toast("Data jurnal tidak ditemukan","red");
   // Parse keterangan untuk ambil info
   bukaCetakKwitansi({
     no:j.no, tgl:j.tgl,
@@ -832,11 +837,13 @@ function bukaCetakKwitansi(data){
 
 // ── SIMPAN BAHAN ──────────────────────────────────────────────────
 async function simpanBahan(){
-  const tgl=v("bh-tgl"),no=v("bh-no"),jenis=v("bh-jenis"),
+  let no=v("bh-no");
+  const tgl=v("bh-tgl"),jenis=v("bh-jenis"),
         supplier=v("bh-supplier"),item=v("bh-item"),
         nominal=parseFloat(v("bh-nominal"))||0,
         rek=v("bh-rek"),ket=v("bh-ket");
   if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  try{const _r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"KK"})});if(_r.ok){no="KK-"+String(await _r.json()).padStart(3,"0");}}catch(e){}
   const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+MY_PROYEK.bank;
   const akunNama=jenis==="5-1001"?"Pembelian Material":"Bayar Distributor";
   const keterangan=`${akunNama}${item?" - "+item:""}${supplier?" ("+supplier+")":""}${ket?" | "+ket:""}`;
@@ -931,7 +938,8 @@ async function bayarTukang(){
 
   showLoader("Menyimpan pembayaran...");
   try{
-    const no="TK-"+String(bayarTukangList.length+1).padStart(3,"0");
+    let no="TK-"+Date.now().toString().slice(-4);
+    try{const _r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"TK"})});if(_r.ok){no="TK-"+String(await _r.json()).padStart(3,"0");}}catch(e){}
     const terbayarBaru=tk.terbayar+nominal;
     const unitSelesaiBaru=(tk.unit_selesai||0)+unitMinggu;
 

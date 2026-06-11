@@ -117,7 +117,8 @@ function logout(){
 // ── SUPABASE CONFIG ───────────────────────────────────────────────
 const SB_URL         = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
-const SB_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA0NDcyMCwiZXhwIjoyMDk1NjIwNzIwfQ.8AWRj98KHBHVfsGzbjqeMPH1SVwDQb-8G6zFkolT8HU";
+// SERVICE KEY DIHAPUS: pembuatan akun kini via Edge Function "create-admin-user" (service key aman di server).
+// JANGAN PERNAH menaruh service_role key di file client/HTML.
 const HEADERS        = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 // ── SUPABASE API ──────────────────────────────────────────────────
@@ -213,9 +214,16 @@ function toast(msg, type="green"){
   setTimeout(()=>t.style.display="none",3500);
 }
 
-function nextNo(prefix){
-  const nums=jurnal.filter(j=>j.no&&j.no.startsWith(prefix)).map(j=>parseInt(j.no.split("-")[1])||0);
-  return `${prefix}-${String((nums.length?Math.max(...nums):0)+1).padStart(3,"0")}`;
+async function nextNo(prefix){
+  // Nomor atomic dari database — anti-dobel walau 2 admin input bersamaan / reload
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:HEADERS,body:JSON.stringify({p_prefix:prefix})});
+    if(!r.ok) throw new Error();
+    const v=await r.json();
+    return `${prefix}-${String(v).padStart(3,"0")}`;
+  }catch(e){
+    return `${prefix}-${Date.now().toString().slice(-4)}`; // fallback unik
+  }
 }
 
 // ── LOAD DATA ─────────────────────────────────────────────────────
@@ -261,6 +269,7 @@ async function simpanKM(){
         jenis=v("km-jenis"),pembeli=v("km-pembeli"),unitId=v("km-unit"),
         nominal=parseFloat(v("km-nominal"))||0,ket=v("km-ket");
   if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  if(jurnal.some(j=>j.no===no)) return toast("No transaksi "+no+" sudah dipakai. Klik Auto untuk nomor baru.","red");
   const rekNama=COA.find(c=>c.kode===rek)?.nama||"";
   const akunPend=jenis==="Penjualan Rumah"?"4-1001":jenis==="Uang Muka / DP"?"4-1002":"4-1003";
   const pendNama=COA.find(c=>c.kode===akunPend)?.nama||"Pendapatan";
@@ -326,6 +335,7 @@ async function simpanKK(){
         jenis=v("kk-jenis"),supplier=v("kk-supplier"),
         nominal=parseFloat(v("kk-nominal"))||0,ket=v("kk-ket");
   if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  if(jurnal.some(j=>j.no===no)) return toast("No transaksi "+no+" sudah dipakai. Klik Auto untuk nomor baru.","red");
   const rekNama=COA.find(c=>c.kode===rek)?.nama||"";
   const akunBbn=jenis==="Pembelian Material"?"5-1001":jenis==="Bayar Distributor"?"5-1002":jenis==="Upah Tukang"?"5-1003":jenis==="Biaya Subkon"?"5-1004":"6-1007";
   const bbnNama=COA.find(c=>c.kode===akunBbn)?.nama||jenis;
@@ -348,6 +358,7 @@ async function simpanPAP(){
   const tgl=v("pap-tgl"),no=v("pap-no"),dari=v("pap-dari"),ke=v("pap-ke"),
         nominal=parseFloat(v("pap-nominal"))||0,ket=v("pap-ket");
   if(!tgl||!no||!nominal) return toast("Lengkapi semua field!","red");
+  if(jurnal.some(j=>j.no===no)) return toast("No transaksi "+no+" sudah dipakai. Klik Auto untuk nomor baru.","red");
   if(dari===ke) return toast("Proyek asal dan tujuan tidak boleh sama!","red");
   const nmDari=getP(dari).nama,nmKe=getP(ke).nama;
   const keterangan=`Pinjam antar proyek: ${nmDari} → ${nmKe}${ket?" ("+ket+")":""}`;
@@ -393,7 +404,9 @@ async function hapusAset(id){
 }
 
 async function hapusJurnal(no){
-  if(!confirm(`Hapus semua jurnal dengan no ${no}?`)) return;
+  const _terkait=jurnal.filter(j=>j.no===no).length;
+  const _adaAuto=jurnal.some(j=>j.no==="APT-"+no);
+  if(!confirm(`Hapus transaksi ${no}? (${_terkait} baris jurnal akan terhapus)`+(_adaAuto?"\n\nPERHATIAN: transaksi ini punya potongan utang otomatis (APT-"+no+") yang TIDAK ikut terhapus & saldo utang tidak dikembalikan otomatis.":""))) return;
   showLoader("Menghapus jurnal...");
   try{
     const r=await fetch(`${SB_URL}/rest/v1/jurnal?no=eq.${encodeURIComponent(no)}`,{method:"DELETE",headers:HEADERS});
@@ -596,7 +609,7 @@ function renderMenu(){
         <div><label class="label">Tanggal</label><input type="date" id="km-tgl" value="${today()}"/></div>
         <div><label class="label">No. Transaksi</label>
           <div style="display:flex;gap:6px"><input id="km-no" placeholder="KM-001"/>
-          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px;white-space:nowrap" onclick="setV('km-no',nextNo('KM'))">Auto</button></div>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px;white-space:nowrap" onclick="nextNo('KM').then(n=>setV('km-no',n))">Auto</button></div>
         </div>
         <div><label class="label">Proyek</label>${proyekSelect("km-proyek")}</div>
         <div><label class="label">Rekening Tujuan</label>${rekSelect("km-rek")}</div>
@@ -642,7 +655,7 @@ function renderMenu(){
         <div><label class="label">Tanggal</label><input type="date" id="kk-tgl" value="${today()}"/></div>
         <div><label class="label">No. Transaksi</label>
           <div style="display:flex;gap:6px"><input id="kk-no" placeholder="KK-001"/>
-          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="setV('kk-no',nextNo('KK'))">Auto</button></div>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="nextNo('KK').then(n=>setV('kk-no',n))">Auto</button></div>
         </div>
         <div><label class="label">Proyek</label>${proyekSelect("kk-proyek")}</div>
         <div><label class="label">Rekening Sumber</label>${rekSelect("kk-rek")}</div>
@@ -684,7 +697,7 @@ function renderMenu(){
         <div><label class="label">Tanggal</label><input type="date" id="pap-tgl" value="${today()}"/></div>
         <div><label class="label">No. Transaksi</label>
           <div style="display:flex;gap:6px"><input id="pap-no" placeholder="PAP-001"/>
-          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="setV('pap-no',nextNo('PAP'))">Auto</button></div>
+          <button class="btn btn-ghost" style="padding:8px 10px;font-size:10px" onclick="nextNo('PAP').then(n=>setV('pap-no',n))">Auto</button></div>
         </div>
         <div><label class="label">Dana DARI Proyek</label>
           <select id="pap-dari">${PROYEK.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("")}</select>
@@ -1074,27 +1087,16 @@ async function tambahUser(){
 
   showLoader("Membuat akun admin...");
   try{
-    // 1. Buat akun di Supabase Auth menggunakan service role key
-    if(SB_SERVICE_KEY==="GANTI_DENGAN_SERVICE_ROLE_KEY_ANDA"){
-      throw new Error("Service role key belum diisi di file index.html!");
-    }
-    const authRes = await fetch(`${SB_URL}/auth/v1/admin/users`,{
+    // Buat akun via Edge Function — service key tersimpan aman di server Supabase, bukan di browser
+    const _tok = sessionStorage.getItem("sb_access_token");
+    const fnRes = await fetch(`${SB_URL}/functions/v1/create-admin-user`,{
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey": SB_SERVICE_KEY,
-        "Authorization": "Bearer " + SB_SERVICE_KEY
-      },
-      body:JSON.stringify({email, password:pw, email_confirm:true})
+      headers:{"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+_tok},
+      body:JSON.stringify({email, password:pw, proyek_id:pid, nama})
     });
-    if(!authRes.ok){
-      const err = await authRes.json();
-      throw new Error(err.msg||err.message||"Gagal membuat akun di Supabase");
-    }
-
-    // 2. Simpan mapping user → proyek
-    const rows = await sbInsert("users_proyek",[{email, proyek_id:pid, nama:nama||email}]);
-    usersProyek.push(...rows);
+    const fnOut = await fnRes.json().catch(()=>({}));
+    if(!fnRes.ok) throw new Error(fnOut.error||"Gagal membuat akun");
+    usersProyek.push(...(fnOut.rows||[{email, proyek_id:pid, nama:nama||email}]));
 
     toast(`✅ Admin ${email} berhasil dibuat untuk proyek ${pid}!`);
     document.getElementById("usr-email").value="";
