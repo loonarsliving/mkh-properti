@@ -70,6 +70,7 @@ tr:hover td{background:rgba(30,45,64,.4)}
   <button class="nav-tab active" onclick="setTab('dashboard')">📊 DASHBOARD</button>
   <button class="nav-tab" onclick="setTab('kas-masuk')">💰 KAS MASUK</button>
   <button class="nav-tab" onclick="setTab('bahan')">🧱 BAHAN</button>
+  <button class="nav-tab" onclick="setTab('kas-keluar')">💸 KAS KELUAR</button>
   <button class="nav-tab" onclick="setTab('tukang')">👷 TUKANG</button>
   <button class="nav-tab" onclick="setTab('laporan')">📋 LAPORAN</button>
 </div>
@@ -475,6 +476,77 @@ function render(){
     </div>`;
   }
 
+  // ── KAS KELUAR UMUM ──
+  else if(activeTab==="kas-keluar"){
+    const rekKode = REK_COA[p.id];
+    const AKUN_KK = ["5-1004","5-1005","6-1001","6-1002","6-1003","6-1004","6-1005","6-1006","6-1007"];
+    const kkList = jurnal.filter(j=>AKUN_KK.includes(j.akun)&&j.D>0);
+    C.innerHTML=`
+    <div class="card">
+      <div class="section-title">Input Kas Keluar Umum — ${p.nama}</div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><span class="label">Tanggal</span><input type="date" id="kl-tgl" value="${today()}"/></div>
+        <div><span class="label">No Transaksi</span><input type="text" id="kl-no" placeholder="Otomatis saat simpan" disabled style="opacity:.6"/></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <span class="label">Jenis Pengeluaran</span>
+        <select id="kl-jenis">
+          <option value="6-1004">Transportasi</option>
+          <option value="6-1003">Listrik & Air</option>
+          <option value="6-1001">Gaji Staf</option>
+          <option value="6-1002">Sewa Kantor</option>
+          <option value="6-1005">Perizinan & Notaris</option>
+          <option value="6-1006">Biaya Pemasaran</option>
+          <option value="5-1004">Biaya Subkontraktor</option>
+          <option value="5-1005">Biaya Overhead Proyek</option>
+          <option value="6-1007">Beban Lain-lain</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
+        <span class="label">Penerima / Vendor</span>
+        <input type="text" id="kl-penerima" placeholder="Nama penerima atau vendor"/>
+      </div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><span class="label">Nominal (Rp)</span><input type="number" id="kl-nominal" placeholder="0"/></div>
+        <div><span class="label">Bayar Via</span>
+          <select id="kl-rek">
+            <option value="${rekKode}">Transfer Bank ${p.bank}</option>
+            <option value="1-1001">Tunai</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <span class="label">Keterangan</span>
+        <input type="text" id="kl-ket" placeholder="Keterangan tambahan"/>
+      </div>
+      <button class="btn btn-red btn-full" onclick="simpanKasKeluar()">+ Simpan Kas Keluar</button>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="section-title" style="margin-bottom:0">Total Kas Keluar Umum</div>
+        <div style="font-size:15px;font-weight:700;color:var(--danger)">Rp ${fmt(kkList.reduce((x,j)=>x+j.D,0))}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Riwayat Kas Keluar Umum</div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tgl</th><th>No</th><th>Keterangan</th><th>Nominal</th></tr></thead>
+        <tbody>
+          ${kkList.map(j=>`<tr>
+            <td>${j.tgl||"-"}</td>
+            <td style="color:var(--accent)">${j.no||"-"}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket||"-"}</td>
+            <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
+          </tr>`).join("")||`<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+
   // ── TUKANG ──
   else if(activeTab==="tukang"){
     const rekKode = REK_COA[p.id];
@@ -858,6 +930,34 @@ async function simpanBahan(){
     const tgBahan=`🧱 <b>PEMBELIAN BAHAN BARU</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n📦 Item: <b>${item||"—"}</b>\n🏪 Supplier: <b>${supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📝 Ket: ${ket||"—"}\n\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>`;
     await sendTG(tgBahan);
     setV("bh-supplier","");setV("bh-item","");setV("bh-nominal","");setV("bh-ket","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
+}
+
+// ── SIMPAN KAS KELUAR UMUM ────────────────────────────────────────
+async function simpanKasKeluar(){
+  const tgl=v("kl-tgl"),jenis=v("kl-jenis"),penerima=v("kl-penerima"),
+        nominal=parseFloat(v("kl-nominal"))||0,
+        rek=v("kl-rek"),ket=v("kl-ket");
+  if(!tgl||!nominal) return toast("Lengkapi tanggal dan nominal!","red");
+  // Nomor atomic dari database (anti-dobel)
+  let no="KK-"+Date.now().toString().slice(-4);
+  try{const _r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"KK"})});if(_r.ok){no="KK-"+String(await _r.json()).padStart(3,"0");}}catch(e){}
+  const NAMA_AKUN={"5-1004":"Biaya Subkontraktor","5-1005":"Biaya Overhead Proyek","6-1001":"Gaji Staf","6-1002":"Sewa Kantor","6-1003":"Listrik & Air","6-1004":"Transportasi","6-1005":"Perizinan & Notaris","6-1006":"Biaya Pemasaran","6-1007":"Beban Lain-lain"};
+  const akunNama=NAMA_AKUN[jenis]||"Beban Lain-lain";
+  const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+MY_PROYEK.bank;
+  const keterangan=`${akunNama}${penerima?" - "+penerima:""}${ket?" | "+ket:""}`;
+  showLoader("Menyimpan...");
+  try{
+    const rows=await sbInsert("jurnal",[
+      {tgl,no,ket:keterangan,akun:jenis,nama:akunNama,proyek:MY_PROYEK.id,d:nominal,k:0},
+      {tgl,no,ket:keterangan,akun:rek,nama:rekNama,proyek:MY_PROYEK.id,d:0,k:nominal},
+    ]);
+    rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
+    toast(`✅ Kas keluar Rp ${fmt(nominal)} tersimpan!`);
+    const tgKK=`💸 <b>KAS KELUAR UMUM</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n📋 Jenis: <b>${akunNama}</b>\n👤 Penerima: <b>${penerima||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📝 Ket: ${ket||"—"}\n\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>`;
+    await sendTG(tgKK);
+    setV("kl-penerima","");setV("kl-nominal","");setV("kl-ket","");
   }catch(e){ toast("Gagal: "+e.message,"red"); }
   hideLoader(); render();
 }
