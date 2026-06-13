@@ -69,6 +69,7 @@ tr:hover td{background:rgba(30,45,64,.4)}
 <div style="background:#070b12;border-bottom:1px solid var(--border);display:flex;overflow-x:auto">
   <button class="nav-tab active" onclick="setTab('dashboard')">📊 DASHBOARD</button>
   <button class="nav-tab" onclick="setTab('kas-masuk')">💰 KAS MASUK</button>
+  <button class="nav-tab" onclick="setTab('kas-keluar')">💸 KAS KELUAR</button>
   <button class="nav-tab" onclick="setTab('bahan')">🧱 BAHAN</button>
   <button class="nav-tab" onclick="setTab('tukang')">👷 TUKANG</button>
   <button class="nav-tab" onclick="setTab('laporan')">📋 LAPORAN</button>
@@ -402,6 +403,39 @@ function render(){
         +"</tr>"
       ).join("") || "<tr><td colspan='5' style='text-align:center;color:var(--muted)'>Belum ada data</td></tr>")
       +"</tbody></table></div></div>";
+  }
+
+  // ── KAS KELUAR ──
+  else if(activeTab==="kas-keluar"){
+    const kkList = jurnal.filter(j=>j.proyek===MY_PROYEK.id && (j.akun==="5-1001"||j.akun==="5-1002"||j.akun==="5-1003"||j.akun==="5-1004"||j.akun==="5-1005"||j.akun==="5-9001") && parseFloat(j.d||0)>0);
+    html += "<div class='section'><div class='section-title'>Input Kas Keluar</div>"
+      +"<div class='form-grid'>"
+      +"<div class='field'><label>Tanggal</label><input type='date' id='kk-tgl' value='"+new Date().toISOString().slice(0,10)+"'/></div>"
+      +"<div class='field'><label>No. Transaksi</label><input type='text' id='kk-no' placeholder='KK-001'/></div>"
+      +"<div class='field'><label>Jenis Pengeluaran</label><select id='kk-jenis'>"
+      +"<option value='5-1001'>Pembelian Material</option>"
+      +"<option value='5-1002'>Biaya Operasional</option>"
+      +"<option value='5-1003'>Biaya Upah Tukang</option>"
+      +"<option value='5-1004'>Biaya Pemasaran</option>"
+      +"<option value='5-9001'>Pengeluaran Lainnya</option>"
+      +"</select></div>"
+      +"<div class='field'><label>Bayar Via</label><select id='kk-rek'>"
+      +"<option value='1-1001'>Kas Tunai</option>"
+      +"<option value='1-1002'>Bank BSI</option>"
+      +"</select></div>"
+      +"<div class='field'><label>Nominal (Rp)</label><input type='number' id='kk-nominal' placeholder='0'/></div>"
+      +"<div class='field'><label>Keterangan</label><input type='text' id='kk-ket' placeholder='Uraian pengeluaran...'/></div>"
+      +"</div>"
+      +"<button class='btn btn-amber btn-full' onclick='simpanKasKeluar()'>+ Simpan Kas Keluar</button>"
+      +"</div>"
+      +"<div class='section'><div class='section-title'>Riwayat Kas Keluar</div>"
+      +(kkList.length===0?"<div style='color:var(--muted);font-size:12px;padding:12px 0'>Belum ada data kas keluar.</div>"
+      :kkList.map(j=>"<div class='jurnal-row'>"
+        +"<div><div style='font-size:12px;font-weight:600'>"+j.ket+"</div>"
+        +"<div style='font-size:10px;color:var(--muted)'>"+j.tgl+" · "+j.no+"</div></div>"
+        +"<div style='color:#ef4444;font-weight:700;font-size:13px'>Rp "+fmt(parseFloat(j.d||0))+"</div>"
+        +"</div>").join(""))
+      +"</div>";
   }
 
   // ── BAHAN ──
@@ -828,6 +862,38 @@ function bukaCetakKwitansi(data){
   <script>setTimeout(()=>window.print(),800);<\/script>
   </body></html>`);
   w.document.close();
+}
+
+// ── SIMPAN KAS KELUAR ─────────────────────────────────────────────
+async function simpanKasKeluar(){
+  const tgl=v("kk-tgl"),no=v("kk-no"),jenis=v("kk-jenis"),
+        rek=v("kk-rek"),ket=v("kk-ket"),
+        nominal=parseFloat(v("kk-nominal"))||0;
+  if(!tgl||!no||!nominal) return toast("Lengkapi tanggal, no transaksi, dan nominal!","red");
+  const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+MY_PROYEK.bank;
+  const jenisList={"5-1001":"Pembelian Material","5-1002":"Biaya Operasional","5-1003":"Biaya Upah Tukang","5-1004":"Biaya Pemasaran","5-9001":"Pengeluaran Lainnya"};
+  const akunNama=jenisList[jenis]||"Pengeluaran";
+  const keterangan=ket||akunNama;
+  showLoader("Mengirim pengajuan...");
+  try{
+    await sbInsert("pengajuan",[{
+      proyek:MY_PROYEK.id,
+      tipe:"bahan",
+      status:"pending",
+      created_by:sessionStorage.getItem("sb_user_email")||"Admin",
+      data:{
+        tgl,no,jenis,nominal,rek,ket:keterangan,
+        keterangan,akunNama,rekNama,
+        supplier:"",item:keterangan,
+        proyek_nama:MY_PROYEK.nama
+      }
+    }]);
+    const tgPending=`⏳ <b>PENGAJUAN KAS KELUAR</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama}</b>\n📋 Jenis: <b>${akunNama}</b>\n📝 Ket: <b>${keterangan}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>\n\n🔔 Menunggu verifikasi manager`;
+    await sendTG(tgPending);
+    toast(`✅ Pengajuan kas keluar Rp ${fmt(nominal)} dikirim! Menunggu verifikasi.`);
+    setV("kk-no","");setV("kk-nominal","");setV("kk-ket","");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader(); render();
 }
 
 // ── SIMPAN BAHAN ──────────────────────────────────────────────────
