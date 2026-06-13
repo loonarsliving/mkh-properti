@@ -303,7 +303,8 @@ async function handleSubmit() {
         const checkData = await checkRes.json();
         setTimeout(() => {
           if (Array.isArray(checkData) && checkData.length > 0) {
-            if(checkData[0].proyek_id === "MANAGER"){
+            const pid = checkData[0].proyek_id || "";
+            if(pid === "MANAGER" || pid.startsWith("VERIFIKATOR")){
               window.location.href = "verifikasi.html";
             } else {
               window.location.href = "admin-proyek.html";
