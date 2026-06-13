@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verifikasi Pengajuan — PT. Maha Karya Haluoleo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f18;--card:#111827;--border:#1e2d40;
+  --accent:#f0a500;--green:#00b894;--red:#ef4444;
+  --text:#e2e8f0;--muted:#64748b;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+.topbar{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--green));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.brand-name{font-size:13px;font-weight:700;}
+.brand-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.btn-logout{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:7px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px;}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:24px;}
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.badge-count{display:inline-block;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:4px;vertical-align:middle;}
+.empty{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;transition:border-color .2s;}
+.card:hover{border-color:var(--accent);}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.card-type{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:6px;}
+.type-bahan{background:rgba(240,165,0,.15);color:var(--accent);}
+.type-tukang{background:rgba(0,184,148,.15);color:var(--green);}
+.card-proyek{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.card-nominal{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+.card-detail{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;}
+.detail-item{font-size:11px;}
+.detail-label{color:var(--muted);margin-bottom:2px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;}
+.detail-val{color:var(--text);font-weight:600;}
+.card-footer{display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px;}
+.btn-approve{flex:1;padding:10px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s;}
+.btn-approve:hover{opacity:.85;}
+.btn-reject{flex:1;padding:10px;border:1px solid rgba(239,68,68,.3);border-radius:8px;background:rgba(239,68,68,.1);color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s;}
+.btn-reject:hover{opacity:.85;}
+.badge-status{font-size:10px;padding:3px 10px;border-radius:6px;font-weight:700;}
+.status-pending{background:rgba(240,165,0,.15);color:var(--accent);}
+.status-approved{background:rgba(0,184,148,.15);color:var(--green);}
+.status-rejected{background:rgba(239,68,68,.15);color:#fca5a5;}
+.meta{font-size:10px;color:var(--muted);margin-top:8px;}
+.loader{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:999;display:none;}
+.loader-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 32px;text-align:center;}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.stat-val{font-size:22px;font-weight:700;margin-bottom:2px;}
+.stat-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-box">
+    <div class="spin"></div>
+    <div style="font-size:13px;color:var(--muted)">Memproses...</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="brand-icon">✅</div>
+    <div>
+      <div class="brand-name">Verifikasi Pengajuan</div>
+      <div class="brand-sub">PT. Maha Karya Haluoleo</div>
+    </div>
+  </div>
+  <button class="btn-logout" onclick="logout()">🔒 Keluar</button>
+</div>
+
+<div class="wrap">
+  <div class="page-title">Daftar Pengajuan</div>
+  <div class="page-sub">// approve atau tolak pengajuan dari admin proyek</div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-pending" style="color:var(--accent)">0</div>
+      <div class="stat-label">Menunggu Verifikasi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-approved" style="color:var(--green)">0</div>
+      <div class="stat-label">Disetujui Hari Ini</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-rejected" style="color:#ef4444">0</div>
+      <div class="stat-label">Ditolak Hari Ini</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('pending')" id="f-pending">⏳ Pending <span class="badge-count" id="badge-pending">0</span></button>
+    <button class="filter-btn" onclick="setFilter('approved')" id="f-approved">✅ Disetujui</button>
+    <button class="filter-btn" onclick="setFilter('rejected')" id="f-rejected">❌ Ditolak</button>
+    <button class="filter-btn" onclick="setFilter('all')" id="f-all">📋 Semua</button>
+  </div>
+
+  <div id="list-container"></div>
+</div>
+
+<script>
+const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+const TG_TOKEN = "8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8";
+const TG_CHAT_MAP = {
+  AFP:"-1003825705531", IH:"-1004294561742",
+  LL:"-5180682189", GCI:"-1003889729458"
+};
+const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
+
+let allData = [];
+let activeFilter = "pending";
+let USER_EMAIL = "";
+
+// ── AUTH GUARD ────────────────────────────────────────────────────
+(function authGuard(){
+  const token = sessionStorage.getItem("sb_access_token");
+  if(!token){ window.location.href="login.html"; return; }
+  fetch(`${SB_URL}/auth/v1/user`,{
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+token}
+  }).then(r=>{
+    if(!r.ok){ sessionStorage.clear(); window.location.href="login.html"; return; }
+    return r.json();
+  }).then(user=>{
+    if(!user) return;
+    USER_EMAIL = user.email || sessionStorage.getItem("sb_user_email") || "";
+    sessionStorage.setItem("sb_user_email", USER_EMAIL);
+    // Cek role - hanya manager/owner yang boleh akses
+    fetch(`${SB_URL}/rest/v1/users_proyek?email=eq.`+encodeURIComponent(USER_EMAIL)+`&select=proyek_id&limit=1`,{
+      headers:{...H}
+    }).then(r=>r.json()).then(cd=>{
+      if(Array.isArray(cd) && cd.length > 0 && cd[0].proyek_id !== "MANAGER"){
+        // Admin proyek biasa, tidak boleh masuk
+        window.location.href = "admin-proyek.html";
+        return;
+      }
+      // Owner atau manager, lanjut load data
+      loadData();
+    }).catch(()=>{ loadData(); });
+  }).catch(()=>{ sessionStorage.clear(); window.location.href="login.html"; });
+})();
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function fmt(n){ return new Intl.NumberFormat("id-ID").format(n||0); }
+function showLoader(){ document.getElementById("loader").style.display="flex"; }
+function hideLoader(){ document.getElementById("loader").style.display="none"; }
+function toast(msg, color="green"){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.style.borderColor=color==="red"?"rgba(239,68,68,.4)":"rgba(0,184,148,.4)";
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),3000);
+}
+function logout(){ sessionStorage.clear(); window.location.href="login.html"; }
+function setFilter(f){
+  activeFilter=f;
+  ["pending","approved","rejected","all"].forEach(x=>{
+    document.getElementById("f-"+x).classList.toggle("active",x===f);
+  });
+  render();
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────
+async function loadData(){
+  showLoader();
+  try{
+    const res = await fetch(`${SB_URL}/rest/v1/pengajuan?select=*&order=created_at.desc`,{headers:H});
+    allData = await res.json();
+    updateStats();
+    render();
+  }catch(e){ toast("Gagal load data: "+e.message,"red"); }
+  hideLoader();
+}
+
+function updateStats(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("stat-pending").textContent = allData.filter(d=>d.status==="pending").length;
+  document.getElementById("stat-approved").textContent = allData.filter(d=>d.status==="approved"&&d.updated_at?.slice(0,10)===today).length;
+  document.getElementById("stat-rejected").textContent = allData.filter(d=>d.status==="rejected"&&d.updated_at?.slice(0,10)===today).length;
+  document.getElementById("badge-pending").textContent = allData.filter(d=>d.status==="pending").length;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function render(){
+  const filtered = activeFilter==="all" ? allData : allData.filter(d=>d.status===activeFilter);
+  const el = document.getElementById("list-container");
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">${activeFilter==="pending"?"⏳":"📭"}</div><div>Tidak ada pengajuan ${activeFilter==="pending"?"yang menunggu verifikasi":activeFilter}</div></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(item=>{
+    const d = item.data || {};
+    const isBahan = item.tipe === "bahan";
+    const nominal = parseFloat(d.nominal)||0;
+    const tgl = d.tgl || item.created_at?.slice(0,10);
+    const isPending = item.status === "pending";
+    const waktu = new Date(item.created_at).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+
+    const detailHTML = isBahan ? `
+      <div class="detail-item"><div class="detail-label">Item</div><div class="detail-val">${d.item||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Supplier</div><div class="detail-val">${d.supplier||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">No. Transaksi</div><div class="detail-val">${d.no||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Bayar Via</div><div class="detail-val">${d.rek==="1-1001"?"Kas Tunai":"Bank BSI"}</div></div>
+      ${d.ket?`<div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Keterangan</div><div class="detail-val">${d.ket}</div></div>`:""}
+    ` : `
+      <div class="detail-item"><div class="detail-label">Tukang</div><div class="detail-val">${d.tukang_nama||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Minggu ke-</div><div class="detail-val">${d.minggu||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Blok Selesai</div><div class="detail-val">${d.blok_selesai||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Bayar Via</div><div class="detail-val">${d.rek==="1-1001"?"Kas Tunai":"Bank BSI"}</div></div>
+    `;
+
+    return `<div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-type ${isBahan?"type-bahan":"type-tukang"}">${isBahan?"🧱 Pembelian Bahan":"👷 Bayar Tukang"}</div>
+          <div class="card-proyek" style="margin-top:6px">📍 ${d.proyek_nama||item.proyek} &nbsp;·&nbsp; 📅 ${tgl}</div>
+        </div>
+        <span class="badge-status status-${item.status}">${item.status==="pending"?"⏳ Pending":item.status==="approved"?"✅ Approved":"❌ Ditolak"}</span>
+      </div>
+      <div class="card-nominal">Rp ${fmt(nominal)}</div>
+      <div class="card-detail">${detailHTML}</div>
+      <div class="meta">📤 Diajukan oleh <b>${item.created_by||"Admin"}</b> · ${waktu}${item.verified_by?` &nbsp;·&nbsp; ✅ Diverifikasi oleh <b>${item.verified_by}</b>`:""}</div>
+      ${isPending?`
+      <div class="card-footer">
+        <button class="btn-approve" onclick="approve(${item.id})">✅ Setujui</button>
+        <button class="btn-reject" onclick="reject(${item.id})">❌ Tolak</button>
+      </div>`:""}
+    </div>`;
+  }).join("");
+}
+
+// ── APPROVE ───────────────────────────────────────────────────────
+async function approve(id){
+  const item = allData.find(d=>d.id===id);
+  if(!item) return;
+  if(!confirm("Setujui pengajuan ini dan masukkan ke jurnal?")) return;
+  showLoader();
+  try{
+    const d = item.data;
+    const nominal = parseFloat(d.nominal)||0;
+
+    if(item.tipe === "bahan"){
+      // Insert jurnal bahan
+      await sbInsert("jurnal",[
+        {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.jenis,nama:d.akunNama,proyek:item.proyek,d:nominal,k:0},
+        {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
+      ]);
+      // Notif TG
+      const msg=`🧱 <b>PEMBELIAN BAHAN DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n📦 Item: <b>${d.item||"—"}</b>\n🏪 Supplier: <b>${d.supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
+      sendTG(msg, item.proyek);
+    } else {
+      // Insert bayar_tukang
+      await sbInsert("bayar_tukang",[{
+        proyek:item.proyek,tukang_id:d.tukang_id,tukang_nama:d.tukang_nama,
+        minggu:d.minggu,blok_selesai:d.blok_selesai,unit_minggu:d.unit_minggu,
+        nominal,rek:d.rek,tgl:d.tgl,no:d.no
+      }]);
+      // Update tukang_borongan
+      await fetch(`${SB_URL}/rest/v1/tukang_borongan?id=eq.${d.tukang_id}`,{
+        method:"PATCH",headers:{...H,"Prefer":"return=representation"},
+        body:JSON.stringify({terbayar:d.terbayarBaru,unit_selesai:d.unitSelesaiBaru})
+      });
+      // Insert jurnal tukang
+      await sbInsert("jurnal",[
+        {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:"5-1003",nama:"Biaya Upah Tukang",proyek:item.proyek,d:nominal,k:0},
+        {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
+      ]);
+      // Notif TG
+      const msg=`👷 <b>PEMBAYARAN TUKANG DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n👤 Tukang: <b>${d.tukang_nama}</b>\n💰 Dibayar: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
+      sendTG(msg, item.proyek);
+    }
+
+    // Update status pengajuan
+    await fetch(`${SB_URL}/rest/v1/pengajuan?id=eq.${id}`,{
+      method:"PATCH",headers:{...H,"Prefer":"return=representation"},
+      body:JSON.stringify({status:"approved",verified_by:USER_EMAIL,updated_at:new Date().toISOString()})
+    });
+
+    const idx = allData.findIndex(d=>d.id===id);
+    if(idx>-1){ allData[idx].status="approved"; allData[idx].verified_by=USER_EMAIL; }
+    updateStats(); render();
+    toast("✅ Pengajuan disetujui dan masuk ke jurnal!");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader();
+}
+
+// ── REJECT ────────────────────────────────────────────────────────
+async function reject(id){
+  if(!confirm("Tolak pengajuan ini?")) return;
+  showLoader();
+  try{
+    await fetch(`${SB_URL}/rest/v1/pengajuan?id=eq.${id}`,{
+      method:"PATCH",headers:{...H,"Prefer":"return=representation"},
+      body:JSON.stringify({status:"rejected",verified_by:USER_EMAIL,updated_at:new Date().toISOString()})
+    });
+    const idx = allData.findIndex(d=>d.id===id);
+    if(idx>-1){ allData[idx].status="rejected"; allData[idx].verified_by=USER_EMAIL; }
+    updateStats(); render();
+    toast("Pengajuan ditolak.","red");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader();
+}
+
+// ── SUPABASE INSERT ───────────────────────────────────────────────
+async function sbInsert(table, rows){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}`,{
+    method:"POST",
+    headers:{...H,"Prefer":"return=representation"},
+    body:JSON.stringify(rows)
+  });
+  if(!res.ok){ const e=await res.json(); throw new Error(e.message||e.details||JSON.stringify(e)); }
+  return res.json();
+}
+
+// ── TELEGRAM ─────────────────────────────────────────────────────
+function sendTG(msg, proyek){
+  const chatId = TG_CHAT_MAP[proyek] || "-5180682189";
+  const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${chatId}&parse_mode=HTML&text=${encodeURIComponent(msg)}`;
+  fetch(url,{method:"GET",mode:"no-cors"}).catch(()=>{});
+}
+</script>
+</body>
+</html>
