@@ -646,6 +646,7 @@ function render(){
         +"<div><span style='font-size:9px;color:var(--muted)'>TOTAL TERBAYAR</span><br/><b style='color:var(--accent2)'>Rp "+fmt(tukang.reduce((s,t)=>s+t.terbayar,0))+"</b></div>"
         +"<div><span style='font-size:9px;color:var(--muted)'>TOTAL SISA</span><br/><b style='color:var(--danger)'>Rp "+fmt(tukang.reduce((s,t)=>s+Math.max(0,t.nilai_kontrak-t.terbayar),0))+"</b></div>"
         +"<button class='btn btn-amber' style='margin-left:auto;padding:8px 16px;font-size:11px' onclick='cetakLaporanGaji()'>🖨 Cetak Laporan Gaji</button>"
+        +"<button class='btn btn-green' style='padding:8px 16px;font-size:11px' onclick='cetakGajiHarian()'>📄 Cetak Gaji Hari Ini</button>"
         +"</div>"
       )
       +"</div>";
@@ -1076,6 +1077,79 @@ async function bayarTukang(){
 }
 
 // ── CETAK LAPORAN GAJI TUKANG ────────────────────────────────────
+function cetakGajiHarian(){
+  const p = MY_PROYEK;
+  const fmtRp = n=>"Rp "+new Intl.NumberFormat("id-ID").format(Math.round(n||0));
+  const hariIni = new Date().toISOString().slice(0,10);
+  const tglCetak = new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+  const bayarHariIni = bayarTukangList.filter(b=>b.tgl===hariIni);
+  const totalHariIni = bayarHariIni.reduce((s,b)=>s+(parseFloat(b.nominal)||0),0);
+
+  const barisHariIni = bayarHariIni.length>0
+    ? bayarHariIni.map((b,i)=>{
+        const tk = tukang.find(t=>t.id===b.tukang_id) || {};
+        const sisa = (tk.nilai_kontrak||0) - (tk.terbayar||0);
+        return "<tr>"
+          +"<td style='text-align:center'>"+(i+1)+"</td>"
+          +"<td style='font-weight:700'>"+b.tukang_nama+"</td>"
+          +"<td style='text-align:center'>"+(b.blok_selesai||"-")+"</td>"
+          +"<td style='text-align:center'>"+(b.unit_minggu||0)+" unit</td>"
+          +"<td style='text-align:right;font-weight:700;color:#2d6a4f'>"+fmtRp(b.nominal)+"</td>"
+          +"<td style='text-align:right;color:"+(sisa<=0?"#2d6a4f":"#c0392b")+"'>"+(sisa<=0?"✓ LUNAS":fmtRp(sisa))+"</td>"
+          +"</tr>";
+      }).join("")
+    : "<tr><td colspan='6' style='text-align:center;color:#999'>Belum ada pembayaran hari ini</td></tr>";
+
+  const w = window.open("","_blank","width=900,height=700");
+  w.document.write(`<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"/>
+  <title>Slip Gaji Harian — ${p.nama}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Times New Roman',serif;background:#fff;color:#111;padding:28px;max-width:900px;margin:0 auto;font-size:10.5pt}
+    .header{text-align:center;margin-bottom:20px;border-bottom:3px solid #111;padding-bottom:14px}
+    .header h1{font-size:16pt;margin-bottom:2px}
+    .header div{font-size:9pt;color:#555}
+    .meta{display:flex;justify-content:space-between;margin-bottom:16px;font-size:10pt}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    th,td{border:1px solid #ccc;padding:7px 10px;font-size:9.5pt}
+    th{background:#f0a500;color:#000;text-align:left}
+    .total-row td{font-weight:700;background:#f7f7f7;border-top:2px solid #111}
+    .footer{display:flex;justify-content:space-between;margin-top:50px;font-size:9.5pt}
+    .sign{text-align:center;width:200px}
+    .sign-line{border-top:1px solid #111;margin-top:50px;padding-top:4px}
+    @media print{ body{padding:14px} }
+  </style></head><body>
+    <div class="header">
+      <h1>PT. MAHA KARYA HALUOLEO</h1>
+      <div>Slip Pembayaran Gaji Tukang / Kontraktor — Harian</div>
+    </div>
+    <div class="meta">
+      <div><b>Proyek:</b> ${p.nama}</div>
+      <div><b>Tanggal:</b> ${tglCetak}</div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="text-align:center">No</th><th>Nama Tukang</th>
+        <th style="text-align:center">Blok</th><th style="text-align:center">Unit Selesai</th>
+        <th style="text-align:right">Dibayar Hari Ini</th><th style="text-align:right">Sisa Gaji</th>
+      </tr></thead>
+      <tbody>${barisHariIni}</tbody>
+      <tfoot><tr class="total-row">
+        <td colspan="4" style="text-align:right">TOTAL DIBAYAR HARI INI</td>
+        <td style="text-align:right">${fmtRp(totalHariIni)}</td><td></td>
+      </tr></tfoot>
+    </table>
+    <div class="footer">
+      <div class="sign"><div class="sign-line">Admin Proyek</div></div>
+      <div class="sign"><div class="sign-line">Diverifikasi Oleh</div></div>
+    </div>
+    <script>window.print();</script>
+  </body></html>`);
+  w.document.close();
+}
+
 function cetakLaporanGaji(){
   const p = MY_PROYEK;
   const tglCetak = new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
