@@ -472,6 +472,26 @@ function cetakGajiHarianOwner(){
   const bayarHariIni = bayarTukangList.filter(b=>b.tgl===hariIni && (filterProyek==="ALL"||b.proyek===filterProyek));
   const totalHariIni = bayarHariIni.reduce((s,b)=>s+(parseFloat(b.nominal)||0),0);
 
+  const ftRekap = filterProyek==="ALL" ? tukangList : tukangList.filter(t=>t.proyek===filterProyek);
+  const barisRekapSisa = ftRekap.length>0
+    ? ftRekap.map((t,i)=>{
+        const sisa = (t.nilai_kontrak||0)-(t.terbayar||0);
+        const sisaUnit = (t.total_unit||0)-(t.unit_selesai||0);
+        const lunas = sisa<=0;
+        return "<tr>"
+          +"<td style='text-align:center'>"+(i+1)+"</td>"
+          +"<td>"+getP(t.proyek).nama+"</td>"
+          +"<td style='font-weight:700'>"+t.nama+"</td>"
+          +"<td>"+(t.item||"-")+"</td>"
+          +"<td style='text-align:right'>"+fmtRp(t.nilai_kontrak)+"</td>"
+          +"<td style='text-align:right;color:#2d6a4f'>"+fmtRp(t.terbayar)+"</td>"
+          +"<td style='text-align:right;font-weight:700;color:"+(lunas?"#2d6a4f":"#c0392b")+"'>"+(lunas?"✓ LUNAS":fmtRp(sisa))+"</td>"
+          +"<td style='text-align:center'>"+(lunas?"✓":sisaUnit+" unit")+"</td>"
+          +"</tr>";
+      }).join("")
+    : "<tr><td colspan='8' style='text-align:center;color:#999'>Belum ada data tukang</td></tr>";
+  const totalSisaSemua = ftRekap.reduce((s,t)=>s+Math.max(0,(t.nilai_kontrak||0)-(t.terbayar||0)),0);
+
   const barisHariIni = bayarHariIni.length>0
     ? bayarHariIni.map((b,i)=>{
         const tk = tukangList.find(t=>t.id===b.tukang_id) || {};
@@ -525,6 +545,20 @@ function cetakGajiHarianOwner(){
       <tfoot><tr class="total-row">
         <td colspan="4" style="text-align:right">TOTAL DIBAYAR HARI INI</td>
         <td style="text-align:right">${fmtRp(totalHariIni)}</td><td></td>
+      </tr></tfoot>
+    </table>
+
+    <div style="margin-top:24px;margin-bottom:10px;font-weight:700;font-size:11.5pt;border-bottom:2px solid #111;padding-bottom:4px">REKAP SISA GAJI SELURUH TUKANG / KONTRAKTOR (TERKINI)</div>
+    <table>
+      <thead><tr>
+        <th style="text-align:center">No</th><th>Proyek</th><th>Nama Tukang</th><th>Pekerjaan</th>
+        <th style="text-align:right">Nilai Kontrak</th><th style="text-align:right">Sudah Dibayar</th>
+        <th style="text-align:right">Sisa Gaji</th><th style="text-align:center">Sisa Unit</th>
+      </tr></thead>
+      <tbody>${barisRekapSisa}</tbody>
+      <tfoot><tr class="total-row">
+        <td colspan="6" style="text-align:right">TOTAL SISA GAJI BELUM DIBAYAR</td>
+        <td style="text-align:right">${fmtRp(totalSisaSemua)}</td><td></td>
       </tr></tfoot>
     </table>
     <div class="footer">
