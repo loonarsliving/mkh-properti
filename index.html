@@ -64,6 +64,7 @@
       <option value="IH">Introvert House</option>
       <option value="LL">Loonars Living</option>
       <option value="GCI">Griya Cariu Indah</option>
+      <option value="GCR">Green Cibarusah Residence</option>
     </select>
     <button class="btn btn-green" style="padding:7px 14px;font-size:11px" onclick="exportExcel()">⬇ Export Excel</button>
     <button class="btn btn-purple" style="padding:7px 14px;font-size:11px" onclick="window.open('laporan-keuangan.html','_blank')" title="Laporan Keuangan KAP">📄 Laporan KAP</button>
@@ -148,6 +149,7 @@ const PROYEK = [
   {id:"IH", nama:"Introvert House",   rek:"4420 1881 4099 04",bank:"BSI",warna:"#00b894"},
   {id:"LL", nama:"Loonars Living",    rek:"7801 8800 0168 1", bank:"BSI",warna:"#a78bfa"},
   {id:"GCI",nama:"Griya Cariu Indah", rek:"5018 8000 2715",   bank:"BSI",warna:"#38bdf8"},
+  {id:"GCR",nama:"Green Cibarusah Residence", rek:"7801880001681", bank:"BTN",warna:"#ec4899"},
   {id:"HO", nama:"Kantor Pusat / Overhead (HR, Komisi, dll)", rek:"1-1001", bank:"Kas",warna:"#64748b"},
 ];
 // Dashboard-only presentation layer: groups the (unchanged) internal PROYEK
@@ -158,15 +160,16 @@ const BRANCHES = [
   {id:"KDI",nama:"Kendari",     warna:"#f0a500",proyekIds:["AFP"]},
   {id:"MKS",nama:"Makassar",    warna:"#00b894",proyekIds:["IH"]},
   {id:"JOG",nama:"Jogja",       warna:"#a78bfa",proyekIds:["LL"]},
-  {id:"JBD",nama:"Jabodetabek", warna:"#38bdf8",proyekIds:["GCI"]},
+  {id:"JBD",nama:"Jabodetabek", warna:"#38bdf8",proyekIds:["GCI","GCR"]},
 ];
-const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005"};
+const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005",GCR:"1-1008"};
 const COA = [
   {kode:"1-1001",nama:"Kas Tunai",               kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-1002",nama:"Bank Al Fath Puuwatu",    kat:"Aset Lancar",       tipe:"D",rek:"1901 8811 4444 1"},
   {kode:"1-1003",nama:"Bank Introvert House",    kat:"Aset Lancar",       tipe:"D",rek:"4420 1881 4099 04"},
   {kode:"1-1004",nama:"Bank Loonars Living",     kat:"Aset Lancar",       tipe:"D",rek:"7801 8800 0168 1"},
   {kode:"1-1005",nama:"Bank Griya Cariu Indah",  kat:"Aset Lancar",       tipe:"D",rek:"5018 8000 2715"},
+  {kode:"1-1008",nama:"Bank Green Cibarusah Residence", kat:"Aset Lancar", tipe:"D",rek:"7801880001681"},
   {kode:"1-1006",nama:"Piutang Antar Proyek",    kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-1007",nama:"Piutang Pembeli",         kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-2001",nama:"Tanah",                   kat:"Aset Tetap",        tipe:"D"},
@@ -489,6 +492,7 @@ function rekSelect(id){
     <option value="1-1003">Introvert House — 4420 1881 4099 04</option>
     <option value="1-1004">Loonars Living — 7801 8800 0168 1</option>
     <option value="1-1005">Griya Cariu Indah — 5018 8000 2715</option>
+    <option value="1-1008">Green Cibarusah Residence — 7801880001681</option>
   </select>`;
 }
 function syncRek(proyekSelId){
