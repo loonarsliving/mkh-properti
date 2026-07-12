@@ -150,6 +150,16 @@ const PROYEK = [
   {id:"GCI",nama:"Griya Cariu Indah", rek:"5018 8000 2715",   bank:"BSI",warna:"#38bdf8"},
   {id:"HO", nama:"Kantor Pusat / Overhead (HR, Komisi, dll)", rek:"1-1001", bank:"Kas",warna:"#64748b"},
 ];
+// Dashboard-only presentation layer: groups the (unchanged) internal PROYEK
+// codes under company branches for the Finance Dashboard. Every other view
+// (Kas Masuk/Keluar, Aset, Jurnal, COA, exports, ...) keeps referencing
+// PROYEK/getP() exactly as before — no accounting/database/API change.
+const BRANCHES = [
+  {id:"KDI",nama:"Kendari",     warna:"#f0a500",proyekIds:["AFP"]},
+  {id:"MKS",nama:"Makassar",    warna:"#00b894",proyekIds:["IH"]},
+  {id:"JOG",nama:"Jogja",       warna:"#a78bfa",proyekIds:["LL"]},
+  {id:"JBD",nama:"Jabodetabek", warna:"#38bdf8",proyekIds:["GCI"]},
+];
 const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005"};
 const COA = [
   {kode:"1-1001",nama:"Kas Tunai",               kat:"Aset Lancar",       tipe:"D"},
@@ -199,6 +209,8 @@ let tukangList = [];
 let bayarTukangList = [];
 let filterProyek = "ALL";
 let activeMenu   = "Dashboard";
+let dashboardView = "branches"; // "branches" | "branch"  (Finance Dashboard drill-down state only)
+let selectedBranchId = null;
 
 // ── HELPERS ──────────────────────────────────────────────────────
 const fmt  = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
@@ -263,6 +275,26 @@ function sumKat(kat,sm){ return Object.values(sm).filter(a=>a.kat===kat).reduce(
 function proyekSaldo(pid,sm){ return getSaldo(REK_COA[pid],sm)+getSaldo("1-1001",sm); }
 function proyekPend(pid){ return jurnal.filter(j=>j.proyek===pid&&COA.find(c=>c.kode===j.akun&&c.kat==="Pendapatan")).reduce((s,j)=>s+j.K,0); }
 function proyekBeban(pid){ return jurnal.filter(j=>j.proyek===pid&&COA.find(c=>c.kode===j.akun&&(c.kat==="HPP"||c.kat==="Beban Operasional"))).reduce((s,j)=>s+j.D,0); }
+
+// ── BRANCH AGGREGATION (Finance Dashboard presentation only) ──────
+// These compose the exact same proyekSaldo/proyekPend/proyekBeban used
+// everywhere else in the app — no new accounting rule, just grouping by
+// branch instead of by project for the dashboard cards.
+function branchSaldo(b,sm){ return b.proyekIds.reduce((s,pid)=>s+proyekSaldo(pid,sm),0); }
+function branchPend(b){ return b.proyekIds.reduce((s,pid)=>s+proyekPend(pid),0); }
+function branchBeban(b){ return b.proyekIds.reduce((s,pid)=>s+proyekBeban(pid),0); }
+function branchAset(b){ return aset.filter(a=>b.proyekIds.includes(a.proyek)); }
+// Company-wide combined cash: each project's own dedicated bank account,
+// plus the single shared Kas Tunai (1-1001) account counted ONCE (it is one
+// physical cash balance, not a per-project one — proyekSaldo() already adds
+// the full 1-1001 balance into every individual project's card by design,
+// so simply summing the branch cards would overcount it 4x).
+function totalCompanyCash(sm){
+  const bankSum = PROYEK.filter(p=>REK_COA[p.id]).reduce((s,p)=>s+getSaldo(REK_COA[p.id],sm),0);
+  return bankSum + getSaldo("1-1001",sm);
+}
+function openBranch(id){ selectedBranchId=id; dashboardView="branch"; renderMenu(); }
+function backToBranches(){ dashboardView="branches"; selectedBranchId=null; renderMenu(); }
 
 // ── KAS MASUK ─────────────────────────────────────────────────────
 async function simpanKM(){
@@ -581,7 +613,11 @@ function renderNav(){
       ${m.toUpperCase()}
     </button>`).join("");
 }
-function setMenu(m){ activeMenu=m; renderNav(); renderMenu(); }
+function setMenu(m){
+  activeMenu=m;
+  if(m==="Dashboard"){ dashboardView="branches"; selectedBranchId=null; }
+  renderNav(); renderMenu();
+}
 
 // ── RENDER ────────────────────────────────────────────────────────
 function renderMenu(){
@@ -596,28 +632,92 @@ function renderMenu(){
   const C=document.getElementById("content");
 
   // ── DASHBOARD ──
-  if(activeMenu==="Dashboard"){
+  if(activeMenu==="Dashboard" && dashboardView==="branch" && selectedBranchId){
+    const br=BRANCHES.find(b=>b.id===selectedBranchId);
+    const brProyek=br?br.proyekIds.map(id=>getP(id)):[];
+    const brJurnal=br?jurnal.filter(j=>br.proyekIds.includes(j.proyek)):[];
     C.innerHTML=`
-    <div class="section-title">Saldo Rekening Per Proyek</div>
+    <button onclick="backToBranches()" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;margin-bottom:16px;padding:8px 14px;font-family:inherit">← Kembali ke Ringkasan Cabang</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="width:10px;height:10px;border-radius:50%;background:${br?.warna||"#888"};display:inline-block"></span>
+      <div style="font-size:16px;font-weight:700">Cabang ${br?.nama||"-"}</div>
+    </div>
+    <div class="section-title">Proyek di Cabang Ini</div>
     <div class="grid4" style="margin-bottom:20px">
-      ${PROYEK.map(p=>{
+      ${brProyek.map(p=>{
         const pend=proyekPend(p.id),beban=proyekBeban(p.id),laba=pend-beban;
-        const jml=aset.filter(a=>a.proyek===p.id).length;
-        const terjual=aset.filter(a=>a.proyek===p.id&&a.status==="terjual").length;
+        const pAset=aset.filter(a=>a.proyek===p.id);
+        const jml=pAset.length,terjual=pAset.filter(a=>a.status==="terjual").length,tersedia=pAset.filter(a=>a.status==="tersedia").length;
         return `<div class="card" style="margin-bottom:0;border-left:3px solid ${p.warna};padding:14px 16px">
           <div style="font-size:10px;color:${p.warna};font-weight:700">${p.id}</div>
           <div style="font-size:12px;font-weight:700;margin:2px 0">${p.nama}</div>
           <div style="font-size:9px;color:var(--muted);margin-bottom:8px">${p.rek} · ${p.bank}</div>
           <div style="font-size:15px;font-weight:700;color:${p.warna}">Rp ${fmt(proyekSaldo(p.id,sm))}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">Cash Balance</div>
           <div style="display:flex;justify-content:space-between;margin-top:8px">
-            <div><div style="font-size:9px;color:var(--muted)">Pendapatan</div><div style="font-size:11px;color:var(--accent2)">Rp ${fmt(pend)}</div></div>
-            <div style="text-align:right"><div style="font-size:9px;color:var(--muted)">Beban</div><div style="font-size:11px;color:var(--danger)">Rp ${fmt(beban)}</div></div>
+            <div><div style="font-size:9px;color:var(--muted)">Revenue</div><div style="font-size:11px;color:var(--accent2)">Rp ${fmt(pend)}</div></div>
+            <div style="text-align:right"><div style="font-size:9px;color:var(--muted)">Expenses</div><div style="font-size:11px;color:var(--danger)">Rp ${fmt(beban)}</div></div>
           </div>
           <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
-            <span style="font-size:9px;color:var(--muted)">Laba</span>
+            <span style="font-size:9px;color:var(--muted)">Profit</span>
             <span style="font-size:11px;font-weight:700;color:${laba>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(laba)}</span>
           </div>
-          <div style="margin-top:5px;font-size:9px;color:var(--muted)">${jml} unit · ${terjual} terjual</div>
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
+            <span>Total: <b style="color:var(--text)">${jml}</b></span>
+            <span>Terjual: <b style="color:var(--danger)">${terjual}</b></span>
+            <span>Tersedia: <b style="color:var(--accent2)">${tersedia}</b></span>
+          </div>
+        </div>`;
+      }).join("")||'<div style="color:var(--muted);font-size:12px">Belum ada proyek di cabang ini.</div>'}
+    </div>
+    <div class="card">
+      <div class="section-title">Transaksi Terbaru — Cabang ${br?.nama||"-"}</div>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th></tr></thead>
+      <tbody>${[...brJurnal].reverse().slice(0,10).map(j=>`<tr>
+        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td>${proyekTag(j.proyek)}</td>
+        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
+        <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
+      </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada transaksi</td></tr>'}
+      </tbody></table></div>
+    </div>`;
+  }
+  else if(activeMenu==="Dashboard"){
+    const companyCash=totalCompanyCash(sm);
+    C.innerHTML=`
+    <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(240,165,0,.14),rgba(0,184,148,.08));border:1px solid var(--accent);padding:26px 28px">
+      <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.1em">💼 TOTAL COMPANY CASH</div>
+      <div style="font-size:34px;font-weight:700;color:var(--accent2);margin-top:8px;line-height:1.1">Rp ${fmt(companyCash)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">Saldo kas &amp; bank gabungan seluruh cabang — KPI utama CFO</div>
+    </div>
+    <div class="section-title">Ringkasan Cabang</div>
+    <div class="grid4" style="margin-bottom:20px">
+      ${BRANCHES.map(b=>{
+        const pend=branchPend(b),beban=branchBeban(b),laba=pend-beban,cash=branchSaldo(b,sm);
+        const bAset=branchAset(b);
+        const jml=bAset.length,terjual=bAset.filter(a=>a.status==="terjual").length,tersedia=bAset.filter(a=>a.status==="tersedia").length;
+        return `<div class="card" style="margin-bottom:0;border-left:3px solid ${b.warna};padding:14px 16px;cursor:pointer" onclick="openBranch('${b.id}')">
+          <div style="font-size:10px;color:${b.warna};font-weight:700">CABANG</div>
+          <div style="font-size:14px;font-weight:700;margin:2px 0">${b.nama}</div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:8px">${b.proyekIds.map(id=>getP(id).nama).join(", ")}</div>
+          <div style="font-size:15px;font-weight:700;color:${b.warna}">Rp ${fmt(cash)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">Cash Balance</div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <div><div style="font-size:9px;color:var(--muted)">Revenue</div><div style="font-size:11px;color:var(--accent2)">Rp ${fmt(pend)}</div></div>
+            <div style="text-align:right"><div style="font-size:9px;color:var(--muted)">Expenses</div><div style="font-size:11px;color:var(--danger)">Rp ${fmt(beban)}</div></div>
+          </div>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+            <span style="font-size:9px;color:var(--muted)">Profit</span>
+            <span style="font-size:11px;font-weight:700;color:${laba>=0?"var(--accent2)":"var(--danger)"}">Rp ${fmt(laba)}</span>
+          </div>
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
+            <span>Total Unit: <b style="color:var(--text)">${jml}</b></span>
+            <span>Terjual: <b style="color:var(--danger)">${terjual}</b></span>
+            <span>Tersedia: <b style="color:var(--accent2)">${tersedia}</b></span>
+          </div>
+          <div style="margin-top:10px;text-align:right;font-size:9px;color:${b.warna}">Lihat Detail →</div>
         </div>`;
       }).join("")}
     </div>
