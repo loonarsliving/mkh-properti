@@ -38,6 +38,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .card-type{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:6px;}
 .type-bahan{background:rgba(240,165,0,.15);color:var(--accent);}
 .type-tukang{background:rgba(0,184,148,.15);color:var(--green);}
+.type-gaji{background:rgba(99,102,241,.15);color:#a5b4fc;}
+.type-komisi{background:rgba(236,72,153,.15);color:#f9a8d4;}
+.type-bonus{background:rgba(34,211,238,.15);color:#67e8f9;}
+.type-reimbursement{background:rgba(250,204,21,.15);color:#fde047;}
+.type-hrlain{background:rgba(148,163,184,.15);color:#cbd5e1;}
+.type-crm{background:rgba(0,184,148,.15);color:var(--green);}
 .card-proyek{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
 .card-nominal{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;}
 .card-detail{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;}
@@ -111,6 +117,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <button class="filter-btn" onclick="setFilter('approved')" id="f-approved">✅ Disetujui</button>
     <button class="filter-btn" onclick="setFilter('rejected')" id="f-rejected">❌ Ditolak</button>
     <button class="filter-btn" onclick="setFilter('all')" id="f-all">📋 Semua</button>
+    <button class="filter-btn" onclick="setFilter('crm')" id="f-crm">💰 Konfirmasi CRM <span class="badge-count" id="badge-crm">0</span></button>
   </div>
 
   <div id="list-container"></div>
@@ -127,6 +134,7 @@ const TG_CHAT_MAP = {
 const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 let allData = [];
+let crmData = [];
 let activeFilter = "pending";
 let USER_EMAIL = "";
 let USER_PROYEK_ID = ""; // proyek_id dari users_proyek (e.g. VERIFIKATOR_LL)
@@ -182,7 +190,7 @@ function toast(msg, color="green"){
 function logout(){ sessionStorage.clear(); window.location.href="login.html"; }
 function setFilter(f){
   activeFilter=f;
-  ["pending","approved","rejected","all"].forEach(x=>{
+  ["pending","approved","rejected","all","crm"].forEach(x=>{
     document.getElementById("f-"+x).classList.toggle("active",x===f);
   });
   render();
@@ -193,11 +201,18 @@ async function loadData(){
   showLoader();
   try{
     // Filter per proyek jika verifikator
-    const filter = USER_PROYEK_FILTER 
+    const filter = USER_PROYEK_FILTER
       ? `proyek=eq.${USER_PROYEK_FILTER}&select=*&order=created_at.desc`
       : `select=*&order=created_at.desc`;
     const res = await fetch(`${SB_URL}/rest/v1/pengajuan?${filter}`,{headers:H});
     allData = await res.json();
+
+    const crmFilter = USER_PROYEK_FILTER
+      ? `proyek=eq.${USER_PROYEK_FILTER}&select=*&order=created_at.desc`
+      : `select=*&order=created_at.desc`;
+    const crmRes = await fetch(`${SB_URL}/rest/v1/crm_payment_receipts?${crmFilter}`,{headers:H});
+    crmData = crmRes.ok ? await crmRes.json() : [];
+
     updateStats();
     render();
   }catch(e){ toast("Gagal load data: "+e.message,"red"); }
@@ -210,10 +225,22 @@ function updateStats(){
   document.getElementById("stat-approved").textContent = allData.filter(d=>d.status==="approved"&&d.updated_at?.slice(0,10)===today).length;
   document.getElementById("stat-rejected").textContent = allData.filter(d=>d.status==="rejected"&&d.updated_at?.slice(0,10)===today).length;
   document.getElementById("badge-pending").textContent = allData.filter(d=>d.status==="pending").length;
+  document.getElementById("badge-crm").textContent = crmData.filter(d=>d.status==="recorded").length;
 }
+
+const TIPE_LABEL = {
+  bahan: {icon:"🧱", label:"Pembelian Bahan", cls:"type-bahan"},
+  tukang: {icon:"👷", label:"Bayar Tukang", cls:"type-tukang"},
+  gaji: {icon:"💼", label:"Gaji Staf (Sinkronisasi)", cls:"type-gaji"},
+  komisi: {icon:"🏆", label:"Komisi Sales (Sinkronisasi)", cls:"type-komisi"},
+  bonus: {icon:"🎁", label:"Bonus Karyawan (Sinkronisasi)", cls:"type-bonus"},
+  reimbursement: {icon:"🧾", label:"Reimbursement (Sinkronisasi)", cls:"type-reimbursement"},
+  hr_lain: {icon:"📋", label:"Beban HR Lain (Sinkronisasi)", cls:"type-hrlain"},
+};
 
 // ── RENDER ────────────────────────────────────────────────────────
 function render(){
+  if(activeFilter==="crm"){ renderCrm(); return; }
   const filtered = activeFilter==="all" ? allData : allData.filter(d=>d.status===activeFilter);
   const el = document.getElementById("list-container");
   if(!filtered.length){
@@ -222,29 +249,48 @@ function render(){
   }
   el.innerHTML = filtered.map(item=>{
     const d = item.data || {};
-    const isBahan = item.tipe === "bahan";
+    const tipeInfo = TIPE_LABEL[item.tipe] || TIPE_LABEL.bahan;
     const nominal = parseFloat(d.nominal)||0;
     const tgl = d.tgl || item.created_at?.slice(0,10);
     const isPending = item.status === "pending";
     const waktu = new Date(item.created_at).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
-    const detailHTML = isBahan ? `
+    let detailHTML;
+    if(item.tipe === "bahan"){
+      detailHTML = `
       <div class="detail-item"><div class="detail-label">Item</div><div class="detail-val">${d.item||"—"}</div></div>
       <div class="detail-item"><div class="detail-label">Supplier</div><div class="detail-val">${d.supplier||"—"}</div></div>
       <div class="detail-item"><div class="detail-label">No. Transaksi</div><div class="detail-val">${d.no||"—"}</div></div>
       <div class="detail-item"><div class="detail-label">Bayar Via</div><div class="detail-val">${d.rek==="1-1001"?"Kas Tunai":"Bank BSI"}</div></div>
-      ${d.ket?`<div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Keterangan</div><div class="detail-val">${d.ket}</div></div>`:""}
-    ` : `
+      ${d.ket?`<div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Keterangan</div><div class="detail-val">${d.ket}</div></div>`:""}`;
+    } else if(item.tipe === "tukang"){
+      detailHTML = `
       <div class="detail-item"><div class="detail-label">Tukang</div><div class="detail-val">${d.tukang_nama||"—"}</div></div>
       <div class="detail-item"><div class="detail-label">Minggu ke-</div><div class="detail-val">${d.minggu||"—"}</div></div>
       <div class="detail-item"><div class="detail-label">Blok Selesai</div><div class="detail-val">${d.blok_selesai||"—"}</div></div>
-      <div class="detail-item"><div class="detail-label">Bayar Via</div><div class="detail-val">${d.rek==="1-1001"?"Kas Tunai":"Bank BSI"}</div></div>
-    `;
+      <div class="detail-item"><div class="detail-label">Bayar Via</div><div class="detail-val">${d.rek==="1-1001"?"Kas Tunai":"Bank BSI"}</div></div>`;
+    } else if(item.tipe === "gaji"){
+      detailHTML = `
+      <div class="detail-item"><div class="detail-label">Karyawan</div><div class="detail-val">${d.employee_name||"—"} (${d.employee_code||"—"})</div></div>
+      <div class="detail-item"><div class="detail-label">Periode</div><div class="detail-val">${d.period_month||"—"}/${d.period_year||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Gaji Pokok</div><div class="detail-val">Rp ${fmt(d.base_salary)}</div></div>
+      <div class="detail-item"><div class="detail-label">Sumber</div><div class="detail-val">MK Connect (auto)</div></div>`;
+    } else if(item.tipe === "komisi"){
+      detailHTML = `
+      <div class="detail-item"><div class="detail-label">Sales</div><div class="detail-val">${d.sales_name||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Cabang</div><div class="detail-val">${d.branch_name||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Sumber</div><div class="detail-val">MK Connect (auto)</div></div>`;
+    } else {
+      detailHTML = `
+      <div class="detail-item"><div class="detail-label">Karyawan</div><div class="detail-val">${d.employee_name||"—"} (${d.employee_code||"—"})</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Deskripsi</div><div class="detail-val">${d.description||"—"}</div></div>
+      <div class="detail-item"><div class="detail-label">Sumber</div><div class="detail-val">MK Connect (auto)</div></div>`;
+    }
 
     return `<div class="card">
       <div class="card-header">
         <div>
-          <div class="card-type ${isBahan?"type-bahan":"type-tukang"}">${isBahan?"🧱 Pembelian Bahan":"👷 Bayar Tukang"}</div>
+          <div class="card-type ${tipeInfo.cls}">${tipeInfo.icon} ${tipeInfo.label}</div>
           <div class="card-proyek" style="margin-top:6px">📍 ${d.proyek_nama||item.proyek} &nbsp;·&nbsp; 📅 ${tgl}</div>
         </div>
         <span class="badge-status status-${item.status}">${item.status==="pending"?"⏳ Pending":item.status==="approved"?"✅ Approved":"❌ Ditolak"}</span>
@@ -261,6 +307,58 @@ function render(){
   }).join("");
 }
 
+function renderCrm(){
+  const el = document.getElementById("list-container");
+  if(!crmData.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div>Belum ada pembayaran CRM yang tersinkronisasi</div></div>`;
+    return;
+  }
+  el.innerHTML = crmData.map(item=>{
+    const waktu = new Date(item.created_at).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    const isRecorded = item.status === "recorded";
+    return `<div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-type type-crm">💰 Kas Masuk CRM (Sinkronisasi)</div>
+          <div class="card-proyek" style="margin-top:6px">📍 ${item.project_name||item.proyek} ${item.unit_label?("· Unit "+item.unit_label):""} &nbsp;·&nbsp; 📅 ${item.payment_date}</div>
+        </div>
+        <span class="badge-status ${isRecorded?"status-pending":"status-approved"}">${isRecorded?"⏳ Perlu Konfirmasi":"✅ Dikonfirmasi"}</span>
+      </div>
+      <div class="card-nominal">Rp ${fmt(item.amount)}</div>
+      <div class="card-detail">
+        <div class="detail-item"><div class="detail-label">Customer</div><div class="detail-val">${item.customer_name||"—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Jenis Pembayaran</div><div class="detail-val">${item.payment_type||"—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Sales</div><div class="detail-val">${item.sales_name||"—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Cabang</div><div class="detail-val">${item.branch_name||"—"}</div></div>
+        <div class="detail-item"><div class="detail-label">No. Jurnal</div><div class="detail-val">${item.jurnal_no}</div></div>
+        <div class="detail-item"><div class="detail-label">No. Referensi</div><div class="detail-val">${item.reference_number||"—"}</div></div>
+      </div>
+      <div class="meta">🔄 Otomatis dari MK Connect · ${waktu}${item.confirmed_by?` &nbsp;·&nbsp; ✅ Dikonfirmasi oleh <b>${item.confirmed_by}</b>`:""}</div>
+      ${isRecorded?`
+      <div class="card-footer">
+        <button class="btn-approve" onclick="confirmCrmReceipt(${item.id})">✅ Konfirmasi Penerimaan</button>
+      </div>`:""}
+    </div>`;
+  }).join("");
+}
+
+// ── CONFIRM CRM RECEIPT (fires finance_payment_confirmed sync back to MK Connect) ──
+async function confirmCrmReceipt(id){
+  if(!confirm("Konfirmasi bahwa dana ini sudah diterima dan tercatat dengan benar? MK Connect akan diberitahu otomatis.")) return;
+  showLoader();
+  try{
+    await fetch(`${SB_URL}/rest/v1/crm_payment_receipts?id=eq.${id}`,{
+      method:"PATCH",headers:{...H,"Prefer":"return=representation"},
+      body:JSON.stringify({status:"confirmed",confirmed_by:USER_EMAIL,confirmed_at:new Date().toISOString()})
+    });
+    const idx = crmData.findIndex(d=>d.id===id);
+    if(idx>-1){ crmData[idx].status="confirmed"; crmData[idx].confirmed_by=USER_EMAIL; }
+    updateStats(); render();
+    toast("✅ Konfirmasi terkirim, MK Connect akan diperbarui otomatis.");
+  }catch(e){ toast("Gagal: "+e.message,"red"); }
+  hideLoader();
+}
+
 // ── APPROVE ───────────────────────────────────────────────────────
 async function approve(id){
   const item = allData.find(d=>d.id===id);
@@ -271,6 +369,17 @@ async function approve(id){
     const d = item.data;
     const nominal = parseFloat(d.nominal)||0;
 
+    // COA target account per sync-originated tipe (bahan/tukang keep their
+    // original data-driven behavior; the five HR/CRM sync tipe values were
+    // never submitted by a human so they carry no `akun`/`no` yet).
+    const SYNC_COA = {
+      gaji: {akun:"6-1001", nama:"Gaji Staf"},
+      komisi: {akun:"6-1008", nama:"Komisi Sales"},
+      bonus: {akun:"6-1009", nama:"Bonus Karyawan"},
+      reimbursement: {akun:"6-1010", nama:"Reimbursement Karyawan"},
+      hr_lain: {akun:"6-1007", nama:"Beban Lain-lain"},
+    };
+
     if(item.tipe === "bahan"){
       // Insert jurnal bahan
       await sbInsert("jurnal",[
@@ -280,7 +389,7 @@ async function approve(id){
       // Notif TG
       const msg=`🧱 <b>PEMBELIAN BAHAN DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n📦 Item: <b>${d.item||"—"}</b>\n🏪 Supplier: <b>${d.supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
       sendTG(msg, item.proyek);
-    } else {
+    } else if(item.tipe === "tukang"){
       // Insert bayar_tukang
       await sbInsert("bayar_tukang",[{
         proyek:item.proyek,tukang_id:d.tukang_id,tukang_nama:d.tukang_nama,
@@ -299,6 +408,46 @@ async function approve(id){
       ]);
       // Notif TG
       const msg=`👷 <b>PEMBAYARAN TUKANG DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n👤 Tukang: <b>${d.tukang_nama}</b>\n💰 Dibayar: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
+      sendTG(msg, item.proyek);
+    } else if(SYNC_COA[item.tipe]){
+      // HR/Payroll/Commission events synced automatically from MK Connect.
+      const coa = SYNC_COA[item.tipe];
+      const tgl = d.tgl || new Date().toISOString().slice(0,10);
+      const noRes = await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{
+        method:"POST",headers:H,body:JSON.stringify({p_prefix:"KK"})
+      });
+      const noSeq = await noRes.json();
+      const no = `KK-${String(noSeq).padStart(3,"0")}`;
+      const ket = d.ket || `Sinkronisasi MK Connect: ${d.employee_name||d.sales_name||"—"} — ${item.tipe}`;
+
+      if(item.tipe === "gaji"){
+        let karyawanId = null;
+        if(d.mkc_employee_id){
+          const kRes = await fetch(`${SB_URL}/rest/v1/karyawan?mkc_employee_id=eq.${d.mkc_employee_id}&select=id&limit=1`,{headers:H});
+          const kRows = await kRes.json();
+          if(Array.isArray(kRows) && kRows.length){ karyawanId = kRows[0].id; }
+        }
+        if(!karyawanId){
+          const created = await sbInsert("karyawan",[{
+            proyek:item.proyek, nama:d.employee_name||"—", jabatan:"",
+            gaji_pokok:d.base_salary||0, mkc_employee_id:d.mkc_employee_id||null
+          }]);
+          karyawanId = created[0].id;
+        }
+        await sbInsert("slip_gaji",[{
+          karyawan_id:karyawanId, proyek:item.proyek,
+          periode:`${d.period_month||""}/${d.period_year||""}`,
+          nama:d.employee_name||"—", gaji_pokok:d.base_salary||0,
+          total_diterima:nominal, tgl_bayar:tgl, jurnal_no:no
+        }]);
+      }
+
+      await sbInsert("jurnal",[
+        {tgl,no,ket,akun:coa.akun,nama:coa.nama,proyek:item.proyek,d:nominal,k:0},
+        {tgl,no,ket,akun:"1-1001",nama:"Kas Tunai",proyek:item.proyek,d:0,k:nominal},
+      ]);
+
+      const msg=`${TIPE_LABEL[item.tipe].icon} <b>${TIPE_LABEL[item.tipe].label.toUpperCase()}</b>\n\n👤 ${d.employee_name||d.sales_name||"—"}\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
       sendTG(msg, item.proyek);
     }
 
