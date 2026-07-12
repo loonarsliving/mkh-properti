@@ -1,0 +1,21 @@
+project_id = "mkh-properti"
+
+# MKH Property has no local Supabase dev workflow (it is a set of static
+# HTML pages talking directly to PostgREST — see the repo README/history).
+# This config exists only so `supabase link --project-ref gluoioiimapyhchdasfl`
+# and `supabase db push` / `supabase functions deploy` work for the
+# migrations and Edge Function added for the MK Connect sync integration.
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[functions.sync-inbound]
+verify_jwt = false
