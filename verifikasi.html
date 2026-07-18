@@ -126,6 +126,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+// Telegram is kept ONLY for HR/Payroll/Commission sync events from MK
+// Connect (gaji/komisi/bonus/reimbursement/hr_lain, below) -- those have
+// no WhatsApp equivalent yet. bahan/tukang (admin-submitted expenses) now
+// notify via WhatsApp instead (MK Connect, finance_expense_submitted/
+// finance_expense_approved), so their Telegram calls were removed.
 const TG_TOKEN = "8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8";
 const TG_CHAT_MAP = {
   AFP:"-1003825705531", IH:"-1004294561742",
@@ -387,9 +392,8 @@ async function approve(id){
         {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.jenis,nama:d.akunNama,proyek:item.proyek,d:nominal,k:0},
         {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
       ]);
-      // Notif TG
-      const msg=`🧱 <b>PEMBELIAN BAHAN DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n📦 Item: <b>${d.item||"—"}</b>\n🏪 Supplier: <b>${d.supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
-      sendTG(msg, item.proyek);
+      // Notifikasi ke super_admin sekarang lewat WhatsApp (MK Connect,
+      // finance_expense_approved trigger di DB) -- Telegram dihapus.
     } else if(item.tipe === "tukang"){
       // Insert bayar_tukang
       await sbInsert("bayar_tukang",[{
@@ -407,9 +411,8 @@ async function approve(id){
         {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:"5-1003",nama:"Biaya Upah Tukang",proyek:item.proyek,d:nominal,k:0},
         {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
       ]);
-      // Notif TG
-      const msg=`👷 <b>PEMBAYARAN TUKANG DISETUJUI</b>\n\n🏗 Proyek: <b>${d.proyek_nama}</b>\n👤 Tukang: <b>${d.tukang_nama}</b>\n💰 Dibayar: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
-      sendTG(msg, item.proyek);
+      // Notifikasi ke super_admin sekarang lewat WhatsApp (MK Connect,
+      // finance_expense_approved trigger di DB) -- Telegram dihapus.
     } else if(SYNC_COA[item.tipe]){
       // HR/Payroll/Commission events synced automatically from MK Connect.
       const coa = SYNC_COA[item.tipe];

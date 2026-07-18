@@ -930,8 +930,8 @@ async function simpanBahan(){
       created_by:sessionStorage.getItem("sb_user_email")||"Admin",
       data:{tgl,no,jenis,supplier,item,nominal,rek,ket,keterangan,akunNama,rekNama,proyek_nama:MY_PROYEK.nama}
     }]);
-    const tgBahan=`⏳ <b>PENGAJUAN PEMBELIAN BAHAN</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n📦 Item: <b>${item||"—"}</b>\n🏪 Supplier: <b>${supplier||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📝 Ket: ${ket||"—"}\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>\n\n🔔 Menunggu verifikasi manager`;
-    await sendTG(tgBahan);
+    // Notifikasi ke Kepala Cabang sekarang lewat WhatsApp (MK Connect,
+    // via sync_log -> finance_expense_submitted), bukan Telegram lagi.
     toast(`✅ Pengajuan bahan Rp ${fmt(nominal)} dikirim! Menunggu verifikasi.`);
     setV("bh-supplier","");setV("bh-item","");setV("bh-nominal","");setV("bh-ket","");
   }catch(e){ toast("Gagal: "+e.message,"red"); }
@@ -958,8 +958,8 @@ async function simpanKasKeluar(){
       created_by:sessionStorage.getItem("sb_user_email")||"Admin",
       data:{tgl,no,jenis,nominal,rek,ket:keterangan,keterangan,akunNama,rekNama,supplier:"",item:penerima?("Penerima: "+penerima):keterangan,proyek_nama:MY_PROYEK.nama}
     }]);
-    const tgKK=`⏳ <b>PENGAJUAN KAS KELUAR</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n📋 Jenis: <b>${akunNama}</b>\n👤 Penerima: <b>${penerima||"—"}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n📝 Ket: ${ket||"—"}\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>\n\n🔔 Menunggu verifikasi manager`;
-    await sendTG(tgKK);
+    // Notifikasi ke Kepala Cabang sekarang lewat WhatsApp (MK Connect,
+    // via sync_log -> finance_expense_submitted), bukan Telegram lagi.
     toast(`✅ Pengajuan kas keluar Rp ${fmt(nominal)} dikirim! Menunggu verifikasi.`);
     setV("kl-penerima","");setV("kl-nominal","");setV("kl-ket","");
   }catch(e){ toast("Gagal: "+e.message,"red"); }
@@ -1070,8 +1070,8 @@ async function bayarTukang(){
 
     const sisaBaru=tk.nilai_kontrak-terbayarBaru;
     const sisaUnit=tk.total_unit-unitSelesaiBaru;
-    const tgTukang=`⏳ <b>PENGAJUAN BAYAR TUKANG</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama||MY_PROYEK.id}</b>\n👤 Tukang: <b>${tk.nama}</b>\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>\n\n🔔 Menunggu verifikasi manager`;
-    await sendTG(tgTukang);
+    // Notifikasi ke Kepala Cabang sekarang lewat WhatsApp (MK Connect,
+    // via sync_log -> finance_expense_submitted), bukan Telegram lagi.
     toast("✅ Pengajuan bayar "+tk.nama+" Rp "+fmt(nominal)+" dikirim! Menunggu verifikasi manager.");
     ["pay-tk-unit","pay-tk-blok","pay-tk-nominal","pay-tk-minggu"].forEach(id=>setV(id,""));
   }catch(e){ toast("Gagal: "+e.message,"red"); }
