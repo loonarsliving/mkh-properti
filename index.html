@@ -151,6 +151,7 @@ const PROYEK = [
   {id:"GCI",nama:"Griya Cariu Indah", rek:"5018 8000 2715",   bank:"BSI",warna:"#38bdf8"},
   {id:"GCR",nama:"Green Cibarusah Residence", rek:"7801880001681", bank:"BTN",warna:"#ec4899"},
   {id:"HO", nama:"Kantor Pusat / Overhead (HR, Komisi, dll)", rek:"1-1001", bank:"Kas",warna:"#64748b"},
+  {id:"MP", nama:"Management Property", rek:"-", bank:"Kas",warna:"#0ea5e9"},
 ];
 // Dashboard-only presentation layer: groups the (unchanged) internal PROYEK
 // codes under company branches for the Finance Dashboard. Every other view
@@ -161,8 +162,9 @@ const BRANCHES = [
   {id:"MKS",nama:"Makassar",    warna:"#00b894",proyekIds:["IH"]},
   {id:"JOG",nama:"Jogja",       warna:"#a78bfa",proyekIds:["LL"]},
   {id:"JBD",nama:"Jabodetabek", warna:"#38bdf8",proyekIds:["GCI","GCR"]},
+  {id:"MP", nama:"Management Property", warna:"#0ea5e9",proyekIds:["MP"]},
 ];
-const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005",GCR:"1-1008"};
+const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005",GCR:"1-1008",MP:"1-1009"};
 const COA = [
   {kode:"1-1001",nama:"Kas Tunai",               kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-1002",nama:"Bank Al Fath Puuwatu",    kat:"Aset Lancar",       tipe:"D",rek:"1901 8811 4444 1"},
@@ -170,6 +172,7 @@ const COA = [
   {kode:"1-1004",nama:"Bank Loonars Living",     kat:"Aset Lancar",       tipe:"D",rek:"7801 8800 0168 1"},
   {kode:"1-1005",nama:"Bank Griya Cariu Indah",  kat:"Aset Lancar",       tipe:"D",rek:"5018 8000 2715"},
   {kode:"1-1008",nama:"Bank Green Cibarusah Residence", kat:"Aset Lancar", tipe:"D",rek:"7801880001681"},
+  {kode:"1-1009",nama:"Kas Management Property", kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-1006",nama:"Piutang Antar Proyek",    kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-1007",nama:"Piutang Pembeli",         kat:"Aset Lancar",       tipe:"D"},
   {kode:"1-2001",nama:"Tanah",                   kat:"Aset Tetap",        tipe:"D"},
