@@ -52,7 +52,7 @@ button{cursor:pointer;font-family:inherit}
   <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🧾</div>
   <div style="flex:1;min-width:0">
     <div style="font-size:12px;font-weight:700">PT. Maha Karya Haluoleo</div>
-    <div style="font-size:9px;color:var(--muted)">Form Lapor Pengeluaran — Pengawas</div>
+    <div style="font-size:9px;color:var(--accent)">Loonars Living — Form Lapor Pengeluaran Pengawas</div>
   </div>
 </div>
 
@@ -61,13 +61,10 @@ button{cursor:pointer;font-family:inherit}
   <div class="card" id="form-card">
     <div class="section-title">🧾 LAPOR PENGELUARAN</div>
     <div class="info-box">
-      Isi form ini setelah pengeluaran terjadi. Laporan langsung dikirim ke <b>Kepala Cabang</b> lewat WhatsApp untuk diverifikasi sebelum diteruskan ke Super Admin untuk transfer. Tidak perlu login.
+      Khusus proyek <b>Loonars Living</b> — untuk laporan <b>pembelian material</b> atau <b>pembayaran kontraktor</b> saja. Laporan langsung dikirim ke <b>Kepala Cabang</b> lewat WhatsApp untuk diverifikasi sebelum diteruskan ke Super Admin untuk transfer. Tidak perlu login.
     </div>
 
-    <div class="grid2">
-      <div class="field"><span class="label">Nama Pengawas</span><input type="text" id="pl-nama" placeholder="Nama Anda"/></div>
-      <div class="field"><span class="label">Proyek</span><select id="pl-proyek"></select></div>
-    </div>
+    <div class="field"><span class="label">Nama Pengawas</span><input type="text" id="pl-nama" placeholder="Nama Anda"/></div>
 
     <div class="grid2">
       <div class="field"><span class="label">Tanggal</span><input type="date" id="pl-tgl"/></div>
@@ -109,27 +106,16 @@ const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
 const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
-const PROYEK_LIST = [
-  {id:"AFP",nama:"Al Fath Puuwatu",  bank:"BSI"},
-  {id:"IH", nama:"Introvert House",  bank:"BSI"},
-  {id:"LL", nama:"Loonars Living",   bank:"BSI"},
-  {id:"GCI",nama:"Griya Cariu Indah",bank:"BSI"},
-  {id:"GCR",nama:"Green Cibarusah Residence",bank:"BTN"},
-];
-const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005",GCR:"1-1008"};
+// Dibatasi khusus proyek Loonars Living -- pengawas tidak bisa memilih proyek lain.
+const PROYEK = {id:"LL", nama:"Loonars Living", bank:"BSI"};
+const REK_KODE = "1-1004";
 
+// Dibatasi hanya 2 kategori sesuai izin pengawas: pembelian material & pembayaran kontraktor.
+// `nama` tetap memakai istilah COA yang sama dengan admin-proyek.html (dicatat di jurnal),
+// `label` memakai istilah yang diminta untuk ditampilkan di form.
 const JENIS_OPTIONS = [
-  {akun:"5-1001",nama:"Pembelian Material"},
-  {akun:"5-1002",nama:"Bayar Distributor"},
-  {akun:"5-1004",nama:"Biaya Subkontraktor"},
-  {akun:"5-1005",nama:"Biaya Overhead Proyek"},
-  {akun:"6-1004",nama:"Transportasi"},
-  {akun:"6-1003",nama:"Listrik & Air"},
-  {akun:"6-1001",nama:"Gaji Staf"},
-  {akun:"6-1002",nama:"Sewa Kantor"},
-  {akun:"6-1005",nama:"Perizinan & Notaris"},
-  {akun:"6-1006",nama:"Biaya Pemasaran"},
-  {akun:"6-1007",nama:"Beban Lain-lain"},
+  {akun:"5-1001",nama:"Pembelian Material",  label:"Pembelian Material"},
+  {akun:"5-1004",nama:"Biaya Subkontraktor", label:"Pembayaran Kontraktor"},
 ];
 
 let itemSeq = 0;
@@ -198,7 +184,6 @@ function hitungTotal(){
 // ── SUBMIT ───────────────────────────────────────────────────────
 async function kirimPengeluaran(){
   const nama=v("pl-nama");
-  const proyekId=v("pl-proyek");
   const tgl=v("pl-tgl");
   const jenisAkun=v("pl-jenis");
   const rek=v("pl-rek");
@@ -208,14 +193,13 @@ async function kirimPengeluaran(){
   const total=items.reduce((s,it)=>s+it.nilai,0);
 
   if(!nama) return toast("Nama pengawas wajib diisi!","red");
-  if(!proyekId) return toast("Pilih proyek terlebih dahulu!","red");
   if(!tgl) return toast("Tanggal wajib diisi!","red");
   if(items.length===0) return toast("Isi minimal satu item beserta nilainya!","red");
   if(total<=0) return toast("Total pengeluaran harus lebih dari 0!","red");
   if(!rekening) return toast("Nomor rekening tujuan wajib diisi!","red");
 
-  const proyek=PROYEK_LIST.find(p=>p.id===proyekId);
-  const jenisOpt=JENIS_OPTIONS.find(j=>j.akun===jenisAkun)||JENIS_OPTIONS[JENIS_OPTIONS.length-1];
+  const proyek=PROYEK;
+  const jenisOpt=JENIS_OPTIONS.find(j=>j.akun===jenisAkun)||JENIS_OPTIONS[0];
   const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+proyek.bank;
   const itemText=items.map(it=>`${it.nama} (Rp ${fmt(it.nilai)})`).join("; ");
   const keterangan=`${rekening}${catatan?" | "+catatan:""}`;
@@ -256,21 +240,11 @@ async function kirimPengeluaran(){
   hideLoader();
 }
 
-// ── INIT (tanpa login) ─────────────────────────────────────────────
-function updateRekOptions(){
-  const proyekId=v("pl-proyek");
-  const proyek=PROYEK_LIST.find(p=>p.id===proyekId);
-  if(!proyek) return;
-  const rekKode=REK_COA[proyek.id];
-  document.getElementById("pl-rek").innerHTML=`<option value="${rekKode}">Transfer Bank ${proyek.bank}</option><option value="1-1001">Tunai</option>`;
-}
-
+// ── INIT (tanpa login, proyek & kategori terkunci) ──────────────────
 function init(){
-  document.getElementById("pl-proyek").innerHTML=PROYEK_LIST.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("");
-  document.getElementById("pl-proyek").addEventListener("change", updateRekOptions);
-  document.getElementById("pl-jenis").innerHTML=JENIS_OPTIONS.map(j=>`<option value="${j.akun}">${j.nama}</option>`).join("");
+  document.getElementById("pl-jenis").innerHTML=JENIS_OPTIONS.map(j=>`<option value="${j.akun}">${j.label}</option>`).join("");
+  document.getElementById("pl-rek").innerHTML=`<option value="${REK_KODE}">Transfer Bank ${PROYEK.bank}</option><option value="1-1001">Tunai</option>`;
   document.getElementById("pl-tgl").value=today();
-  updateRekOptions();
   tambahItem();
 }
 
