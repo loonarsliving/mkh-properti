@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lapor Pengeluaran — PT. Maha Karya Haluoleo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f18;--card:#111827;--border:#1e2d40;
+  --accent:#f0a500;--accent2:#00b894;--text:#e2e8f0;
+  --muted:#64748b;--danger:#ef4444;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;min-height:100vh}
+input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--accent)}
+button{cursor:pointer;font-family:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-red{background:var(--danger);color:#fff}
+.btn-ghost{background:var(--border);color:var(--muted)}
+.btn-full{width:100%;padding:12px;margin-top:4px}
+.btn-sm{padding:6px 10px;font-size:11px}
+.label{font-size:10px;color:var(--muted);margin-bottom:4px;display:block;letter-spacing:.03em;text-transform:uppercase}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{margin-bottom:10px}
+.section-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+#toast{position:fixed;top:20px;right:20px;left:20px;z-index:9999;display:none;padding:12px 18px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:320px;margin-left:auto}
+#loader{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(11,15,24,.85);z-index:8888;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.item-row{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.item-row .nama{flex:1.4}
+.item-row .nilai{flex:1}
+.item-row .rm{flex:0 0 auto;background:none;border:1px solid var(--border);color:var(--danger);border-radius:8px;width:34px;height:34px;font-size:14px}
+.total-box{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:10px}
+.total-box .val{font-size:18px;font-weight:700;color:var(--accent)}
+.hint{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5}
+.info-box{padding:10px 14px;background:#f0a50015;border:1px solid #f0a50030;border-radius:8px;font-size:11px;color:var(--accent);margin-bottom:14px;line-height:1.6}
+.success-box{text-align:center;padding:40px 20px}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div id="loader"><div class="spinner"></div><div style="font-size:12px;color:var(--muted)">Memproses...</div></div>
+
+<!-- TOP BAR -->
+<div style="background:#070b12;border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px">
+  <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🧾</div>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12px;font-weight:700">PT. Maha Karya Haluoleo</div>
+    <div style="font-size:9px;color:var(--muted)">Form Lapor Pengeluaran — Pengawas</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="form-card">
+    <div class="section-title">🧾 LAPOR PENGELUARAN</div>
+    <div class="info-box">
+      Isi form ini setelah pengeluaran terjadi. Laporan langsung dikirim ke <b>Kepala Cabang</b> lewat WhatsApp untuk diverifikasi sebelum diteruskan ke Super Admin untuk transfer. Tidak perlu login.
+    </div>
+
+    <div class="grid2">
+      <div class="field"><span class="label">Nama Pengawas</span><input type="text" id="pl-nama" placeholder="Nama Anda"/></div>
+      <div class="field"><span class="label">Proyek</span><select id="pl-proyek"></select></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field"><span class="label">Tanggal</span><input type="date" id="pl-tgl"/></div>
+      <div class="field"><span class="label">Jenis Pengeluaran</span><select id="pl-jenis"></select></div>
+    </div>
+
+    <div class="field"><span class="label">Bayar Via</span><select id="pl-rek"></select></div>
+
+    <div class="field" style="margin-top:14px">
+      <span class="label">Item &amp; Nilai Pengeluaran</span>
+      <div id="item-rows"></div>
+      <button class="btn btn-ghost btn-sm" onclick="tambahItem()">+ Tambah Item</button>
+    </div>
+
+    <div class="total-box">
+      <span class="label" style="margin-bottom:0">Total Pengeluaran</span>
+      <span class="val" id="pl-total">Rp 0</span>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <span class="label">Nomor Rekening Tujuan</span>
+      <input type="text" id="pl-rekening" placeholder="Contoh: BCA 0600492233 a.n. Budi Santoso"/>
+      <div class="hint">Isi bank, nomor rekening, dan nama pemilik rekening tujuan transfer.</div>
+    </div>
+
+    <div class="field">
+      <span class="label">Catatan Tambahan (opsional)</span>
+      <input type="text" id="pl-catatan" placeholder="Keterangan tambahan..."/>
+    </div>
+
+    <div style="margin-top:14px"><button class="btn btn-red btn-full" onclick="kirimPengeluaran()">📤 Kirim Laporan Pengeluaran</button></div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG (sama dengan admin-proyek.html / pengeluaran.html) ──────
+const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
+const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
+
+const PROYEK_LIST = [
+  {id:"AFP",nama:"Al Fath Puuwatu",  bank:"BSI"},
+  {id:"IH", nama:"Introvert House",  bank:"BSI"},
+  {id:"LL", nama:"Loonars Living",   bank:"BSI"},
+  {id:"GCI",nama:"Griya Cariu Indah",bank:"BSI"},
+  {id:"GCR",nama:"Green Cibarusah Residence",bank:"BTN"},
+];
+const REK_COA = {AFP:"1-1002",IH:"1-1003",LL:"1-1004",GCI:"1-1005",GCR:"1-1008"};
+
+const JENIS_OPTIONS = [
+  {akun:"5-1001",nama:"Pembelian Material"},
+  {akun:"5-1002",nama:"Bayar Distributor"},
+  {akun:"5-1004",nama:"Biaya Subkontraktor"},
+  {akun:"5-1005",nama:"Biaya Overhead Proyek"},
+  {akun:"6-1004",nama:"Transportasi"},
+  {akun:"6-1003",nama:"Listrik & Air"},
+  {akun:"6-1001",nama:"Gaji Staf"},
+  {akun:"6-1002",nama:"Sewa Kantor"},
+  {akun:"6-1005",nama:"Perizinan & Notaris"},
+  {akun:"6-1006",nama:"Biaya Pemasaran"},
+  {akun:"6-1007",nama:"Beban Lain-lain"},
+];
+
+let itemSeq = 0;
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function fmt(n){ return new Intl.NumberFormat("id-ID").format(Math.round(n||0)); }
+function v(id){ return document.getElementById(id).value.trim(); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function showLoader(){ document.getElementById("loader").style.display="flex"; }
+function hideLoader(){ document.getElementById("loader").style.display="none"; }
+function toast(msg,color){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.style.background=color==="red"?"var(--danger)":"var(--accent2)";
+  el.style.color="#fff";
+  el.style.display="block";
+  clearTimeout(window._toastT);
+  window._toastT=setTimeout(()=>el.style.display="none",3500);
+}
+async function sbInsert(table, rows){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(rows)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── ITEM ROWS ────────────────────────────────────────────────────
+function tambahItem(){
+  itemSeq++;
+  const id=itemSeq;
+  const wrap=document.getElementById("item-rows");
+  const row=document.createElement("div");
+  row.className="item-row";
+  row.id="item-row-"+id;
+  row.innerHTML=`
+    <input class="nama" id="item-nama-${id}" placeholder="Nama item / keperluan"/>
+    <input class="nilai" id="item-nilai-${id}" type="number" placeholder="Nilai (Rp)" oninput="hitungTotal()"/>
+    <button class="rm" onclick="hapusItem(${id})" title="Hapus item">🗑</button>
+  `;
+  wrap.appendChild(row);
+  hitungTotal();
+}
+function hapusItem(id){
+  const rows=document.querySelectorAll("#item-rows .item-row");
+  if(rows.length<=1) return toast("Minimal satu item pengeluaran","red");
+  const el=document.getElementById("item-row-"+id);
+  if(el) el.remove();
+  hitungTotal();
+}
+function getItems(){
+  const rows=document.querySelectorAll("#item-rows .item-row");
+  const items=[];
+  rows.forEach(row=>{
+    const id=row.id.replace("item-row-","");
+    const nama=document.getElementById("item-nama-"+id).value.trim();
+    const nilai=parseFloat(document.getElementById("item-nilai-"+id).value)||0;
+    if(nama||nilai) items.push({nama,nilai});
+  });
+  return items;
+}
+function hitungTotal(){
+  const total=getItems().reduce((s,it)=>s+it.nilai,0);
+  document.getElementById("pl-total").textContent="Rp "+fmt(total);
+  return total;
+}
+
+// ── SUBMIT ───────────────────────────────────────────────────────
+async function kirimPengeluaran(){
+  const nama=v("pl-nama");
+  const proyekId=v("pl-proyek");
+  const tgl=v("pl-tgl");
+  const jenisAkun=v("pl-jenis");
+  const rek=v("pl-rek");
+  const rekening=v("pl-rekening");
+  const catatan=v("pl-catatan");
+  const items=getItems().filter(it=>it.nama && it.nilai>0);
+  const total=items.reduce((s,it)=>s+it.nilai,0);
+
+  if(!nama) return toast("Nama pengawas wajib diisi!","red");
+  if(!proyekId) return toast("Pilih proyek terlebih dahulu!","red");
+  if(!tgl) return toast("Tanggal wajib diisi!","red");
+  if(items.length===0) return toast("Isi minimal satu item beserta nilainya!","red");
+  if(total<=0) return toast("Total pengeluaran harus lebih dari 0!","red");
+  if(!rekening) return toast("Nomor rekening tujuan wajib diisi!","red");
+
+  const proyek=PROYEK_LIST.find(p=>p.id===proyekId);
+  const jenisOpt=JENIS_OPTIONS.find(j=>j.akun===jenisAkun)||JENIS_OPTIONS[JENIS_OPTIONS.length-1];
+  const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+proyek.bank;
+  const itemText=items.map(it=>`${it.nama} (Rp ${fmt(it.nilai)})`).join("; ");
+  const keterangan=`${rekening}${catatan?" | "+catatan:""}`;
+
+  showLoader();
+  let no="KK-"+Date.now().toString().slice(-4);
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"KK"})});
+    if(r.ok) no="KK-"+String(await r.json()).padStart(3,"0");
+  }catch(e){}
+
+  try{
+    await sbInsert("pengajuan",[{
+      proyek:proyek.id, tipe:"bahan", status:"pending",
+      created_by:`Pengawas: ${nama}`,
+      data:{
+        tgl, no, jenis:jenisOpt.akun, akunNama:jenisOpt.nama,
+        rek, rekNama,
+        item:itemText, items, nominal:total,
+        ket:keterangan, keterangan,
+        proyek_nama:proyek.nama,
+        pengawas:nama,
+      }
+    }]);
+    document.getElementById("form-card").innerHTML=`
+      <div class="success-box">
+        <div style="font-size:40px;margin-bottom:12px">✅</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent2)">Laporan Terkirim</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
+          Total <b>Rp ${fmt(total)}</b> untuk proyek <b>${proyek.nama}</b> telah dikirim.<br/>
+          Menunggu verifikasi Kepala Cabang lewat WhatsApp.
+        </div>
+        <button class="btn btn-ghost" style="margin-top:20px" onclick="location.reload()">+ Lapor Pengeluaran Lain</button>
+      </div>`;
+  }catch(e){
+    toast("Gagal: "+e.message,"red");
+  }
+  hideLoader();
+}
+
+// ── INIT (tanpa login) ─────────────────────────────────────────────
+function updateRekOptions(){
+  const proyekId=v("pl-proyek");
+  const proyek=PROYEK_LIST.find(p=>p.id===proyekId);
+  if(!proyek) return;
+  const rekKode=REK_COA[proyek.id];
+  document.getElementById("pl-rek").innerHTML=`<option value="${rekKode}">Transfer Bank ${proyek.bank}</option><option value="1-1001">Tunai</option>`;
+}
+
+function init(){
+  document.getElementById("pl-proyek").innerHTML=PROYEK_LIST.map(p=>`<option value="${p.id}">${p.nama}</option>`).join("");
+  document.getElementById("pl-proyek").addEventListener("change", updateRekOptions);
+  document.getElementById("pl-jenis").innerHTML=JENIS_OPTIONS.map(j=>`<option value="${j.akun}">${j.nama}</option>`).join("");
+  document.getElementById("pl-tgl").value=today();
+  updateRekOptions();
+  tambahItem();
+}
+
+init();
+</script>
+</body>
+</html>
