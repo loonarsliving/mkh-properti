@@ -19,3 +19,6 @@ major_version = 17
 
 [functions.sync-inbound]
 verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = true

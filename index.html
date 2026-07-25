@@ -118,7 +118,6 @@ function logout(){
 // ── SUPABASE CONFIG ───────────────────────────────────────────────
 const SB_URL         = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
-const SB_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA0NDcyMCwiZXhwIjoyMDk1NjIwNzIwfQ.8AWRj98KHBHVfsGzbjqeMPH1SVwDQb-8G6zFkolT8HU";
 const HEADERS        = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 // ── SUPABASE API ──────────────────────────────────────────────────
@@ -1343,22 +1342,21 @@ async function tambahUser(){
 
   showLoader("Membuat akun admin...");
   try{
-    // 1. Buat akun di Supabase Auth menggunakan service role key
-    if(SB_SERVICE_KEY==="GANTI_DENGAN_SERVICE_ROLE_KEY_ANDA"){
-      throw new Error("Service role key belum diisi di file index.html!");
-    }
-    const authRes = await fetch(`${SB_URL}/auth/v1/admin/users`,{
+    // 1. Buat akun di Supabase Auth lewat Edge Function admin-create-user
+    //    (service role key disimpan server-side di sana, bukan di client)
+    const token = sessionStorage.getItem("sb_access_token");
+    const authRes = await fetch(`${SB_URL}/functions/v1/admin-create-user`,{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "apikey": SB_SERVICE_KEY,
-        "Authorization": "Bearer " + SB_SERVICE_KEY
+        "apikey": SB_KEY,
+        "Authorization": "Bearer " + token
       },
-      body:JSON.stringify({email, password:pw, email_confirm:true})
+      body:JSON.stringify({email, password:pw})
     });
     if(!authRes.ok){
       const err = await authRes.json();
-      throw new Error(err.msg||err.message||"Gagal membuat akun di Supabase");
+      throw new Error(err.error||err.msg||err.message||"Gagal membuat akun di Supabase");
     }
 
     // 2. Simpan mapping user → proyek
