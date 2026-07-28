@@ -451,8 +451,13 @@ async function approve(id){
         {tgl,no,ket,akun:"1-1001",nama:"Kas Tunai",proyek:item.proyek,d:0,k:nominal},
       ]);
 
-      const msg=`${TIPE_LABEL[item.tipe].icon} <b>${TIPE_LABEL[item.tipe].label.toUpperCase()}</b>\n\n👤 ${d.employee_name||d.sales_name||"—"}\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
-      sendTG(msg, item.proyek);
+      if(item.tipe!=="komisi"){
+        const msg=`${TIPE_LABEL[item.tipe].icon} <b>${TIPE_LABEL[item.tipe].label.toUpperCase()}</b>\n\n👤 ${d.employee_name||d.sales_name||"—"}\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
+        sendTG(msg, item.proyek);
+      }
+      // komisi (fee marketing loonars): WhatsApp ke super_admin dikirim
+      // otomatis lewat trigger pengajuan_komisi_decided_sync -> event
+      // loonars_fee_decided, bukan Telegram lagi.
     }
 
     // Update status pengajuan
