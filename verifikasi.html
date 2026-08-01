@@ -206,9 +206,12 @@ function setFilter(f){
 async function loadData(){
   showLoader();
   try{
-    // Filter per proyek jika verifikator
+    // Filter per proyek jika verifikator -- dan batasi ke tipe yang memang
+    // wewenang Kepala Cabang (bahan/tukang, diajukan admin proyek cabangnya
+    // sendiri). komisi/gaji/bonus/reimbursement/hr_lain adalah sinkronisasi
+    // finance/HR pusat, wewenang CFO/super_admin (MANAGER) saja.
     const filter = USER_PROYEK_FILTER
-      ? `proyek=eq.${USER_PROYEK_FILTER}&select=*&order=created_at.desc`
+      ? `proyek=eq.${USER_PROYEK_FILTER}&tipe=in.(bahan,tukang)&select=*&order=created_at.desc`
       : `select=*&order=created_at.desc`;
     const res = await fetch(`${SB_URL}/rest/v1/pengajuan?${filter}`,{headers:H});
     allData = await res.json();
