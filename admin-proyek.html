@@ -84,24 +84,6 @@ tr:hover td{background:rgba(30,45,64,.4)}
 const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
 
-// ── TELEGRAM NOTIF ──────────────────────────────────────────────────────────
-const TG_TOKEN="8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8"; // token lama dipakai kembali atas keputusan owner
-// Chat ID per proyek - notifikasi dikirim ke grup masing-masing
-const TG_CHAT_MAP={
-  "AFP":"-1003825705531",  // Grup Alfath Puuwatu
-  "IH": "-1004294561742",  // Grup Introvert House
-  "LL": "-5180682189",     // Grup MH | Loonars Management
-  "GCI":"-1003889729458",  // Grup Griya Cariu Indah
-  // GCR: no dedicated Telegram group yet -- falls back to the default chat below
-};
-async function sendTG(msg){
-  if(!TG_TOKEN) return; // token kosong = skip notif tanpa error
-  try{
-    const chatId = TG_CHAT_MAP[MY_PROYEK?.id] || "-5180682189";
-    const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${chatId}&parse_mode=HTML&text=${encodeURIComponent(msg)}`;
-    await fetch(url,{method:"GET",mode:"no-cors"});
-  }catch(e){console.warn("TG:",e);}
-}
 const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 const PROYEK_LIST = [
@@ -766,8 +748,6 @@ async function simpanKasMasuk(){
       {tgl:d.tgl,no:d.no,ket:keterangan,akun:akunPend,nama:"Pendapatan",proyek:MY_PROYEK.id,d:0,k:d.nominal},
     ]);
     rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
-    const tgKasMasuk=`💰 <b>KAS MASUK BARU</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama}</b>\n👤 Pembeli: <b>${d.pembeli||"—"}</b>\n🏠 Blok: <b>${d.blok||"—"}</b>\n📋 Jenis: <b>${d.jenis}</b>\n💵 Nominal: <b>Rp ${fmt(d.nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n📝 Ket: ${d.ket||"—"}\n\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>`;
-    await sendTG(tgKasMasuk);
     toast("✅ Kas Masuk Rp "+fmt(d.nominal)+" tersimpan!");
     setV("km-pembeli","");setV("km-nominal","");setV("km-ket","");
   }catch(e){ toast("Gagal: "+e.message,"red"); }
@@ -788,8 +768,6 @@ async function simpanDanCetakKwitansi(){
       {tgl:d.tgl,no:d.no,ket:keterangan,akun:akunPend,nama:"Pendapatan",proyek:MY_PROYEK.id,d:0,k:d.nominal},
     ]);
     rows.forEach(r=>jurnal.unshift({...r,D:parseFloat(r.d)||0,K:parseFloat(r.k)||0}));
-    const tgKasMasuk2=`💰 <b>KAS MASUK BARU</b>\n\n🏗 Proyek: <b>${MY_PROYEK.nama}</b>\n👤 Pembeli: <b>${d.pembeli||"—"}</b>\n🏠 Blok: <b>${d.blok||"—"}</b>\n📋 Jenis: <b>${d.jenis}</b>\n💵 Nominal: <b>Rp ${fmt(d.nominal)}</b>\n📅 Tanggal: <b>${d.tgl}</b>\n📝 Ket: ${d.ket||"—"}\n\n👤 Admin: <b>${sessionStorage.getItem("sb_user_email")||"Admin"}</b>`;
-    await sendTG(tgKasMasuk2);
     toast("✅ Tersimpan! Membuka kwitansi...");
     setV("km-pembeli","");setV("km-nominal","");setV("km-ket","");
     setTimeout(()=>bukaCetakKwitansi({

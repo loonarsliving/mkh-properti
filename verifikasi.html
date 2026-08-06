@@ -126,17 +126,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 const SB_URL = "https://gluoioiimapyhchdasfl.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW9pb2lpbWFweWhjaGRhc2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDQ3MjAsImV4cCI6MjA5NTYyMDcyMH0.dHVB0jJBMjUunJKSsqbaM3MGCAq-ZRSWQEqvEyUjIyk";
-// Telegram is kept ONLY for HR/Payroll/Commission sync events from MK
-// Connect (gaji/komisi/bonus/reimbursement/hr_lain, below) -- those have
-// no WhatsApp equivalent yet. bahan/tukang (admin-submitted expenses) now
-// notify via WhatsApp instead (MK Connect, finance_expense_submitted/
-// finance_expense_approved), so their Telegram calls were removed.
-const TG_TOKEN = "8972034832:AAGCLi9HuGbmzC9O13wH9X8YxVTPG6kMQr8";
-const TG_CHAT_MAP = {
-  AFP:"-1003825705531", IH:"-1004294561742",
-  LL:"-5180682189", GCI:"-1003889729458"
-  // GCR: no dedicated Telegram group yet -- falls back to the default chat below
-};
 const H = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 let allData = [];
@@ -453,14 +442,6 @@ async function approve(id){
         {tgl,no,ket,akun:coa.akun,nama:coa.nama,proyek:item.proyek,d:nominal,k:0},
         {tgl,no,ket,akun:"1-1001",nama:"Kas Tunai",proyek:item.proyek,d:0,k:nominal},
       ]);
-
-      if(item.tipe!=="komisi"){
-        const msg=`${TIPE_LABEL[item.tipe].icon} <b>${TIPE_LABEL[item.tipe].label.toUpperCase()}</b>\n\n👤 ${d.employee_name||d.sales_name||"—"}\n💰 Nominal: <b>Rp ${fmt(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n✅ Diverifikasi oleh: <b>${USER_EMAIL}</b>`;
-        sendTG(msg, item.proyek);
-      }
-      // komisi (fee marketing loonars): WhatsApp ke super_admin dikirim
-      // otomatis lewat trigger pengajuan_komisi_decided_sync -> event
-      // loonars_fee_decided, bukan Telegram lagi.
     }
 
     // Update status pengajuan
@@ -505,12 +486,6 @@ async function sbInsert(table, rows){
   return res.json();
 }
 
-// ── TELEGRAM ─────────────────────────────────────────────────────
-function sendTG(msg, proyek){
-  const chatId = TG_CHAT_MAP[proyek] || "-5180682189";
-  const url=`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${chatId}&parse_mode=HTML&text=${encodeURIComponent(msg)}`;
-  fetch(url,{method:"GET",mode:"no-cors"}).catch(()=>{});
-}
 </script>
 </body>
 </html>
