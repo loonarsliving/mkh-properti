@@ -266,6 +266,7 @@ function calcSaldo(){
   const s={};
   COA.forEach(a=>{s[a.kode]={...a,D:0,K:0}});
   jurnal.forEach(j=>{
+    if(!j.akun) return; // skip corrupt/incomplete entries (missing akun) — would crash the kode.localeCompare sort below
     if(!s[j.akun]) s[j.akun]={kode:j.akun,nama:j.nama,kat:"",tipe:"D",D:0,K:0};
     s[j.akun].D += j.D||0;
     s[j.akun].K += j.K||0;
