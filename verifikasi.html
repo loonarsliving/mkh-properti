@@ -296,17 +296,25 @@ function render(){
       <div class="detail-item"><div class="detail-label">Sumber</div><div class="detail-val">MK Connect (auto)</div></div>`;
     }
 
+    const isPaid = !!d.paid_at;
+    const awaitsTransfer = item.status === "approved" && (item.tipe === "bahan" || item.tipe === "tukang") && !isPaid;
+    const statusLabel = item.status==="pending" ? "⏳ Pending"
+      : item.status==="approved" ? (awaitsTransfer ? "💸 Menunggu Transfer" : isPaid ? "✅ Sudah Ditransfer" : "✅ Approved")
+      : "❌ Ditolak";
+    const statusCls = item.status==="pending" ? "status-pending" : item.status==="approved" ? (awaitsTransfer ? "status-pending" : "status-approved") : "status-rejected";
+
     return `<div class="card">
       <div class="card-header">
         <div>
           <div class="card-type ${tipeInfo.cls}">${tipeInfo.icon} ${tipeInfo.label}</div>
           <div class="card-proyek" style="margin-top:6px">📍 ${d.proyek_nama||item.proyek} &nbsp;·&nbsp; 📅 ${tgl}</div>
         </div>
-        <span class="badge-status status-${item.status}">${item.status==="pending"?"⏳ Pending":item.status==="approved"?"✅ Approved":"❌ Ditolak"}</span>
+        <span class="badge-status ${statusCls}">${statusLabel}</span>
       </div>
       <div class="card-nominal">Rp ${fmt(nominal)}</div>
       <div class="card-detail">${detailHTML}</div>
       <div class="meta">📤 Diajukan oleh <b>${item.created_by||"Admin"}</b> · ${waktu}${item.verified_by?` &nbsp;·&nbsp; ✅ Diverifikasi oleh <b>${item.verified_by}</b>`:""}</div>
+      ${awaitsTransfer?`<div class="meta">💸 Menunggu Super Admin transfer dan mengirim bukti transfer via WhatsApp -- jurnal terisi otomatis setelah itu.</div>`:""}
       ${isPending?`
       <div class="card-footer">
         <button class="btn-approve" onclick="approve(${item.id})">✅ Setujui</button>
@@ -372,7 +380,8 @@ async function confirmCrmReceipt(id){
 async function approve(id){
   const item = allData.find(d=>d.id===id);
   if(!item) return;
-  if(!confirm("Setujui pengajuan ini dan masukkan ke jurnal?")) return;
+  const isDirectPost = item.tipe !== "bahan" && item.tipe !== "tukang";
+  if(!confirm(isDirectPost ? "Setujui pengajuan ini dan masukkan ke jurnal?" : "Setujui pengajuan ini? Jurnal akan otomatis terisi setelah Super Admin transfer dan mengirim bukti transfer via WhatsApp.")) return;
   showLoader();
   try{
     const d = item.data;
@@ -389,33 +398,14 @@ async function approve(id){
       hr_lain: {akun:"6-1007", nama:"Beban Lain-lain"},
     };
 
-    if(item.tipe === "bahan"){
-      // Insert jurnal bahan
-      await sbInsert("jurnal",[
-        {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.jenis,nama:d.akunNama,proyek:item.proyek,d:nominal,k:0},
-        {tgl:d.tgl,no:d.no,ket:d.keterangan,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
-      ]);
-      // Notifikasi ke super_admin sekarang lewat WhatsApp (MK Connect,
-      // finance_expense_approved trigger di DB) -- Telegram dihapus.
-    } else if(item.tipe === "tukang"){
-      // Insert bayar_tukang
-      await sbInsert("bayar_tukang",[{
-        proyek:item.proyek,tukang_id:d.tukang_id,tukang_nama:d.tukang_nama,
-        minggu:d.minggu,blok_selesai:d.blok_selesai,unit_minggu:d.unit_minggu,
-        nominal,rek:d.rek,tgl:d.tgl,no:d.no
-      }]);
-      // Update tukang_borongan
-      await fetch(`${SB_URL}/rest/v1/tukang_borongan?id=eq.${d.tukang_id}`,{
-        method:"PATCH",headers:{...H,"Prefer":"return=representation"},
-        body:JSON.stringify({terbayar:d.terbayarBaru,unit_selesai:d.unitSelesaiBaru})
-      });
-      // Insert jurnal tukang
-      await sbInsert("jurnal",[
-        {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:"5-1003",nama:"Biaya Upah Tukang",proyek:item.proyek,d:nominal,k:0},
-        {tgl:d.tgl,no:d.no,ket:d.ketJ,akun:d.rek,nama:d.rekNama,proyek:item.proyek,d:0,k:nominal},
-      ]);
-      // Notifikasi ke super_admin sekarang lewat WhatsApp (MK Connect,
-      // finance_expense_approved trigger di DB) -- Telegram dihapus.
+    if(item.tipe === "bahan" || item.tipe === "tukang"){
+      // Jurnal (dan untuk tukang: bayar_tukang + update tukang_borongan)
+      // TIDAK lagi diisi di sini -- baru diisi otomatis lewat sync_inbound's
+      // finance_expense_transfer_confirmed event, dipicu saat Super Admin
+      // mengirim foto bukti transfer via WhatsApp (dibaca AI, diteruskan
+      // juga ke Kepala Cabang + Endy). Approval di sini hanya menandakan
+      // Kepala Cabang menyetujui pengajuannya -- notifikasi ke super_admin
+      // tetap jalan lewat finance_expense_approved trigger di DB.
     } else if(SYNC_COA[item.tipe]){
       // HR/Payroll/Commission events synced automatically from MK Connect.
       const coa = SYNC_COA[item.tipe];
@@ -472,7 +462,7 @@ async function approve(id){
     const idx = allData.findIndex(d=>d.id===id);
     if(idx>-1){ allData[idx].status="approved"; allData[idx].verified_by=USER_EMAIL; }
     updateStats(); render();
-    toast("✅ Pengajuan disetujui dan masuk ke jurnal!");
+    toast(isDirectPost ? "✅ Pengajuan disetujui dan masuk ke jurnal!" : "✅ Pengajuan disetujui! Menunggu Super Admin transfer + kirim bukti transfer via WhatsApp.");
   }catch(e){ toast("Gagal: "+e.message,"red"); }
   hideLoader();
 }
