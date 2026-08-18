@@ -725,11 +725,11 @@ function renderMenu(){
       }).join("")}
     </div>
     <div class="grid4" style="margin-bottom:16px">
-      ${[{l:"Total Aset",v:totalAL+totalAT,c:"var(--accent2)",i:"🏢"},{l:"Total Pendapatan",v:totalPend,c:"var(--accent)",i:"📈"},{l:"Laba Kotor",v:labaKotor,c:labaKotor>=0?"var(--accent2)":"var(--danger)",i:"💰"},{l:"Laba Bersih",v:labaBersih,c:labaBersih>=0?"var(--accent2)":"var(--danger)",i:"✅"}]
-        .map(k=>`<div class="card" style="margin-bottom:0;padding:12px 14px">
-          <div style="font-size:18px;margin-bottom:4px">${k.i}</div>
+      ${[{l:"Total Aset",v:totalAL+totalAT,c:"#38bdf8",i:"🏢"},{l:"Total Pendapatan",v:totalPend,c:"var(--accent)",i:"📈"},{l:"Laba Kotor",v:labaKotor,c:labaKotor>=0?"var(--accent2)":"var(--danger)",i:"💰"},{l:"Laba Bersih",v:labaBersih,c:labaBersih>=0?"var(--purple)":"var(--danger)",i:"✅"}]
+        .map(k=>`<div class="card" style="margin-bottom:0;padding:14px 16px;background:linear-gradient(160deg,${k.c}22,var(--card) 65%);border-color:${k.c}44">
+          <div style="width:32px;height:32px;border-radius:9px;background:${k.c}2a;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:8px">${k.i}</div>
           <div class="label">${k.l}</div>
-          <div style="font-size:14px;font-weight:700;color:${k.c};margin-top:4px">Rp ${fmt(k.v)}</div>
+          <div style="font-size:15px;font-weight:700;color:${k.c};margin-top:4px">Rp ${fmt(k.v)}</div>
         </div>`).join("")}
     </div>
     <div class="card">
