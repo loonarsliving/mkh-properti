@@ -44,6 +44,7 @@ tr:hover td{background:rgba(30,45,64,.4)}
 
 /* Stats card */
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat-card[data-tint]{background:linear-gradient(160deg,var(--tint)22,var(--card) 65%);border-color:var(--tint)44;border-left-width:3px}
 .stat-val{font-size:16px;font-weight:700;margin-top:4px}
 </style>
 </head>
@@ -286,19 +287,19 @@ function render(){
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-      <div class="stat-card" style="border-left:3px solid var(--accent2)">
+      <div class="stat-card" data-tint style="--tint:var(--accent2)">
         <div class="label">Saldo Kas Proyek</div>
         <div class="stat-val" style="color:var(--accent2)">Rp ${fmt(kas)}</div>
       </div>
-      <div class="stat-card" style="border-left:3px solid var(--accent)">
+      <div class="stat-card" data-tint style="--tint:var(--accent)">
         <div class="label">Total Pendapatan</div>
         <div class="stat-val" style="color:var(--accent)">Rp ${fmt(totMasuk)}</div>
       </div>
-      <div class="stat-card" style="border-left:3px solid #38bdf8">
+      <div class="stat-card" data-tint style="--tint:#38bdf8">
         <div class="label">Pengeluaran Bahan</div>
         <div class="stat-val" style="color:#38bdf8">Rp ${fmt(totBahan)}</div>
       </div>
-      <div class="stat-card" style="border-left:3px solid var(--purple)">
+      <div class="stat-card" data-tint style="--tint:var(--purple)">
         <div class="label">Bayar Tukang/Kontraktor</div>
         <div class="stat-val" style="color:var(--purple)">Rp ${fmt(totTukang)}</div>
       </div>
