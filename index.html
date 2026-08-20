@@ -99,14 +99,44 @@
     const email = user.email || sessionStorage.getItem("sb_user_email") || "";
     // Simpan ke sessionStorage untuk konsistensi
     if(email) sessionStorage.setItem("sb_user_email", email);
-    // Cek apakah user ini admin proyek
+    // Cek apakah user ini admin proyek (scoped) — jika ya, JANGAN render
+    // dashboard CFO ini, arahkan ke halaman admin-proyek yang scoped.
     fetch(`${SB_URL_CHECK}/rest/v1/users_proyek?email=eq.`+encodeURIComponent(email)+`&select=proyek_id&limit=1`,{
       headers:{"apikey":SB_KEY_CHECK,"Authorization":"Bearer "+SB_KEY_CHECK,"Content-Type":"application/json"}
     }).then(cr=>cr.json()).then(cd=>{
       if(Array.isArray(cd) && cd.length > 0){
         window.location.href = "admin-proyek.html";
+        return;
       }
-    }).catch(()=>{});
+      // Bukan admin proyek scoped — SEBELUM merender dashboard CFO
+      // (yang punya akses penuh ke seluruh data keuangan perusahaan),
+      // pastikan email ini memang terdaftar sebagai CFO/owner di
+      // allowlist cfo_users. Tanpa cek ini, siapa pun yang mendaftar
+      // sendiri lewat login.html ("Daftar") otomatis mendapat akses
+      // penuh CFO — itulah broken access control yang diperbaiki di sini.
+      fetch(`${SB_URL_CHECK}/rest/v1/cfo_users?email=eq.`+encodeURIComponent(email)+`&select=email&limit=1`,{
+        headers:{"apikey":SB_KEY_CHECK,"Authorization":"Bearer "+SB_KEY_CHECK,"Content-Type":"application/json"}
+      }).then(fr=>{
+        if(!fr.ok) throw new Error("cfo_users check failed");
+        return fr.json();
+      }).then(fd=>{
+        if(!Array.isArray(fd) || fd.length===0){
+          // Tidak dikenali sebagai staff/CFO — tolak akses ke dashboard CFO.
+          sessionStorage.clear();
+          window.location.href = "no-access.html";
+        }
+        // Jika ditemukan di cfo_users: biarkan dashboard CFO dirender seperti biasa.
+      }).catch(()=>{
+        // Gagal memverifikasi (mis. tabel/allowlist belum ada) — gagal aman:
+        // JANGAN render dashboard CFO, jangan asumsikan diizinkan.
+        sessionStorage.clear();
+        window.location.href = "no-access.html";
+      });
+    }).catch(()=>{
+      // Gagal memverifikasi status admin proyek — gagal aman, jangan render CFO.
+      sessionStorage.clear();
+      window.location.href = "no-access.html";
+    });
   }).catch(()=>{ sessionStorage.clear(); window.location.href="login.html"; });
 })();
 
@@ -218,6 +248,15 @@ let selectedBranchId = null;
 const fmt  = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
 const today = () => new Date().toISOString().slice(0,10);
 const getP  = id => PROYEK.find(p=>p.id===id)||{warna:"#888",nama:"-",id:"-"};
+// Escape untuk interpolasi teks (dari DB/input user) ke dalam innerHTML — mencegah stored XSS.
+function escapeHtml(str){
+  if(str===null||str===undefined) return "";
+  return String(str).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+// Escape untuk teks yang disisipkan di dalam atribut onclick='...' (string literal JS bertanda kutip tunggal).
+function escapeJsAttr(str){
+  return escapeHtml(str).replace(/'/g,"&#39;");
+}
 
 function showLoader(msg="Menyimpan..."){
   document.getElementById("loader").style.display="flex";
@@ -520,8 +559,8 @@ function cetakGajiHarianOwner(){
         return "<tr>"
           +"<td style='text-align:center'>"+(i+1)+"</td>"
           +"<td>"+getP(t.proyek).nama+"</td>"
-          +"<td style='font-weight:700'>"+t.nama+"</td>"
-          +"<td>"+(t.item||"-")+"</td>"
+          +"<td style='font-weight:700'>"+escapeHtml(t.nama)+"</td>"
+          +"<td>"+escapeHtml(t.item||"-")+"</td>"
           +"<td style='text-align:right'>"+fmtRp(t.nilai_kontrak)+"</td>"
           +"<td style='text-align:right;color:#2d6a4f'>"+fmtRp(t.terbayar)+"</td>"
           +"<td style='text-align:right;font-weight:700;color:"+(lunas?"#2d6a4f":"#c0392b")+"'>"+(lunas?"✓ LUNAS":fmtRp(sisa))+"</td>"
@@ -538,8 +577,8 @@ function cetakGajiHarianOwner(){
         return "<tr>"
           +"<td style='text-align:center'>"+(i+1)+"</td>"
           +"<td>"+getP(b.proyek).nama+"</td>"
-          +"<td style='font-weight:700'>"+b.tukang_nama+"</td>"
-          +"<td style='text-align:center'>"+(b.blok_selesai||"-")+"</td>"
+          +"<td style='font-weight:700'>"+escapeHtml(b.tukang_nama)+"</td>"
+          +"<td style='text-align:center'>"+escapeHtml(b.blok_selesai||"-")+"</td>"
           +"<td style='text-align:right;font-weight:700;color:#2d6a4f'>"+fmtRp(b.nominal)+"</td>"
           +"<td style='text-align:right;color:"+(sisa<=0?"#2d6a4f":"#c0392b")+"'>"+(sisa<=0?"✓ LUNAS":fmtRp(sisa))+"</td>"
           +"</tr>";
@@ -678,9 +717,9 @@ function renderMenu(){
       <div style="overflow-x:auto">
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th></tr></thead>
       <tbody>${[...brJurnal].reverse().slice(0,10).map(j=>`<tr>
-        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${escapeHtml(j.no)}</td>
         <td>${proyekTag(j.proyek)}</td>
-        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.ket)}</td>
         <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
         <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
       </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada transaksi</td></tr>'}
@@ -748,9 +787,9 @@ function renderMenu(){
       <div style="overflow-x:auto">
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th></tr></thead>
       <tbody>${[...jurnal].reverse().slice(0,10).map(j=>`<tr>
-        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td>${j.tgl}</td><td style="color:var(--accent);font-weight:600">${escapeHtml(j.no)}</td>
         <td>${proyekTag(j.proyek)}</td>
-        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.ket)}</td>
         <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
         <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
       </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada transaksi</td></tr>'}
@@ -794,11 +833,11 @@ function renderMenu(){
       <tbody>${fAset.length?fAset.map(a=>`<tr>
         <td>${proyekTag(a.proyek)}</td>
         <td style="color:var(--muted);font-size:10px">${a.tipe}</td>
-        <td style="font-weight:700">${a.blok}</td>
+        <td style="font-weight:700">${escapeHtml(a.blok)}</td>
         <td style="color:var(--muted)">${a.luas?a.luas+" m²":"-"}</td>
         <td style="text-align:right;color:var(--accent);font-weight:700">${fmt(a.harga)}</td>
         <td><span class="tag" style="background:${a.status==="tersedia"?"var(--accent2)":a.status==="dp"?"var(--purple)":"var(--danger)"}25;color:${a.status==="tersedia"?"var(--accent2)":a.status==="dp"?"var(--purple)":"var(--danger)"}">${a.status}</span></td>
-        <td style="color:var(--muted);font-size:10px">${a.pembeli||"-"}</td>
+        <td style="color:var(--muted);font-size:10px">${escapeHtml(a.pembeli)||"-"}</td>
         <td>${a.status==="tersedia"?`<button onclick="hapusAset(${a.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px">🗑</button>`:""}</td>
       </tr>`).join(""):'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada aset terdaftar</td></tr>'}
       </tbody></table></div>
@@ -826,7 +865,7 @@ function renderMenu(){
         <div><label class="label">Pilih Unit Aset</label>
           <select id="km-unit">
             <option value="">-- Pilih unit (opsional) --</option>
-            ${aset.filter(a=>a.status!=="terjual").map(a=>`<option value="${a.id}">[${a.proyek}] ${a.blok} — Rp ${fmt(a.harga)}</option>`).join("")}
+            ${aset.filter(a=>a.status!=="terjual").map(a=>`<option value="${a.id}">[${a.proyek}] ${escapeHtml(a.blok)} — Rp ${fmt(a.harga)}</option>`).join("")}
           </select>
         </div>
         <div><label class="label">Nama Pembeli</label><input id="km-pembeli" placeholder="Nama pembeli / klien"/></div>
@@ -839,11 +878,11 @@ function renderMenu(){
       <div class="section-title">Riwayat Kas Masuk</div>
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th></th></tr></thead>
       <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("KM")&&j.D>0).reverse().map(j=>`<tr>
-        <td>${j.tgl}</td><td style="color:var(--accent2)">${j.no}</td>
+        <td>${j.tgl}</td><td style="color:var(--accent2)">${escapeHtml(j.no)}</td>
         <td>${proyekTag(j.proyek)}</td>
-        <td style="color:var(--muted)">${j.ket}</td>
+        <td style="color:var(--muted)">${escapeHtml(j.ket)}</td>
         <td style="text-align:right;color:var(--accent2);font-weight:700">Rp ${fmt(j.D)}</td>
-        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+        <td><button onclick="hapusJurnal('${escapeJsAttr(j.no)}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
       </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
       </tbody></table>
     </div></div>`;
@@ -879,11 +918,11 @@ function renderMenu(){
       <div class="section-title">Riwayat Kas Keluar</div>
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th></th></tr></thead>
       <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("KK")&&j.D>0).reverse().map(j=>`<tr>
-        <td>${j.tgl}</td><td style="color:var(--danger)">${j.no}</td>
+        <td>${j.tgl}</td><td style="color:var(--danger)">${escapeHtml(j.no)}</td>
         <td>${proyekTag(j.proyek)}</td>
-        <td style="color:var(--muted)">${j.ket}</td>
+        <td style="color:var(--muted)">${escapeHtml(j.ket)}</td>
         <td style="text-align:right;color:var(--danger);font-weight:700">Rp ${fmt(j.D)}</td>
-        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+        <td><button onclick="hapusJurnal('${escapeJsAttr(j.no)}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
       </tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
       </tbody></table>
     </div></div>`;
@@ -912,8 +951,8 @@ function renderMenu(){
         return `<div class="card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
             <div>
-              <div style="font-size:13px;font-weight:700">${t.nama}</div>
-              <div style="font-size:10px;color:var(--muted)">${t.item||"—"} ${t.blok?("· Blok "+t.blok):""}</div>
+              <div style="font-size:13px;font-weight:700">${escapeHtml(t.nama)}</div>
+              <div style="font-size:10px;color:var(--muted)">${escapeHtml(t.item)||"—"} ${t.blok?("· Blok "+escapeHtml(t.blok)):""}</div>
             </div>
             <span style="font-size:9px;padding:3px 8px;border-radius:6px;background:${p.warna}22;color:${p.warna};font-weight:700">${t.proyek}</span>
           </div>
@@ -934,7 +973,7 @@ function renderMenu(){
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Tukang</th><th style="text-align:right">Nominal</th></tr></thead>
       <tbody>${bayarTukangList.filter(b=>filterProyek==="ALL"||b.proyek===filterProyek).sort((a,b)=>new Date(b.tgl)-new Date(a.tgl)).map(b=>`<tr>
         <td>${b.tgl}</td><td style="color:var(--accent)">${b.no}</td>
-        <td>${getP(b.proyek).nama}</td><td>${b.tukang_nama}</td>
+        <td>${getP(b.proyek).nama}</td><td>${escapeHtml(b.tukang_nama)}</td>
         <td style="text-align:right;font-weight:700">Rp ${fmt(parseFloat(b.nominal)||0)}</td>
       </tr>`).join("")||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Belum ada pembayaran</td></tr>'}
       </tbody></table>
@@ -970,8 +1009,8 @@ function renderMenu(){
       <div class="section-title">Riwayat Pinjaman</div>
       <table><thead><tr><th>Tgl</th><th>No</th><th>Keterangan</th><th style="text-align:right">Nominal</th></tr></thead>
       <tbody>${jurnal.filter(j=>j.no&&j.no.startsWith("PAP")&&j.akun==="1-1006").map(j=>`<tr>
-        <td>${j.tgl}</td><td style="color:var(--purple)">${j.no}</td>
-        <td style="color:var(--muted)">${j.ket}</td>
+        <td>${j.tgl}</td><td style="color:var(--purple)">${escapeHtml(j.no)}</td>
+        <td style="color:var(--muted)">${escapeHtml(j.ket)}</td>
         <td style="text-align:right;color:var(--purple);font-weight:700">Rp ${fmt(j.D)}</td>
       </tr>`).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Belum ada pinjaman</td></tr>'}
       </tbody></table>
@@ -988,14 +1027,14 @@ function renderMenu(){
       <table><thead><tr><th>Tgl</th><th>No</th><th>Proyek</th><th>Keterangan</th><th>Kode</th><th>Nama Akun</th><th style="text-align:right">Debet</th><th style="text-align:right">Kredit</th><th></th></tr></thead>
       <tbody>${[...fj].reverse().map(j=>`<tr>
         <td>${j.tgl}</td>
-        <td style="color:var(--accent);font-weight:600">${j.no}</td>
+        <td style="color:var(--accent);font-weight:600">${escapeHtml(j.no)}</td>
         <td>${proyekTag(j.proyek)}</td>
-        <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket}</td>
+        <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.ket)}</td>
         <td style="font-size:10px;font-family:monospace">${j.akun}</td>
-        <td>${j.nama}</td>
+        <td>${escapeHtml(j.nama)}</td>
         <td style="text-align:right;color:var(--accent2)">${j.D>0?fmt(j.D):"-"}</td>
         <td style="text-align:right;color:var(--accent)">${j.K>0?fmt(j.K):"-"}</td>
-        <td><button onclick="hapusJurnal('${j.no}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
+        <td><button onclick="hapusJurnal('${escapeJsAttr(j.no)}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px">🗑</button></td>
       </tr>`).join("")||'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Belum ada jurnal</td></tr>'}
       </tbody></table></div>
     </div>`;
@@ -1011,7 +1050,7 @@ function renderMenu(){
       <tbody>
       ${ns.map(a=>`<tr>
         <td style="font-family:monospace;color:var(--accent);font-size:10px">${a.kode}</td>
-        <td>${a.nama}</td><td style="color:var(--muted);font-size:10px">${a.kat}</td>
+        <td>${escapeHtml(a.nama)}</td><td style="color:var(--muted);font-size:10px">${a.kat}</td>
         <td style="text-align:right;color:var(--accent2)">${a.sD>0?fmt(a.sD):"-"}</td>
         <td style="text-align:right;color:var(--accent)">${a.sK>0?fmt(a.sK):"-"}</td>
       </tr>`).join("")||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Belum ada data</td></tr>'}
@@ -1039,7 +1078,7 @@ function renderMenu(){
         <div style="font-size:10px;font-weight:700;color:${g.tc};margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">${g.title}</div>
         ${Object.values(sm).filter(a=>a.kat===g.kat).map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.s>0).map(a=>`
         <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(30,45,64,.3)">
-          <span style="font-size:11px;color:var(--muted)">${a.kode} — ${a.nama}</span>
+          <span style="font-size:11px;color:var(--muted)">${a.kode} — ${escapeHtml(a.nama)}</span>
           <span style="font-size:11px;color:${g.tc}">Rp ${fmt(a.s)}</span>
         </div>`).join("")}
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--border);font-weight:700">
@@ -1072,7 +1111,7 @@ function renderMenu(){
         <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${g.l}</div>
         ${Object.values(sm).filter(a=>a.kat===g.k).map(a=>({...a,s:a.tipe==="D"?a.D-a.K:a.K-a.D})).filter(a=>a.s!==0).map(a=>`
         <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
-          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+          <span style="font-size:10px;color:var(--muted)">${escapeHtml(a.nama)}</span><span style="font-size:10px">${fmt(a.s)}</span>
         </div>`).join("")}
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);font-weight:700">
           <span style="font-size:11px">Total</span><span style="font-size:11px;color:var(--accent2)">${fmt(g.t)}</span>
@@ -1089,7 +1128,7 @@ function renderMenu(){
         <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">${g.l}</div>
         ${Object.values(sm).filter(a=>a.kat===g.k).map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).filter(a=>a.s>0).map(a=>`
         <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
-          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+          <span style="font-size:10px;color:var(--muted)">${escapeHtml(a.nama)}</span><span style="font-size:10px">${fmt(a.s)}</span>
         </div>`).join("")}
         <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-weight:700">
           <span style="font-size:10px">Total</span><span style="font-size:10px;color:var(--accent)">${fmt(g.t)}</span>
@@ -1099,7 +1138,7 @@ function renderMenu(){
         <div style="font-size:9px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase">EKUITAS</div>
         ${Object.values(sm).filter(a=>a.kat==="Ekuitas").map(a=>({...a,s:a.tipe==="K"?a.K-a.D:a.D-a.K})).map(a=>`
         <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
-          <span style="font-size:10px;color:var(--muted)">${a.nama}</span><span style="font-size:10px">${fmt(a.s)}</span>
+          <span style="font-size:10px;color:var(--muted)">${escapeHtml(a.nama)}</span><span style="font-size:10px">${fmt(a.s)}</span>
         </div>`).join("")}
         <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,45,64,.2)">
           <span style="font-size:10px;color:var(--muted)">Laba Bersih Periode</span>
@@ -1208,8 +1247,8 @@ function renderMenu(){
           const lunas=sisa<=0;
           return `<tr>
             <td><span class="tag" style="background:${p.warna}22;color:${p.warna}">${u.proyek}</span></td>
-            <td style="font-size:11px">${u.jenis||"-"}</td>
-            <td style="font-size:11px">${u.bank||"-"}</td>
+            <td style="font-size:11px">${escapeHtml(u.jenis)||"-"}</td>
+            <td style="font-size:11px">${escapeHtml(u.bank)||"-"}</td>
             <td style="font-size:11px">Rp ${fmt(u.pokok)}</td>
             <td style="font-size:11px;color:var(--accent2)">Rp ${fmt(u.terbayar||0)}</td>
             <td style="font-size:11px;color:${lunas?"var(--accent2)":"var(--danger)"}">
@@ -1222,7 +1261,7 @@ function renderMenu(){
               </div>
               <div style="font-size:9px;color:var(--muted);margin-top:2px">${pct.toFixed(1)}%</div>
             </td>
-            <td style="font-size:10px;color:var(--muted)">${u.jt_tempo||"-"}</td>
+            <td style="font-size:10px;color:var(--muted)">${escapeHtml(u.jt_tempo)||"-"}</td>
             <td>
               <button class="btn btn-red" style="padding:4px 8px;font-size:10px" onclick="hapusUtang(${u.id})">✕</button>
             </td>
@@ -1293,10 +1332,10 @@ function renderMenu(){
               ${usersProyek.map(u=>{
                 const p=PROYEK.find(pr=>pr.id===u.proyek_id)||{warna:"#888",nama:u.proyek_id};
                 return `<tr>
-                  <td style="font-size:11px">${u.email}</td>
+                  <td style="font-size:11px">${escapeHtml(u.email)}</td>
                   <td><span class="tag" style="background:${p.warna}22;color:${p.warna}">${u.proyek_id}</span></td>
-                  <td style="font-size:11px;color:var(--muted)">${u.nama||"-"}</td>
-                  <td><button class="btn btn-red" style="padding:3px 8px;font-size:10px" onclick="hapusUser(${u.id},'${u.email}')">✕</button></td>
+                  <td style="font-size:11px;color:var(--muted)">${escapeHtml(u.nama)||"-"}</td>
+                  <td><button class="btn btn-red" style="padding:3px 8px;font-size:10px" onclick="hapusUser(${u.id},'${escapeJsAttr(u.email)}')">✕</button></td>
                 </tr>`;
               }).join("")}
             </tbody></table>`

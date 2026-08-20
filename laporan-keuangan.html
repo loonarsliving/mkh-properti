@@ -194,8 +194,31 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
       if(Array.isArray(cd) && cd.length > 0){
         // Ini admin proyek, redirect ke halaman mereka
         window.location.href = "admin-proyek.html";
+        return;
       }
-    }).catch(()=>{});
+      // SECURITY FIX: halaman ini menampilkan laporan keuangan gabungan
+      // SELURUH perusahaan (setara dengan dashboard CFO di index.html) --
+      // sebelumnya siapa pun yang mendaftar sendiri dan tidak terdaftar di
+      // users_proyek otomatis bisa membukanya. Sekarang wajib terdaftar di
+      // allowlist cfo_users terlebih dahulu.
+      fetch(`${SB_URL}/rest/v1/cfo_users?email=eq.`+encodeURIComponent(email)+`&select=email&limit=1`,{
+        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"}
+      }).then(fr=>{
+        if(!fr.ok) throw new Error("cfo_users check failed");
+        return fr.json();
+      }).then(fd=>{
+        if(!Array.isArray(fd) || fd.length===0){
+          sessionStorage.clear();
+          window.location.href = "no-access.html";
+        }
+      }).catch(()=>{
+        sessionStorage.clear();
+        window.location.href = "no-access.html";
+      });
+    }).catch(()=>{
+      sessionStorage.clear();
+      window.location.href = "no-access.html";
+    });
   }).catch(()=>{ sessionStorage.clear(); window.location.href="login.html"; });
 })();
 

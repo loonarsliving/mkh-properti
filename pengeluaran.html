@@ -154,6 +154,11 @@ let itemSeq = 0;
 
 // ── HELPERS ──────────────────────────────────────────────────────
 function fmt(n){ return new Intl.NumberFormat("id-ID").format(Math.round(n||0)); }
+// Escape untuk interpolasi teks (dari DB/input user) ke dalam innerHTML — mencegah stored XSS.
+function escapeHtml(str){
+  if(str===null||str===undefined) return "";
+  return String(str).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 function v(id){ return document.getElementById(id).value.trim(); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function showLoader(){ document.getElementById("loader").style.display="flex"; }
@@ -292,7 +297,7 @@ async function loadRiwayat(){
       const [color,label]=badge[r.status]||["var(--muted)",r.status];
       return `<tr>
         <td>${d.tgl||"-"}</td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.item||d.keterangan||"-"}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(d.item||d.keterangan)||"-"}</td>
         <td style="text-align:right;font-weight:700">Rp ${fmt(d.nominal)}</td>
         <td><span class="tag" style="background:${color}22;color:${color}">${label}</span></td>
       </tr>`;

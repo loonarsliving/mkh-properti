@@ -125,6 +125,11 @@ let activeTab   = "dashboard";
 
 // ── HELPERS ───────────────────────────────────────────────────────
 const fmt   = n => new Intl.NumberFormat("id-ID").format(Math.round(Math.abs(n)||0));
+// Escape untuk interpolasi teks (dari DB/input user) ke dalam innerHTML — mencegah stored XSS.
+function escapeHtml(str){
+  if(str===null||str===undefined) return "";
+  return String(str).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 const today = () => new Date().toISOString().slice(0,10);
 const v     = id => document.getElementById(id)?.value||"";
 const setV  = (id,val) => { const el=document.getElementById(id); if(el) el.value=val; };
@@ -315,8 +320,8 @@ function render(){
             const pct=Math.min(100,(t.terbayar/t.nilai_kontrak)*100);
             return `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                <div style="font-size:12px;font-weight:700">${t.nama}</div>
-                <div style="font-size:10px;color:var(--muted)">${t.item||"-"}</div>
+                <div style="font-size:12px;font-weight:700">${escapeHtml(t.nama)}</div>
+                <div style="font-size:10px;color:var(--muted)">${escapeHtml(t.item)||"-"}</div>
               </div>
               <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                 <span style="font-size:10px;color:var(--muted)">Kontrak: <b style="color:var(--text)">Rp ${fmt(t.nilai_kontrak)}</b></span>
@@ -345,7 +350,7 @@ function render(){
         <tbody>
           ${jurnal.slice(0,10).map(j=>`<tr>
             <td style="white-space:nowrap">${j.tgl||"-"}</td>
-            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket||"-"}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.ket)||"-"}</td>
             <td style="color:var(--danger)">${j.D>0?"Rp "+fmt(j.D):"-"}</td>
             <td style="color:var(--accent2)">${j.K>0?"Rp "+fmt(j.K):"-"}</td>
           </tr>`).join("")}
@@ -360,7 +365,7 @@ function render(){
     const noKM = "KM-"+String(jurnal.filter(j=>j.no?.startsWith("KM")).length+1).padStart(3,"0");
     const rekKode = REK_COA[p.id];
     const blokOptions = aset.length>0
-      ? aset.map(a=>"<option value='"+a.blok+"'>"+a.blok+(a.pembeli?" — "+a.pembeli:"")+"</option>").join("")
+      ? aset.map(a=>"<option value='"+escapeHtml(a.blok)+"'>"+escapeHtml(a.blok)+(a.pembeli?" — "+escapeHtml(a.pembeli):"")+"</option>").join("")
       : "<option value=''>-- Belum ada unit --</option>";
     const kmList = jurnal.filter(j=>["4-1001","4-1002","4-1003"].includes(j.akun));
 
@@ -403,7 +408,7 @@ function render(){
         "<tr>"
         +"<td>"+j.tgl+"</td>"
         +"<td style='color:var(--accent)'>"+j.no+"</td>"
-        +"<td style='max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+j.ket+"</td>"
+        +"<td style='max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+escapeHtml(j.ket)+"</td>"
         +"<td style='color:var(--accent2)'>Rp "+fmt(j.K)+"</td>"
         +"<td><button class='btn btn-ghost' style='padding:3px 8px;font-size:10px' onclick='cetakKwitansiDariJurnal("+j.id+")'>🖨</button></td>"
         +"</tr>"
@@ -472,7 +477,7 @@ function render(){
           ${bahanList.map(j=>`<tr>
             <td>${j.tgl||"-"}</td>
             <td style="color:var(--accent)">${j.no||"-"}</td>
-            <td>${j.ket||"-"}</td>
+            <td>${escapeHtml(j.ket)||"-"}</td>
             <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
           </tr>`).join("")||`<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
         </tbody>
@@ -543,7 +548,7 @@ function render(){
           ${kkList.map(j=>`<tr>
             <td>${j.tgl||"-"}</td>
             <td style="color:var(--accent)">${j.no||"-"}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.ket||"-"}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.ket)||"-"}</td>
             <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
           </tr>`).join("")||`<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
         </tbody>
@@ -564,7 +569,7 @@ function render(){
       : aktif.map(t=>{
           const sisaUnit=(t.total_unit||0)-(t.unit_selesai||0);
           const sisaUang=t.nilai_kontrak-t.terbayar;
-          return "<option value='"+t.id+"' data-harga='"+(t.harga_per_unit||0)+"' data-sisa-unit='"+sisaUnit+"' data-sisa-uang='"+sisaUang+"'>"+t.nama+" — "+(t.item||"-")+"</option>";
+          return "<option value='"+t.id+"' data-harga='"+(t.harga_per_unit||0)+"' data-sisa-unit='"+sisaUnit+"' data-sisa-uang='"+sisaUang+"'>"+escapeHtml(t.nama)+" — "+escapeHtml(t.item||"-")+"</option>";
         }).join("");
 
     // Build rekap rows
@@ -576,11 +581,11 @@ function render(){
       const pctUnit=(t.total_unit||0)>0?Math.min(100,(unitSelesai/(t.total_unit||1))*100):0;
       const lunas=sisaUang<=0;
       const riwayat=bayarTukangList.filter(b=>b.tukang_id===t.id);
-      const riwayatRows=riwayat.map(b=>"<tr><td>"+(b.minggu||"-")+"</td><td style='color:var(--accent)'>"+(b.blok_selesai||"-")+"</td><td style='text-align:center'>"+(b.unit_minggu||0)+"</td><td style='color:var(--accent2)'>Rp "+fmt(b.nominal)+"</td><td style='color:var(--muted)'>"+(b.tgl||"-")+"</td></tr>").join("");
+      const riwayatRows=riwayat.map(b=>"<tr><td>"+escapeHtml(b.minggu||"-")+"</td><td style='color:var(--accent)'>"+escapeHtml(b.blok_selesai||"-")+"</td><td style='text-align:center'>"+(b.unit_minggu||0)+"</td><td style='color:var(--accent2)'>Rp "+fmt(b.nominal)+"</td><td style='color:var(--muted)'>"+(b.tgl||"-")+"</td></tr>").join("");
       return "<div style='margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)'>"
         +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>"
-        +"<div><div style='font-size:12px;font-weight:700'>"+t.nama+"</div>"
-        +"<div style='font-size:10px;color:var(--muted)'>"+(t.item||"-")+" | Blok: "+(t.blok||"-")+"</div></div>"
+        +"<div><div style='font-size:12px;font-weight:700'>"+escapeHtml(t.nama)+"</div>"
+        +"<div style='font-size:10px;color:var(--muted)'>"+escapeHtml(t.item||"-")+" | Blok: "+escapeHtml(t.blok||"-")+"</div></div>"
         +"<span class='tag' style='background:"+(lunas?"var(--accent2)":"var(--accent)")+"22;color:"+(lunas?"var(--accent2)":"var(--accent)")+"'>"+(lunas?"✓ LUNAS":"AKTIF")+"</span></div>"
         +"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px'>"
         +"<div style='background:var(--bg);border-radius:8px;padding:8px;text-align:center'><div style='font-size:9px;color:var(--muted)'>KONTRAK</div><div style='font-size:11px;font-weight:700'>Rp "+fmt(t.nilai_kontrak)+"</div></div>"
@@ -696,8 +701,8 @@ function render(){
             return `<div style="margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;margin-bottom:8px">
                 <div>
-                  <div style="font-size:12px;font-weight:700">${t.nama}</div>
-                  <div style="font-size:10px;color:var(--muted)">${t.item||"-"}</div>
+                  <div style="font-size:12px;font-weight:700">${escapeHtml(t.nama)}</div>
+                  <div style="font-size:10px;color:var(--muted)">${escapeHtml(t.item)||"-"}</div>
                 </div>
                 <span class="tag" style="background:${sisa<=0?"var(--accent2)":"var(--accent)"}22;color:${sisa<=0?"var(--accent2)":"var(--accent)"}">
                   ${sisa<=0?"LUNAS":"AKTIF"}
@@ -733,7 +738,7 @@ function render(){
         <tbody>
           ${bahanList.map(j=>`<tr>
             <td>${j.tgl||"-"}</td>
-            <td>${j.ket||"-"}</td>
+            <td>${escapeHtml(j.ket)||"-"}</td>
             <td style="color:var(--danger)">Rp ${fmt(j.D)}</td>
           </tr>`).join("")||`<tr><td colspan="3" style="text-align:center;color:var(--muted)">Belum ada data</td></tr>`}
         </tbody>
@@ -882,11 +887,11 @@ function bukaCetakKwitansi(data){
 
   <!-- DETAIL -->
   <div class="box">
-    <div class="row"><span class="lbl">Telah diterima dari</span><span class="val">${data.pembeli||"_______________"}</span></div>
-    <div class="row"><span class="lbl">Untuk pembayaran</span><span class="val">${data.jenis}</span></div>
-    <div class="row"><span class="lbl">Blok / Unit</span><span class="val">${data.blok||"_______________"}</span></div>
+    <div class="row"><span class="lbl">Telah diterima dari</span><span class="val">${escapeHtml(data.pembeli)||"_______________"}</span></div>
+    <div class="row"><span class="lbl">Untuk pembayaran</span><span class="val">${escapeHtml(data.jenis)}</span></div>
+    <div class="row"><span class="lbl">Blok / Unit</span><span class="val">${escapeHtml(data.blok)||"_______________"}</span></div>
     <div class="row"><span class="lbl">Proyek</span><span class="val">${data.proyek}</span></div>
-    ${data.ket?`<div class="row"><span class="lbl">Keterangan</span><span class="val">${data.ket}</span></div>`:""}
+    ${data.ket?`<div class="row"><span class="lbl">Keterangan</span><span class="val">${escapeHtml(data.ket)}</span></div>`:""}
   </div>
 
   <!-- TANDA TANGAN -->
@@ -1097,8 +1102,8 @@ function cetakGajiHarian(){
         const lunas = sisa<=0;
         return "<tr>"
           +"<td style='text-align:center'>"+(i+1)+"</td>"
-          +"<td style='font-weight:700'>"+t.nama+"</td>"
-          +"<td>"+(t.item||"-")+"</td>"
+          +"<td style='font-weight:700'>"+escapeHtml(t.nama)+"</td>"
+          +"<td>"+escapeHtml(t.item||"-")+"</td>"
           +"<td style='text-align:right'>"+fmtRp(t.nilai_kontrak)+"</td>"
           +"<td style='text-align:right;color:#2d6a4f'>"+fmtRp(t.terbayar)+"</td>"
           +"<td style='text-align:right;font-weight:700;color:"+(lunas?"#2d6a4f":"#c0392b")+"'>"+(lunas?"✓ LUNAS":fmtRp(sisa))+"</td>"
@@ -1114,8 +1119,8 @@ function cetakGajiHarian(){
         const sisa = (tk.nilai_kontrak||0) - (tk.terbayar||0);
         return "<tr>"
           +"<td style='text-align:center'>"+(i+1)+"</td>"
-          +"<td style='font-weight:700'>"+b.tukang_nama+"</td>"
-          +"<td style='text-align:center'>"+(b.blok_selesai||"-")+"</td>"
+          +"<td style='font-weight:700'>"+escapeHtml(b.tukang_nama)+"</td>"
+          +"<td style='text-align:center'>"+escapeHtml(b.blok_selesai||"-")+"</td>"
           +"<td style='text-align:center'>"+(b.unit_minggu||0)+" unit</td>"
           +"<td style='text-align:right;font-weight:700;color:#2d6a4f'>"+fmtRp(b.nominal)+"</td>"
           +"<td style='text-align:right;color:"+(sisa<=0?"#2d6a4f":"#c0392b")+"'>"+(sisa<=0?"✓ LUNAS":fmtRp(sisa))+"</td>"
@@ -1203,8 +1208,8 @@ function cetakLaporanGaji(){
     ? bayarMingguIni.map((b,i)=>
         "<tr>"
         +"<td style='text-align:center'>"+(i+1)+"</td>"
-        +"<td style='font-weight:700'>"+b.tukang_nama+"</td>"
-        +"<td style='text-align:center'>"+b.blok_selesai+"</td>"
+        +"<td style='font-weight:700'>"+escapeHtml(b.tukang_nama)+"</td>"
+        +"<td style='text-align:center'>"+escapeHtml(b.blok_selesai)+"</td>"
         +"<td style='text-align:center'>"+b.unit_minggu+" unit</td>"
         +"<td style='text-align:right;font-weight:700;color:#2d6a4f'>"+fmtRp(b.nominal)+"</td>"
         +"</tr>"
@@ -1221,7 +1226,7 @@ function cetakLaporanGaji(){
     const lunas=sisa<=0;
     return "<tr>"
       +"<td style='text-align:center'>"+(i+1)+"</td>"
-      +"<td style='font-weight:700'>"+t.nama+"</td>"
+      +"<td style='font-weight:700'>"+escapeHtml(t.nama)+"</td>"
       +"<td>"+( t.item||"-")+"</td>"
       +"<td style='text-align:right'>"+fmtRp(t.nilai_kontrak)+"</td>"
       +"<td style='text-align:right;color:#2d6a4f'>"+fmtRp(t.terbayar)+"</td>"
