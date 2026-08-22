@@ -1,22 +1,78 @@
 # ARCHITECTURE
 
-## High-level shape
-A **static, framework-free multi-page HTML application** (no `package.json`, no bundler, no SPA router) that talks **directly to Supabase** from the browser via `fetch()` calls to the PostgREST REST API and the Supabase Auth API, plus two custom Supabase **Edge Functions** for privileged server-side operations. There is no separate backend server/API layer beyond Supabase itself.
+> **DIPERBARUI 2026-08-22.** Dokumen ini semula menggambarkan arsitektur HTML
+> statis. Sejak migrasi Next.js, bagian **High-level shape** dan **Frontend**
+> di bawah sudah ditulis ulang. Bagian Backend, Database, Auth, Authorization,
+> API, Workers, dan Data flow **masih berlaku apa adanya** — migrasi ini tidak
+> menyentuh Supabase sama sekali. Deskripsi arsitektur lama disimpan sebagai
+> rujukan di bagian "Arsitektur sebelum migrasi" di akhir dokumen.
 
-Evidence: repo root contains only `.html` files, `.png` images, and a `supabase/` directory — no `src/`, no `node_modules` reference besides `.gitignore`, no server framework files.
+## High-level shape
+
+Aplikasi **Next.js 15 (App Router)** dengan TypeScript dan Tailwind CSS. Seluruh
+halaman adalah Client Component yang memanggil **Supabase langsung dari browser**
+lewat REST (PostgREST) dan Auth API, plus dua **Edge Function** untuk operasi
+yang butuh hak istimewa. Tidak ada lapisan backend sendiri di luar Supabase —
+Next.js di sini murni lapisan penyajian, bukan API server.
+
+Bentuk ini sengaja dipertahankan: pola akses data ke Supabase sama persis
+dengan versi HTML lama, jadi tidak ada perubahan kontrak ke database.
 
 ## Frontend
-- 10 standalone HTML pages, each with inline `<script>`/`<style>` (no shared JS module files, no component framework):
-  - `index.html` — CFO/owner dashboard (cash, journal, assets, debts, user management).
-  - `admin-proyek.html` — per-project admin dashboard.
-  - `login.html` — Supabase Auth login/signup/password-recovery.
-  - `pengeluaran.html` — logged-in expense input.
-  - `lapor-pengeluaran.html`, `lapor-biaya-lain.html`, `lapor-biaya-lain-makassar.html` — no-login public expense-report forms for named field staff (Endy, Rebecca, Syafiq/Makassar variant).
-  - `verifikasi.html` — approval/verification queue for `pengajuan`.
-  - `laporan-keuangan.html` — financial reports.
-  - `no-access.html` — access-denied landing page (added alongside the `cfo_users` allowlist fix).
-- Each page hardcodes `SB_URL` (`https://gluoioiimapyhchdasfl.supabase.co`) and the Supabase **anon** publishable key, then builds REST calls with `apikey`/`Authorization: Bearer <anon key>` headers via small helper functions (`sbGet`, `sbInsert`, `sbUpdate`, `sbDelete` in `index.html`).
-- Session/role state is kept in browser storage (e.g. `sessionStorage "sb_access_token"`, per migration `0025`'s comments) and re-checked against `users_proyek` / `cfo_users` on each protected page load ("authGuard" pattern in `index.html`/`admin-proyek.html`/`verifikasi.html`).
+
+```
+src/app/
+  (app)/            route group: semua halaman yang butuh login.
+                    layout-nya memasang guard sesi, sidebar, topbar filter
+                    periode, dan tiga provider (Sesi, Periode, Data).
+    page.tsx        dashboard CFO
+    kas-masuk/  kas-keluar/  aset/  pinjam-antar-proyek/  utang-bank/
+    gaji-tukang/  jurnal/  coa/  users/
+    neraca-saldo/  laba-rugi/  posisi-keuangan/  laporan-keuangan/
+    admin-proyek/  pengeluaran/  verifikasi/
+  login/  no-access/
+  lapor-pengeluaran/  lapor-biaya-lain/  lapor-biaya-lain-makassar/
+                    tiga form lapangan TANPA login — di luar route group (app)
+                    supaya tidak kena guard sesi.
+src/components/
+  shell/            Sidebar, FilterPeriode, GuardHalaman, dan provider
+  ui/               Icon, Kartu (KPI/stat/pil), Form, TabelTransaksi, Umum
+  laporan/          LembarLaporan (SAK EMKM), Kwitansi — keduanya siap cetak
+  lapor/            FormLaporLapangan, dipakai bersama ketiga form lapangan
+src/lib/
+  config.ts         URL & anon key Supabase (bisa ditimpa env)
+  supabase.ts       sbGet/sbQuery/sbInsert/sbUpdate/sbDelete/sbRpc
+  auth.ts           useGuard + resolusi peran
+  master.ts         COA, PROYEK, BRANCHES, REK_COA — satu sumber kebenaran
+  periode.ts        tipe Periode + rentang bulan/tahun
+  transaksi.ts      aturan penulisan jurnal (kas masuk/keluar/pinjam/utang)
+  proyek-admin.ts   aturan khusus dashboard admin proyek
+  akuntansi/saldo.ts     akumulasi debet/kredit per akun
+  akuntansi/sak-emkm.ts  penyusun seluruh laporan SAK EMKM
+  ekspor.ts  format.ts  terbilang.ts  notifikasi.ts
+```
+
+### Keadaan bersama (state)
+
+Tiga provider hidup di layout `(app)`, jadi bertahan saat pindah antar menu:
+
+- **SesiProvider** — email dan peran pengguna hasil guard.
+- **PeriodeProvider** — periode aktif + filter proyek. Tersimpan di
+  `sessionStorage` dan bisa dibagikan lewat query `?periode=YYYY-MM_YYYY-MM`.
+- **DataProvider** — memuat `jurnal`, `aset`, `utang_bank`, `users_proyek`,
+  `tukang_borongan`, `bayar_tukang` **sekali** lalu membagikannya. Di versi
+  lama setiap halaman memuat ulang dari nol.
+
+Halaman `admin-proyek`, `pengeluaran`, dan `verifikasi` memuat datanya sendiri
+karena query-nya disaring per proyek/status di sisi server.
+
+### Pencetakan
+
+Kwitansi, slip gaji, dan lembar laporan SAK EMKM dirender sebagai bagian halaman
+yang hanya muncul saat mencetak (`hidden print:block`), dengan sidebar dan topbar
+diberi kelas `no-print`. Ini menggantikan pola lama `window.open()` +
+`document.write()` yang menyusun HTML sebagai string — pola itu adalah jalur XSS
+karena nama tukang/pembeli dari database disisipkan langsung ke markup.
 
 ## Backend
 There is no custom backend server. "Backend" logic lives in two places:
@@ -59,3 +115,27 @@ No AI/LLM code exists in this repository. Migration `0027`'s comment states MK C
 
 ## Special architecture patterns
 No "FRIDAY", "Holding", or similarly named special architecture pattern was found anywhere in code, migrations, comments, or commit history. Do not document one.
+
+
+---
+
+## Arsitektur sebelum migrasi (arsip, per 2026-08-21)
+
+Disimpan agar konteks keputusan lama tidak hilang. Berkasnya ada di
+`docs/legacy-html/`.
+
+Aplikasi **HTML statis tanpa framework** (tanpa `package.json`, bundler, atau
+router SPA) yang memanggil Supabase langsung dari browser.
+
+- 10 standalone HTML pages, each with inline `<script>`/`<style>` (no shared JS module files, no component framework):
+  - `index.html` — CFO/owner dashboard (cash, journal, assets, debts, user management).
+  - `admin-proyek.html` — per-project admin dashboard.
+  - `login.html` — Supabase Auth login/signup/password-recovery.
+  - `pengeluaran.html` — logged-in expense input.
+  - `lapor-pengeluaran.html`, `lapor-biaya-lain.html`, `lapor-biaya-lain-makassar.html` — no-login public expense-report forms for named field staff (Endy, Rebecca, Syafiq/Makassar variant).
+  - `verifikasi.html` — approval/verification queue for `pengajuan`.
+  - `laporan-keuangan.html` — financial reports.
+  - `no-access.html` — access-denied landing page (added alongside the `cfo_users` allowlist fix).
+- Each page hardcodes `SB_URL` (`https://gluoioiimapyhchdasfl.supabase.co`) and the Supabase **anon** publishable key, then builds REST calls with `apikey`/`Authorization: Bearer <anon key>` headers via small helper functions (`sbGet`, `sbInsert`, `sbUpdate`, `sbDelete` in `index.html`).
+- Session/role state is kept in browser storage (e.g. `sessionStorage "sb_access_token"`, per migration `0025`'s comments) and re-checked against `users_proyek` / `cfo_users` on each protected page load ("authGuard" pattern in `index.html`/`admin-proyek.html`/`verifikasi.html`).
+

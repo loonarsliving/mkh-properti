@@ -1,5 +1,53 @@
 # DEPLOYMENT
 
+> **DIPERBARUI 2026-08-22 — BACA INI DULU.**
+>
+> Repo ini **tidak lagi berupa situs statis**. Sejak migrasi ke Next.js, ada
+> `package.json` dan langkah build wajib. Bagian "Build command / Install
+> command / Output directory" di bawah (yang menyatakan "tidak ada build")
+> **sudah usang** dan digantikan bagian ini.
+>
+> **Sebelum branch migrasi di-merge ke `main`:**
+>
+> 1. Buka setelan proyek di host (Vercel atau apa pun yang dipakai) dan pastikan
+>    framework preset-nya **Next.js**, bukan "Other"/static.
+>    - Install command: `npm install`
+>    - Build command: `npm run build`
+>    - Output directory: dikelola Next.js (jangan diisi manual)
+>    - Node.js: 20 atau lebih baru
+> 2. Kalau host masih disetel menyajikan direktori mentah, **deploy akan gagal
+>    atau menyajikan daftar berkas** — bukan aplikasi.
+> 3. Environment variable: semuanya opsional, ada nilai bawaan. Lihat
+>    `.env.example`. Satu-satunya yang perlu diisi agar notifikasi Telegram
+>    hidup lagi adalah `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN` — **dan token itu harus
+>    token BARU hasil rotasi**, bukan token lama yang sudah bocor.
+> 4. Uji dulu di preview deployment, jangan langsung ke `main`.
+>
+> **Yang TIDAK berubah:** migrasi SQL dan Edge Function tetap **tidak** ikut
+> ter-deploy saat push. Keduanya masih perlu `supabase db push` /
+> `supabase functions deploy` manual. Migrasi ini tidak menambah atau mengubah
+> satu pun berkas migrasi.
+
+## Verifikasi setelah deploy (khusus rilis migrasi ini)
+
+Selain checklist umum di bawah, periksa juga:
+
+- [ ] `/login` terbuka, dan login dengan akun asli mengarah ke halaman yang benar
+      per peran (CFO → `/`, admin proyek → `/admin-proyek`, verifikator → `/verifikasi`).
+- [ ] URL lama masih hidup: buka `/lapor-pengeluaran.html` dan pastikan
+      dialihkan ke `/lapor-pengeluaran`. Ulangi untuk `/verifikasi.html`.
+- [ ] Dashboard menampilkan angka yang **sama** dengan versi lama untuk periode
+      yang sama (bandingkan total kas dan pendapatan).
+- [ ] Di `/posisi-keuangan`, indikator "Neraca seimbang" berwarna hijau. Kalau
+      merah, itu menandakan ada entri jurnal yang debet ≠ kredit di data asli —
+      bukan bug aplikasi, tapi perlu ditelusuri.
+- [ ] Kirim satu pengajuan uji dari `/pengeluaran`, pastikan muncul di
+      `/verifikasi` dan notifikasi WhatsApp ke Kepala Cabang tetap terkirim
+      (jalur WhatsApp lewat trigger database, tidak tersentuh migrasi ini).
+- [ ] Cetak satu kwitansi dari `/admin-proyek` → tab Kas Masuk, pastikan logo
+      dan terbilang tampil benar.
+
+
 ## Production URL
 UNKNOWN — NEEDS CONFIRMATION. No domain or production URL is recorded anywhere in this repository (no `vercel.json`, no README, no CNAME file, no hardcoded production hostname in the HTML other than the Supabase project URL itself).
 

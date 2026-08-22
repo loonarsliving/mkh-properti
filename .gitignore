@@ -6,3 +6,10 @@ node_modules/
 .vercel
 *.log
 .DS_Store
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+/build
+*.tsbuildinfo

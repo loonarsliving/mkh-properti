@@ -3,6 +3,11 @@
 No issue tracker, TODO-list file, or explicit roadmap document exists in this repository. This roadmap is built **only** from what is directly evidenced in code comments, migration headers, and commit messages — nothing here is invented.
 
 ## COMPLETED (evidenced by merged commits / applied-looking migrations)
+- **Migrasi frontend ke Next.js + laporan SAK EMKM** (2026-08-22, branch
+  `claude/html-nextjs-migration-financial-reports-vb7l50`, **belum di-merge**) —
+  10 halaman HTML statis → aplikasi Next.js 15, filter periode global
+  (rentang bulan bebas / setahun penuh), dan penyusunan ulang laporan keuangan
+  mengikuti SAK EMKM. Lihat CHANGELOG.
 - MK Connect sync integration (CRM payments, payroll, commission, HR expenses) — commits `b5f4e0f`/`9d7d3dd`.
 - Branch-based Finance Dashboard redesign with drill-down — commits `cea592e`/`3555b91`.
 - loonars-sales fee/closing verification flow — migrations `0009`–`0016`.
@@ -23,3 +28,30 @@ UNKNOWN — NEEDS CONFIRMATION. No explicit "next up" list, TODO comments descri
 - Whether there is a broader roadmap tracked outside this repo (e.g. in a project-management tool, GitHub Issues/Projects — this audit did not have access to check GitHub Issues).
 - Whether `mkhsistem` (mentioned once in commit `a39106d`) represents a larger planned integration or is already complete elsewhere.
 - The intended replacement for the "temporary" `loonars_fee_wa_decision` mechanism.
+
+## LANGKAH BERIKUTNYA setelah migrasi Next.js (2026-08-22)
+
+Berurutan sesuai prioritas, berdasarkan hal yang benar-benar tertinggal:
+
+1. **Rotasi bot token Telegram.** Token lama sudah ter-commit di
+   `docs/legacy-html/verifikasi.html` dan `admin-proyek.html`, jadi harus
+   dianggap bocor. Buat token baru lewat @BotFather, isi ke
+   `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN`, lalu cabut yang lama.
+2. **Pindahkan pengiriman Telegram ke Edge Function.** Selama token ada di
+   variabel `NEXT_PUBLIC_*`, token tetap ikut ke bundle browser. Menaruhnya di
+   Edge Function (seperti `sync-inbound`) membuatnya benar-benar rahasia.
+3. **Terapkan migrasi `0025` (pengetatan RLS).** Prasyaratnya masih sama seperti
+   dulu: klien harus mengirim access token user, bukan anon key, pada panggilan
+   tabel keuangan. Jalur itu sekarang jauh lebih mudah — tinggal ubah
+   `restHeaders()` di `src/lib/supabase.ts` menjadi memakai `authHeaders()`,
+   satu tempat saja, bukan sepuluh halaman. Uji di Supabase branch dulu.
+4. **Tambahkan CI.** Sudah ada `npm run build`, `lint`, dan `typecheck` yang
+   bersih; sebuah workflow GitHub Actions yang menjalankan ketiganya pada tiap
+   PR akan menutup celah "tidak ada gerbang otomatis sama sekali".
+5. **Test untuk mesin akuntansi.** `src/lib/akuntansi/` kini murni fungsi tanpa
+   efek samping, jadi bisa diuji tanpa database. Prioritaskan: neraca harus
+   seimbang, pemisahan saldo laba awal vs periode berjalan, dan klasifikasi
+   arus kas.
+6. **Beban pajak penghasilan belum dijurnal.** Saat ini diisi manual di layar
+   laporan dan hanya muncul sebagai utang pajak penyajian. Kalau angkanya mulai
+   dipakai serius, buat akun COA-nya dan jurnalkan sungguhan.

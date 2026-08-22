@@ -1,6 +1,21 @@
 # CLAUDE PROJECT MEMORY
 
-MKH Property — internal financial-operations web app for PT. Maha Karya Haluoleo. Static HTML frontend talking directly to Supabase (PostgREST + Auth + two Edge Functions). No build tooling, no framework, no test suite, no CI/CD. See `/docs/project-memory/` for the full audit.
+MKH Property — internal financial-operations web app for PT. Maha Karya Haluoleo.
+**Next.js 15 (App Router) + TypeScript + Tailwind** frontend talking directly to
+Supabase (PostgREST + Auth + two Edge Functions). Ada build step (`npm run build`),
+lint, dan typecheck — tapi **belum ada test suite maupun CI/CD**.
+See `/docs/project-memory/` for the full audit.
+
+Versi HTML statis sebelumnya diarsipkan di `docs/legacy-html/` (tidak disajikan).
+
+Perintah:
+
+```bash
+npm run dev        # http://localhost:3000
+npm run build      # wajib lolos sebelum push
+npm run lint
+npm run typecheck
+```
 
 Before doing any coding work:
 
@@ -11,6 +26,7 @@ Before doing any coding work:
 5. Read /docs/project-memory/GIT_WORKFLOW.md
 6. Read /docs/project-memory/DEPLOYMENT.md
 7. Read relevant documentation before modifying a feature.
+8. Untuk pekerjaan frontend, baca juga README.md (struktur `src/`).
 
 IMPORTANT:
 
