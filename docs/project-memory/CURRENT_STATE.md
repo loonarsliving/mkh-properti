@@ -39,7 +39,17 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    `sync_inbound` tidak dijamin terdaftar di COA aplikasi. Dulu akun semacam
    itu hilang diam-diam dari total laporan; sekarang dikelompokkan dari digit
    pertama kodenya dan ditampilkan sebagai peringatan di Laporan Keuangan.
-7. **Belum diuji dengan data produksi.** Verifikasi dilakukan dengan data
+7. **PRODUKSI SUDAH HIDUP DAN TERVERIFIKASI** (2026-08-22, deploy
+   `dpl_GDhL1FbQnpwJgbsKu9cm9DPkGuKL`, commit `10d5b1d`). Diuji langsung
+   terhadap `finance.haluoleo.id`:
+   - `/login` -> 200
+   - `/lapor-pengeluaran.html` -> 200, `x-matched-path: /lapor-pengeluaran`,
+     form tampil dengan nama Endy terkunci
+   - `/verifikasi.html` (tautan WhatsApp Vando) -> 200,
+     `x-matched-path: /verifikasi`
+   Deploy pertama sempat 404 di semua URL karena framework preset Vercel masih
+   "Other"; diperbaiki lewat `vercel.json`. **Jangan hapus `vercel.json`.**
+8. **Belum diuji dengan data produksi asli.** Verifikasi dilakukan dengan data
    contoh yang di-mock di browser (termasuk simulasi transaksi mkhsistem
    dengan kode akun asing): build bersih, tidak ada error runtime, neraca
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
