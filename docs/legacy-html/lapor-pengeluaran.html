@@ -68,21 +68,43 @@ button{cursor:pointer;font-family:inherit}
 
     <div class="grid2">
       <div class="field"><span class="label">Tanggal</span><input type="date" id="pl-tgl"/></div>
-      <div class="field"><span class="label">Jenis Pengeluaran</span><select id="pl-jenis"></select></div>
+      <div class="field"><span class="label">Jenis Pengeluaran</span><select id="pl-jenis" onchange="onJenisChange()"></select></div>
     </div>
 
     <div class="field"><span class="label">Bayar Via</span><select id="pl-rek"></select></div>
 
-    <div class="field" style="margin-top:14px">
-      <span class="label">Item &amp; Nilai Pengeluaran</span>
-      <div id="item-rows"></div>
-      <button class="btn btn-ghost btn-sm" onclick="tambahItem()">+ Tambah Item</button>
-      <div class="hint">Ketik angka saja (contoh: 1500000), otomatis jadi "Rp 1.500.000" — cek titik ribuannya sebelum kirim.</div>
+    <!-- MATERIAL: item bebas, bisa lebih dari satu -->
+    <div id="material-section">
+      <div class="field" style="margin-top:14px">
+        <span class="label">Item &amp; Nilai Pengeluaran</span>
+        <div id="item-rows"></div>
+        <button class="btn btn-ghost btn-sm" onclick="tambahItem()">+ Tambah Item</button>
+        <div class="hint">Ketik angka saja (contoh: 1500000), otomatis jadi "Rp 1.500.000" — cek titik ribuannya sebelum kirim.</div>
+      </div>
+
+      <div class="total-box">
+        <span class="label" style="margin-bottom:0">Total Pengeluaran</span>
+        <span class="val" id="pl-total">Rp 0</span>
+      </div>
     </div>
 
-    <div class="total-box">
-      <span class="label" style="margin-bottom:0">Total Pengeluaran</span>
-      <span class="val" id="pl-total">Rp 0</span>
+    <!-- KONTRAKTOR: pilih tukang dari daftar tukang_borongan, supaya sisa kontrak -->
+    <!-- otomatis terhitung dan terkirim ke Kepala Cabang, bukan cuma dicatat -->
+    <!-- sebagai pengeluaran material biasa yang tidak terhubung ke kontraknya. -->
+    <div id="tukang-section" style="display:none">
+      <div class="field" style="margin-top:14px">
+        <span class="label">Tukang</span>
+        <select id="tk-select" onchange="onTukangChange()"></select>
+        <div class="hint" id="tk-sisa-hint"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><span class="label">Blok Selesai (opsional)</span><input type="text" id="tk-blok" placeholder="mis. A2"/></div>
+        <div class="field"><span class="label">Minggu (opsional)</span><input type="text" id="tk-minggu" placeholder="mis. Minggu 3"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><span class="label">Unit Selesai Minggu Ini (opsional)</span><input type="number" id="tk-unit" placeholder="0"/></div>
+        <div class="field"><span class="label">Nominal Dibayar</span><input type="text" id="tk-nominal" inputmode="numeric" placeholder="Rp 0" oninput="formatTukangNominal(this)"/></div>
+      </div>
     </div>
 
     <div class="field" style="margin-top:14px">
@@ -118,14 +140,16 @@ const JENIS_OPTIONS = [
   {akun:"5-1001",nama:"Pembelian Material",  label:"Pembelian Material"},
   {akun:"5-1004",nama:"Biaya Subkontraktor", label:"Pembayaran Kontraktor"},
 ];
+const TUKANG_AKUN = "5-1004";
 
 let itemSeq = 0;
+let tukangList = [];
 
 // ── HELPERS ──────────────────────────────────────────────────────
 function fmt(n){ return new Intl.NumberFormat("id-ID").format(Math.round(n||0)); }
 function v(id){ return document.getElementById(id).value.trim(); }
 function today(){ return new Date().toISOString().slice(0,10); }
-function showLoader(){ document.getElementById("loader").style.display="flex"; }
+function showLoader(msg){ const l=document.getElementById("loader"); l.querySelector("div:last-child").textContent=msg||"Memproses..."; l.style.display="flex"; }
 function hideLoader(){ document.getElementById("loader").style.display="none"; }
 function toast(msg,color){
   const el=document.getElementById("toast");
@@ -142,6 +166,13 @@ async function sbInsert(table, rows){
   return r.json();
 }
 
+// ── JENIS TOGGLE (material vs kontraktor/tukang) ────────────────────
+function onJenisChange(){
+  const isTukang = v("pl-jenis") === TUKANG_AKUN;
+  document.getElementById("material-section").style.display = isTukang ? "none" : "block";
+  document.getElementById("tukang-section").style.display = isTukang ? "block" : "none";
+}
+
 // Format input nilai secara live jadi "Rp 1.500.000" agar pengawas tidak salah/kurang nol.
 // Nilai murni (angka) tetap disimpan lewat dataset.raw, dipakai oleh getItems().
 function formatNilaiInput(el){
@@ -152,7 +183,7 @@ function formatNilaiInput(el){
   hitungTotal();
 }
 
-// ── ITEM ROWS ────────────────────────────────────────────────────
+// ── ITEM ROWS (material) ─────────────────────────────────────────
 function tambahItem(){
   itemSeq++;
   const id=itemSeq;
@@ -193,8 +224,55 @@ function hitungTotal(){
   return total;
 }
 
+// ── TUKANG (kontraktor) -- dipilih dari tukang_borongan yang sudah ──
+// terdaftar, supaya sisa kontrak otomatis terhitung & terkirim ke
+// Kepala Cabang setelah dibayar, bukan cuma tercatat sebagai
+// pengeluaran material lepas yang tidak terhubung ke kontraknya.
+async function loadTukangList(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/tukang_borongan?proyek=eq.${PROYEK.id}&order=nama.asc`,{headers:H});
+    if(!r.ok) throw new Error(await r.text());
+    tukangList=(await r.json()).map(t=>({
+      ...t,
+      nilai_kontrak:parseFloat(t.nilai_kontrak)||0,
+      terbayar:parseFloat(t.terbayar)||0,
+      total_unit:parseFloat(t.total_unit)||0,
+      unit_selesai:parseFloat(t.unit_selesai)||0,
+    }));
+  }catch(e){ tukangList=[]; }
+  const sel=document.getElementById("tk-select");
+  if(tukangList.length===0){
+    sel.innerHTML=`<option value="">-- Belum ada tukang terdaftar --</option>`;
+    return;
+  }
+  sel.innerHTML=tukangList.map(t=>{
+    const sisa=t.nilai_kontrak-t.terbayar;
+    return `<option value="${t.id}">${t.nama}${t.blok?" ("+t.blok+")":""} — sisa Rp ${fmt(sisa)}</option>`;
+  }).join("");
+  onTukangChange();
+}
+function onTukangChange(){
+  const tid=v("tk-select");
+  const tk=tukangList.find(t=>String(t.id)===String(tid));
+  const hint=document.getElementById("tk-sisa-hint");
+  if(!tk){ hint.textContent=""; return; }
+  const sisa=tk.nilai_kontrak-tk.terbayar;
+  hint.textContent=`Nilai kontrak Rp ${fmt(tk.nilai_kontrak)} — sudah terbayar Rp ${fmt(tk.terbayar)} — sisa Rp ${fmt(sisa)}`;
+}
+function formatTukangNominal(el){
+  const digits=el.value.replace(/\D/g,"");
+  const n=parseInt(digits||"0",10);
+  el.dataset.raw=n;
+  el.value=n>0?"Rp "+fmt(n):"";
+}
+
 // ── SUBMIT ───────────────────────────────────────────────────────
 async function kirimPengeluaran(){
+  if(v("pl-jenis")===TUKANG_AKUN) return kirimTukang();
+  return kirimMaterial();
+}
+
+async function kirimMaterial(){
   const nama=v("pl-nama");
   const tgl=v("pl-tgl");
   const jenisAkun=v("pl-jenis");
@@ -236,20 +314,87 @@ async function kirimPengeluaran(){
         pengawas:nama,
       }
     }]);
-    document.getElementById("form-card").innerHTML=`
-      <div class="success-box">
-        <div style="font-size:40px;margin-bottom:12px">✅</div>
-        <div style="font-size:14px;font-weight:700;color:var(--accent2)">Laporan Terkirim</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
-          Total <b>Rp ${fmt(total)}</b> untuk proyek <b>${proyek.nama}</b> telah dikirim.<br/>
-          Menunggu verifikasi Kepala Cabang lewat WhatsApp.
-        </div>
-        <button class="btn btn-ghost" style="margin-top:20px" onclick="location.reload()">+ Lapor Pengeluaran Lain</button>
-      </div>`;
+    tampilkanSukses(total, proyek.nama);
   }catch(e){
     toast("Gagal: "+e.message,"red");
   }
   hideLoader();
+}
+
+async function kirimTukang(){
+  const nama=v("pl-nama");
+  const tgl=v("pl-tgl");
+  const rek=v("pl-rek");
+  const rekening=v("pl-rekening");
+  const catatan=v("pl-catatan");
+  const tid=v("tk-select");
+  const blokSelesai=v("tk-blok");
+  const minggu=v("tk-minggu");
+  const unitMinggu=parseFloat(v("tk-unit"))||0;
+  const nominalEl=document.getElementById("tk-nominal");
+  const nominal=parseInt(nominalEl.dataset.raw||nominalEl.value.replace(/\D/g,""),10)||0;
+
+  if(!nama) return toast("Nama pengawas wajib diisi!","red");
+  if(!tgl) return toast("Tanggal wajib diisi!","red");
+  if(!tid) return toast("Pilih tukangnya dulu!","red");
+  if(nominal<=0) return toast("Nominal dibayar harus lebih dari 0!","red");
+  if(!rekening) return toast("Nomor rekening tujuan wajib diisi!","red");
+
+  const tk=tukangList.find(t=>String(t.id)===String(tid));
+  if(!tk) return toast("Tukang tidak ditemukan, muat ulang halaman","red");
+  const sisa=tk.nilai_kontrak-tk.terbayar;
+  if(nominal>sisa) return toast("Melebihi sisa kontrak Rp "+fmt(sisa)+"!","red");
+
+  const proyek=PROYEK;
+  const rekNama=rek==="1-1001"?"Kas Tunai":"Bank "+proyek.bank;
+  const terbayarBaru=tk.terbayar+nominal;
+  const unitSelesaiBaru=(tk.unit_selesai||0)+unitMinggu;
+  const ketJ="Bayar tukang: "+tk.nama+(tk.item?" ("+tk.item+")":"")+
+             (blokSelesai?" Blok "+blokSelesai:"")+
+             (minggu?" — "+minggu:"");
+  const keterangan=`${rekening}${catatan?" | "+catatan:""}`;
+
+  showLoader("Mengirim pengajuan...");
+  let no="TK-"+Date.now().toString().slice(-4);
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/rpc/next_mkh_no`,{method:"POST",headers:H,body:JSON.stringify({p_prefix:"TK"})});
+    if(r.ok) no="TK-"+String(await r.json()).padStart(3,"0");
+  }catch(e){}
+
+  try{
+    await sbInsert("pengajuan",[{
+      proyek:proyek.id, tipe:"tukang", status:"pending",
+      created_by:`Pengawas: ${nama}`,
+      data:{
+        tgl, no, nominal, rek, rekNama, minggu,
+        blok_selesai:blokSelesai, unit_minggu:unitMinggu,
+        tukang_id:tk.id, tukang_nama:tk.nama,
+        terbayarBaru, unitSelesaiBaru, ketJ,
+        proyek_nama:proyek.nama,
+        sisa_kontrak: tk.nilai_kontrak-terbayarBaru,
+        sisa_unit: tk.total_unit-unitSelesaiBaru,
+        keterangan, ket:keterangan,
+        pengawas:nama,
+      }
+    }]);
+    tampilkanSukses(nominal, proyek.nama);
+  }catch(e){
+    toast("Gagal: "+e.message,"red");
+  }
+  hideLoader();
+}
+
+function tampilkanSukses(total, proyekNama){
+  document.getElementById("form-card").innerHTML=`
+    <div class="success-box">
+      <div style="font-size:40px;margin-bottom:12px">✅</div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent2)">Laporan Terkirim</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
+        Total <b>Rp ${fmt(total)}</b> untuk proyek <b>${proyekNama}</b> telah dikirim.<br/>
+        Menunggu verifikasi Kepala Cabang lewat WhatsApp.
+      </div>
+      <button class="btn btn-ghost" style="margin-top:20px" onclick="location.reload()">+ Lapor Pengeluaran Lain</button>
+    </div>`;
 }
 
 // ── INIT (tanpa login, proyek & kategori terkunci) ──────────────────
@@ -258,6 +403,7 @@ function init(){
   document.getElementById("pl-rek").innerHTML=`<option value="${REK_KODE}">Transfer Bank ${PROYEK.bank}</option><option value="1-1001">Tunai</option>`;
   document.getElementById("pl-tgl").value=today();
   tambahItem();
+  loadTukangList();
 }
 
 init();
