@@ -7,19 +7,19 @@
 > command / Output directory" di bawah (yang menyatakan "tidak ada build")
 > **sudah usang** dan digantikan bagian ini.
 >
-> **Sebelum branch migrasi di-merge ke `main`:**
+> **Setelan build sudah dikunci lewat `vercel.json` di root repo:**
 >
-> 1. Buka setelan proyek di host (Vercel atau apa pun yang dipakai) dan pastikan
->    framework preset-nya **Next.js**, bukan "Other"/static.
->    - Install command: `npm install`
->    - Build command: `npm run build`
->    - Output directory: dikelola Next.js (jangan diisi manual)
->    - Node.js: 20 atau lebih baru
-> 2. Kalau host masih disetel menyajikan direktori mentah, **deploy akan gagal
->    atau menyajikan daftar berkas** — bukan aplikasi.
-> 3. Environment variable: semuanya opsional, ada nilai bawaan (lihat
->    `.env.example`). Tidak ada env yang wajib diisi agar aplikasi berjalan.
-> 4. Uji dulu di preview deployment, jangan langsung ke `main`.
+> ```json
+> { "framework": "nextjs", "installCommand": "npm install", "buildCommand": "npm run build" }
+> ```
+>
+> Nilai di `vercel.json` **menimpa** setelan di dashboard Vercel, jadi framework
+> preset proyek boleh tetap "Other" tanpa masalah. **Jangan hapus berkas ini** —
+> tanpa itu Vercel kembali memperlakukan repo sebagai situs statis dan seluruh
+> URL akan 404 (ini yang benar-benar terjadi pada deploy 2026-08-22 pertama).
+>
+> Environment variable: semuanya opsional, ada nilai bawaan (lihat
+> `.env.example`). Tidak ada env yang wajib diisi agar aplikasi berjalan.
 >
 > **Yang TIDAK berubah:** migrasi SQL dan Edge Function tetap **tidak** ikut
 > ter-deploy saat push. Keduanya masih perlu `supabase db push` /
@@ -58,7 +58,21 @@ blok `redirects()` di `next.config.mjs` (sudah diuji: 308 → `/verifikasi`).
 Lihat INTEGRATIONS.md bagian "Verifikasi jembatan sinkronisasi".
 
 ## Hosting
-Not explicitly configured in-repo. Strong circumstantial evidence points to **Vercel**:
+**Vercel — dikonfirmasi 2026-08-22** (sebelumnya hanya dugaan).
+
+- Team: `haluoleo's projects` (`team_yws9SgBiAksOCZWo9Sli4oqn`), paket Hobby.
+- Proyek produksi: **`haluoleofinance`** (`prj_8f4yCKmCmbUxwPxcVmO5v5rghFL8`),
+  domain `finance.haluoleo.id`. **Inilah yang dipakai pengguna.**
+- Ada proyek KEDUA yang menunjuk repo yang sama: `mkh-properti`
+  (`prj_VM1uLi2VkEzKx6HeTTBNCIBxHx4l`, domain `mkh-properti.vercel.app` dan
+  `haluoleo.vercel.app`). Setiap push memicu **dua** deploy sekaligus. Ini
+  kemungkinan sisa dari penyiapan awal — konfirmasikan apakah masih dipakai;
+  kalau tidak, hapus salah satunya agar tidak membingungkan.
+- Node.js: 24.x pada kedua proyek.
+- Framework preset di dashboard: `null` (alias "Other") pada kedua proyek —
+  sengaja dibiarkan, karena `vercel.json` sudah menimpanya.
+
+Bukti tidak langsung yang dulu dipakai untuk menduga Vercel:
 - `.gitignore` includes `.vercel` (Vercel CLI's local project-link folder) and `.env.production` (Vercel's convention for production env files).
 - The app is static HTML with zero build requirements, which is trivial to deploy on Vercel with zero configuration (no `vercel.json` needed for a static site).
 No `vercel.json`, no Vercel project ID/org ID is present in-repo (these would only appear in `.vercel/project.json`, which is git-ignored, so it cannot be read from this repository).
