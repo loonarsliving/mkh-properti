@@ -72,3 +72,52 @@ Six "Add files via upload" commits (`2c222fd`, `1f487a9`, `e55ca2d`, `f77d6fd`, 
 
 ---
 _This changelog reflects `main` as of commit `a47daa8`. It should be updated (append-only, newest at bottom or top consistently) whenever significant work lands, per the MEMORY UPDATE RULE in `/CLAUDE.md`._
+
+## 2026-08-22 — Migrasi ke Next.js + laporan SAK EMKM
+
+Perubahan terbesar sejak proyek dibuat. Frontend berpindah dari 10 halaman HTML
+statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
+
+- **Tidak ada perubahan basis data.** Nama tabel, nama kolom, dan pemetaan akun
+  COA tetap sama persis; aplikasi baru membaca/menulis data yang sudah ada.
+- Seluruh 10 halaman lama dimigrasi penuh menjadi 21 route. Arsip HTML lama
+  dipindahkan ke `docs/legacy-html/` (tidak lagi disajikan). URL lama
+  berakhiran `.html` tetap hidup lewat redirect 308 di `next.config.mjs`.
+- Tampilan baru: sidebar gelap berkelompok, topbar dengan filter periode global,
+  kartu KPI bergradasi, dan kartu posisi keuangan ringkas.
+- **Filter periode baru**: rentang bulan bebas (mis. Mar 2026 s.d. Agu 2026)
+  atau setahun penuh. Berlaku untuk seluruh menu transaksi & laporan, tersimpan
+  di sessionStorage, dan bisa dibagikan lewat query `?periode=`.
+- **Modul laporan keuangan disusun ulang mengikuti SAK EMKM**: tiga laporan
+  wajib (Posisi Keuangan, Laba Rugi, CALK) plus Perubahan Ekuitas & Arus Kas
+  sebagai tambahan opsional yang ditandai bukan syarat SAK EMKM.
+- Duplikasi kode hilang: `sbGet/sbInsert/sbUpdate/sbDelete`, auth guard, COA,
+  dan helper format kini satu implementasi bersama (dulu di-copy-paste per
+  halaman).
+
+### Perbaikan yang ikut terbawa
+
+- **Neraca sebelumnya tidak pernah benar.** `laporan-keuangan.html` menjumlah
+  mutasi satu tahun saja untuk pos neraca, padahal neraca harus kumulatif sejak
+  awal berdiri. Sekarang neraca kumulatif s.d. akhir periode, saldo laba dipecah
+  menjadi saldo awal + laba periode berjalan, dan Aset = Liabilitas + Ekuitas
+  selalu seimbang selama setiap entri jurnal seimbang.
+- **Angka negatif tampil sebagai positif.** Fungsi `fmt()` lama memakai
+  `Math.abs()`, sehingga rugi bersih dan saldo minus muncul tanpa tanda. `fmt()`
+  kini mempertahankan tanda; nilai absolut dipisah ke `fmtAbs()`, dan laporan
+  memakai konvensi kurung.
+- **Arus kas tidak lagi menebak.** Dulu ditaksir dari total debet/kredit; kini
+  metode langsung dengan klasifikasi per nomor transaksi berdasarkan akun lawan.
+- **Jalur XSS hilang.** Kwitansi dan slip gaji dulu disusun sebagai string HTML
+  lalu `document.write` ke jendela baru; keduanya kini komponen React biasa yang
+  hanya tampil saat mencetak.
+- **Fitur Telegram dihapus total** atas keputusan owner (sudah tidak dipakai).
+  Bot token yang di-hardcode di `verifikasi.html`/`admin-proyek.html` tidak
+  pernah disalin ke kode baru, dan sekarang tidak ada kode Telegram sama sekali.
+  Notifikasi keluar sepenuhnya lewat WhatsApp yang dipicu trigger database.
+  **Token lama tetap harus dicabut di @BotFather** — masih ada di riwayat git.
+- **Akun di luar COA tidak lagi hilang diam-diam.** `sync_inbound` mengizinkan
+  mkhsistem menentukan sendiri kode akun debet/kredit (migrasi 0021). Dulu akun
+  yang tidak ada di COA aplikasi diberi kategori kosong sehingga tidak ikut
+  total laba rugi maupun neraca. Kini dikelompokkan dari digit pertama kode
+  akun dan ditampilkan sebagai peringatan di halaman Laporan Keuangan.

@@ -1,5 +1,36 @@
 # DEVELOPMENT_WORKFLOW
 
+> **DIPERBARUI 2026-08-22.** Bagian "How dev starts", "How builds are done", dan
+> "Coding patterns observed" di bawah menggambarkan era HTML statis dan sudah
+> tidak berlaku untuk frontend. Yang berlaku sekarang:
+>
+> ```bash
+> npm install
+> npm run dev        # http://localhost:3000
+> npm run build      # wajib lolos sebelum push
+> npm run lint       # ESLint (eslint-config-next)
+> npm run typecheck  # tsc --noEmit
+> ```
+>
+> Belum ada test suite maupun CI, jadi `build` + `lint` + `typecheck` adalah
+> satu-satunya gerbang otomatis yang ada — jalankan ketiganya sebelum push.
+>
+> Pola kode frontend yang berlaku sekarang:
+> - Bahasa Indonesia untuk nama fungsi/variabel domain dan komentar, mengikuti
+>   kebiasaan repo ini.
+> - Jangan duplikasi helper. Panggilan Supabase lewat `src/lib/supabase.ts`,
+>   COA lewat `src/lib/master.ts`, format angka lewat `src/lib/format.ts`.
+> - **Jangan pernah** menyusun HTML sebagai string lalu memasukkannya ke DOM.
+>   Untuk halaman cetak, render komponen React dengan `hidden print:block`.
+> - Aturan akuntansi tinggal di `src/lib/akuntansi/` dan `src/lib/transaksi.ts`,
+>   bukan di dalam komponen.
+> - Kode akun COA adalah nilai yang tersimpan di database — **tidak boleh
+>   diubah**, hanya labelnya yang boleh.
+>
+> Bagian tentang migrasi SQL, Edge Function, dan konvensi commit di bawah
+> **masih berlaku sepenuhnya**.
+
+
 Reconstructed from git history (55 commits) and repo structure. No CONTRIBUTING.md, README, or written process doc exists — this is inferred, not asserted, from actual commits.
 
 ## How dev starts
