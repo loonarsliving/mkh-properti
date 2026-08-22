@@ -244,27 +244,32 @@ export function FormLaporLapangan({ konfig }: { konfig: KonfigLapor }) {
 
               <div className="space-y-2">
                 {items.map((it) => (
-                  <div key={it.key} className="flex gap-2">
+                  <div
+                    key={it.key}
+                    className="flex flex-col gap-2 rounded-lg border border-slate-200 p-2 sm:flex-row sm:items-start sm:border-0 sm:p-0"
+                  >
                     <input
-                      className="input flex-1"
+                      className="input sm:flex-1"
                       placeholder="Nama item / keperluan"
                       value={it.nama}
                       onChange={(e) => ubahItem(it.key, { nama: e.target.value })}
                     />
-                    <div className="w-[150px]">
-                      <InputRupiah
-                        id={`item-${it.key}`}
-                        nilai={it.nilai}
-                        onUbah={(v) => ubahItem(it.key, { nilai: v })}
-                      />
+                    <div className="flex gap-2">
+                      <div className="flex-1 sm:w-[150px] sm:flex-none">
+                        <InputRupiah
+                          id={`item-${it.key}`}
+                          nilai={it.nilai}
+                          onUbah={(v) => ubahItem(it.key, { nilai: v })}
+                        />
+                      </div>
+                      <button
+                        onClick={() => hapusItem(it.key)}
+                        className="shrink-0 rounded-lg border border-slate-200 px-3 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                        aria-label="Hapus item"
+                      >
+                        <Icon name="sampah" className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => hapusItem(it.key)}
-                      className="shrink-0 rounded-lg border border-slate-200 px-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                      aria-label="Hapus item"
-                    >
-                      <Icon name="sampah" className="h-4 w-4" />
-                    </button>
                   </div>
                 ))}
               </div>
