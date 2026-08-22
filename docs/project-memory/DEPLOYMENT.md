@@ -17,10 +17,8 @@
 >    - Node.js: 20 atau lebih baru
 > 2. Kalau host masih disetel menyajikan direktori mentah, **deploy akan gagal
 >    atau menyajikan daftar berkas** — bukan aplikasi.
-> 3. Environment variable: semuanya opsional, ada nilai bawaan. Lihat
->    `.env.example`. Satu-satunya yang perlu diisi agar notifikasi Telegram
->    hidup lagi adalah `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN` — **dan token itu harus
->    token BARU hasil rotasi**, bukan token lama yang sudah bocor.
+> 3. Environment variable: semuanya opsional, ada nilai bawaan (lihat
+>    `.env.example`). Tidak ada env yang wajib diisi agar aplikasi berjalan.
 > 4. Uji dulu di preview deployment, jangan langsung ke `main`.
 >
 > **Yang TIDAK berubah:** migrasi SQL dan Edge Function tetap **tidak** ikut
@@ -49,7 +47,15 @@ Selain checklist umum di bawah, periksa juga:
 
 
 ## Production URL
-UNKNOWN — NEEDS CONFIRMATION. No domain or production URL is recorded anywhere in this repository (no `vercel.json`, no README, no CNAME file, no hardcoded production hostname in the HTML other than the Supabase project URL itself).
+**`https://finance.haluoleo.id`** — dikonfirmasi 2026-08-22. URL ini di-hardcode
+sebagai `verification_link` di lima migrasi (`0008`, `0017`, `0022`, `0023`,
+`0030`) dan dikirim ke WhatsApp Kepala Cabang sebagai tautan verifikasi. Jadi
+domain produksinya bukan lagi dugaan.
+
+Konsekuensi penting: `https://finance.haluoleo.id/verifikasi.html` **harus tetap
+bisa dibuka**. Setelah halaman `.html` dipensiunkan, tautan itu bergantung pada
+blok `redirects()` di `next.config.mjs` (sudah diuji: 308 → `/verifikasi`).
+Lihat INTEGRATIONS.md bagian "Verifikasi jembatan sinkronisasi".
 
 ## Hosting
 Not explicitly configured in-repo. Strong circumstantial evidence points to **Vercel**:

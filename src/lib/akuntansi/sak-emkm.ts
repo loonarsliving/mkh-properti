@@ -28,6 +28,7 @@ import type { Periode } from '@/lib/periode';
 import { labelPeriodeLaporan, labelTanggalPosisi, rentang } from '@/lib/periode';
 import type { Jurnal, KategoriAkun } from '@/types';
 import {
+  akunDiluarCoa,
   hitungSaldo,
   jurnalDalamRentang,
   jurnalSampai,
@@ -130,6 +131,13 @@ export interface PaketLaporan {
   totalNeracaSaldoK: number;
   rincianKas: BarisPos[];
   jumlahTransaksi: number;
+  /**
+   * Akun yang dipakai di jurnal tapi tidak terdaftar di COA aplikasi.
+   * Biasanya berasal dari sistem lain (mkhsistem) lewat sync_inbound.
+   * Nilainya tetap ikut dihitung, tapi perlu ditampilkan agar bisa
+   * ditindaklanjuti — idealnya kode itu didaftarkan ke `src/lib/master.ts`.
+   */
+  akunAsing: { kode: string; nama: string }[];
   /** Peta saldo kumulatif s.d. akhir periode (dipakai neraca & CALK). */
   petaKumulatif: PetaSaldo;
   /** Peta saldo mutasi dalam periode (dipakai laba rugi). */
@@ -153,10 +161,23 @@ function kelompok(
   peta: PetaSaldo,
   opsi: { sembunyikanNol?: boolean } = {},
 ): KelompokPos {
-  const baris = COA.filter((a) => a.kat === kat)
-    .map((a) => ({ kode: a.kode, nama: a.namaLaporan, nilai: saldoAkun(a.kode, peta) }))
-    .filter((b) => (opsi.sembunyikanNol ? Math.abs(b.nilai) > 0.5 : true));
-  return { judul, baris, total: baris.reduce((s, b) => s + b.nilai, 0) };
+  const baris = COA.filter((a) => a.kat === kat).map((a) => ({
+    kode: a.kode,
+    nama: a.namaLaporan,
+    nilai: saldoAkun(a.kode, peta),
+  }));
+
+  // Akun yang dipakai jurnal tapi tidak ada di COA aplikasi — mis. kode akun
+  // yang dikirim mkhsistem lewat sync_inbound. Tanpa baris ini nilainya tidak
+  // akan pernah masuk total kelompok, dan neraca jadi timpang tanpa jejak.
+  const tambahan = Object.values(peta)
+    .filter((a) => a.diluarCoa && a.kat === kat)
+    .map((a) => ({ kode: a.kode, nama: `${a.namaLaporan} (di luar COA)`, nilai: saldoAkun(a.kode, peta) }));
+
+  const semua = [...baris, ...tambahan].filter((b) =>
+    opsi.sembunyikanNol ? Math.abs(b.nilai) > 0.5 : true,
+  );
+  return { judul, baris: semua, total: semua.reduce((s, b) => s + b.nilai, 0) };
 }
 
 /**
@@ -392,6 +413,7 @@ export function susunLaporan(
     totalNeracaSaldoK: neracaSaldo.reduce((s, b) => s + b.K, 0),
     rincianKas,
     jumlahTransaksi: jurnalPeriode.length,
+    akunAsing: akunDiluarCoa(petaKumulatif).map((a) => ({ kode: a.kode, nama: a.nama })),
     petaKumulatif,
     petaPeriode,
   };

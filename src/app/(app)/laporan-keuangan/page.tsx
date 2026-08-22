@@ -145,6 +145,23 @@ function IsiLaporanKeuangan() {
             ))}
           </div>
 
+          {laporan.akunAsing.length > 0 ? (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-relaxed text-amber-900">
+              <b>Ada akun yang dipakai di jurnal tapi belum terdaftar di COA aplikasi.</b> Nilainya
+              tetap ikut dihitung (dikelompokkan dari digit pertama kode akun), jadi neraca tidak
+              timpang — tetapi labelnya seadanya. Akun ini biasanya berasal dari sistem lain
+              (mkhsistem) lewat <code>sync_inbound</code>. Sebaiknya daftarkan kodenya di{' '}
+              <code>src/lib/master.ts</code>:
+              <ul className="mt-1.5 list-inside list-disc font-mono text-[10.5px]">
+                {laporan.akunAsing.map((a) => (
+                  <li key={a.kode}>
+                    {a.kode} — {a.nama}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex flex-wrap items-center gap-2.5 border-t border-slate-100 pt-3">
             <button className="btn-amber" onClick={() => window.print()}>
               <Icon name="printer" className="h-4 w-4" /> Cetak / Simpan PDF
@@ -153,6 +170,14 @@ function IsiLaporanKeuangan() {
               Periode {labelPeriodeRingkas(periode)} · {laporan.jumlahTransaksi} baris jurnal ·{' '}
               {proyek === 'ALL' ? 'Semua proyek' : getProyek(proyek).nama}
             </span>
+            {laporan.akunAsing.length > 0 ? (
+              <span
+                className="chip bg-amber-100 text-amber-800"
+                title={laporan.akunAsing.map((a) => `${a.kode} — ${a.nama}`).join('\n')}
+              >
+                ⚠ {laporan.akunAsing.length} akun di luar COA
+              </span>
+            ) : null}
             {!laporan.posisiKeuangan.seimbang ? (
               <span className="chip bg-rose-100 text-rose-700">
                 ⚠ Neraca belum seimbang — periksa jurnal

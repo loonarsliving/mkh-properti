@@ -111,7 +111,13 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
 - **Jalur XSS hilang.** Kwitansi dan slip gaji dulu disusun sebagai string HTML
   lalu `document.write` ke jendela baru; keduanya kini komponen React biasa yang
   hanya tampil saat mencetak.
-- **Bot token Telegram tidak lagi di-hardcode.** Token yang ada di
-  `verifikasi.html`/`admin-proyek.html` TIDAK disalin ke kode baru; kini dibaca
-  dari `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN` dan notifikasi dilewati bila kosong.
-  **Token lama harus dianggap bocor dan dirotasi.**
+- **Fitur Telegram dihapus total** atas keputusan owner (sudah tidak dipakai).
+  Bot token yang di-hardcode di `verifikasi.html`/`admin-proyek.html` tidak
+  pernah disalin ke kode baru, dan sekarang tidak ada kode Telegram sama sekali.
+  Notifikasi keluar sepenuhnya lewat WhatsApp yang dipicu trigger database.
+  **Token lama tetap harus dicabut di @BotFather** — masih ada di riwayat git.
+- **Akun di luar COA tidak lagi hilang diam-diam.** `sync_inbound` mengizinkan
+  mkhsistem menentukan sendiri kode akun debet/kredit (migrasi 0021). Dulu akun
+  yang tidak ada di COA aplikasi diberi kategori kosong sehingga tidak ikut
+  total laba rugi maupun neraca. Kini dikelompokkan dari digit pertama kode
+  akun dan ditampilkan sebagai peringatan di halaman Laporan Keuangan.

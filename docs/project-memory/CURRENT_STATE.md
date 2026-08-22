@@ -19,18 +19,31 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    lagi disajikan. URL lama berakhiran `.html` tetap hidup lewat redirect 308
    di `next.config.mjs` — jangan hapus blok `redirects()` itu, tautan
    WhatsApp/bookmark staf lapangan bergantung padanya.
-3. **Token Telegram lama harus dirotasi.** Token yang di-hardcode di
-   `verifikasi.html` dan `admin-proyek.html` sengaja tidak dibawa ke kode baru;
-   sekarang dibaca dari `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN`. Karena token lama
-   sudah ter-commit dan pernah terkirim ke browser, anggap bocor.
-   Notifikasi Telegram (hanya untuk event HR/payroll/komisi dari MK Connect)
-   akan **dilewati diam-diam** selama env itu kosong — approval tetap jalan.
+3. **Fitur Telegram dihapus total** atas keputusan owner (sudah tidak dipakai).
+   Tidak ada lagi kode Telegram di aplikasi. Notifikasi keluar kini **hanya
+   lewat WhatsApp**, dan itu dipicu dari sisi database (trigger →
+   `sync_log` → MK Connect), bukan dari browser — jadi penghapusan ini tidak
+   memutus notifikasi apa pun yang masih dipakai.
+   **Sisa pekerjaan:** bot token lama masih ada di riwayat git dan di
+   `docs/legacy-html/verifikasi.html`, jadi **harus dicabut di @BotFather**.
 4. **Laporan keuangan sekarang berbasis SAK EMKM** dengan pemilihan periode
    (rentang bulan bebas atau setahun penuh). Perhitungan neraca diperbaiki
    menjadi kumulatif — lihat CHANGELOG untuk daftar perbaikan hitungan.
-5. **Belum diuji dengan data produksi.** Verifikasi dilakukan dengan data
-   contoh yang di-mock di browser: build bersih, tidak ada error runtime,
-   neraca seimbang. Uji end-to-end terhadap Supabase asli belum dilakukan.
+5. **Jembatan ke MK Connect / mkhsistem / loonars-sales tidak tersentuh.**
+   Tidak ada berkas di `supabase/` yang diubah. Kontrak data yang ditulis
+   frontend (kunci `pengajuan.data`, format `created_by`, dan tautan
+   `/verifikasi.html`) sudah diperiksa satu per satu dan cocok — lihat
+   INTEGRATIONS.md bagian "Verifikasi jembatan sinkronisasi" untuk daftar
+   lengkapnya beserta hal yang tidak boleh diubah sembarangan.
+6. **Akun di luar COA kini aman.** Kode akun yang dikirim mkhsistem lewat
+   `sync_inbound` tidak dijamin terdaftar di COA aplikasi. Dulu akun semacam
+   itu hilang diam-diam dari total laporan; sekarang dikelompokkan dari digit
+   pertama kodenya dan ditampilkan sebagai peringatan di Laporan Keuangan.
+7. **Belum diuji dengan data produksi.** Verifikasi dilakukan dengan data
+   contoh yang di-mock di browser (termasuk simulasi transaksi mkhsistem
+   dengan kode akun asing): build bersih, tidak ada error runtime, neraca
+   seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
+   Supabase asli belum dilakukan.
 
 ## Last known completed work
 A cluster of security fixes and feature additions landed 2026-08-18 through 2026-08-21:

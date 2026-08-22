@@ -33,25 +33,23 @@ UNKNOWN — NEEDS CONFIRMATION. No explicit "next up" list, TODO comments descri
 
 Berurutan sesuai prioritas, berdasarkan hal yang benar-benar tertinggal:
 
-1. **Rotasi bot token Telegram.** Token lama sudah ter-commit di
-   `docs/legacy-html/verifikasi.html` dan `admin-proyek.html`, jadi harus
-   dianggap bocor. Buat token baru lewat @BotFather, isi ke
-   `NEXT_PUBLIC_TELEGRAM_BOT_TOKEN`, lalu cabut yang lama.
-2. **Pindahkan pengiriman Telegram ke Edge Function.** Selama token ada di
-   variabel `NEXT_PUBLIC_*`, token tetap ikut ke bundle browser. Menaruhnya di
-   Edge Function (seperti `sync-inbound`) membuatnya benar-benar rahasia.
-3. **Terapkan migrasi `0025` (pengetatan RLS).** Prasyaratnya masih sama seperti
+1. **Cabut bot token Telegram lama di @BotFather.** Fitur Telegram sudah
+   dihapus dari aplikasi atas keputusan owner (tidak dipakai lagi), tapi
+   token lama masih ada di riwayat git dan di
+   `docs/legacy-html/verifikasi.html`. Selama belum dicabut, siapa pun yang
+   membaca repo bisa memakai bot itu. **Cabut, jangan sekadar diabaikan.**
+2. **Terapkan migrasi `0025` (pengetatan RLS).** Prasyaratnya masih sama seperti
    dulu: klien harus mengirim access token user, bukan anon key, pada panggilan
    tabel keuangan. Jalur itu sekarang jauh lebih mudah — tinggal ubah
    `restHeaders()` di `src/lib/supabase.ts` menjadi memakai `authHeaders()`,
    satu tempat saja, bukan sepuluh halaman. Uji di Supabase branch dulu.
-4. **Tambahkan CI.** Sudah ada `npm run build`, `lint`, dan `typecheck` yang
+3. **Tambahkan CI.** Sudah ada `npm run build`, `lint`, dan `typecheck` yang
    bersih; sebuah workflow GitHub Actions yang menjalankan ketiganya pada tiap
    PR akan menutup celah "tidak ada gerbang otomatis sama sekali".
-5. **Test untuk mesin akuntansi.** `src/lib/akuntansi/` kini murni fungsi tanpa
+4. **Test untuk mesin akuntansi.** `src/lib/akuntansi/` kini murni fungsi tanpa
    efek samping, jadi bisa diuji tanpa database. Prioritaskan: neraca harus
    seimbang, pemisahan saldo laba awal vs periode berjalan, dan klasifikasi
    arus kas.
-6. **Beban pajak penghasilan belum dijurnal.** Saat ini diisi manual di layar
+5. **Beban pajak penghasilan belum dijurnal.** Saat ini diisi manual di layar
    laporan dan hanya muncul sebagai utang pajak penyajian. Kalau angkanya mulai
    dipakai serius, buat akun COA-nya dan jurnalkan sungguhan.

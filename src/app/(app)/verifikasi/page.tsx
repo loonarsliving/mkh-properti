@@ -8,7 +8,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Kosong, Memuat, OverlaySimpan, PesanGalat, Toast, useToast } from '@/components/ui/Umum';
 import { fmt, rupiah } from '@/lib/format';
 import { sbInsert, sbQuery, sbRpc, sbUpdate } from '@/lib/supabase';
-import { kirimTelegram } from '@/lib/notifikasi';
 import type { CrmPaymentReceipt, DataPengajuan, Pengajuan } from '@/types';
 
 type Filter = 'pending' | 'approved' | 'rejected' | 'all' | 'crm';
@@ -180,16 +179,12 @@ function IsiVerifikasi() {
           { tgl, no, ket, akun: '1-1001', nama: 'Kas Tunai', proyek: item.proyek, d: 0, k: nominal },
         ]);
 
-        // Komisi memakai jalur WhatsApp lewat trigger pengajuan_komisi_decided_sync.
-        if (item.tipe !== 'komisi') {
-          const info = TIPE_LABEL[item.tipe];
-          kirimTelegram(
-            `${info.ikon} <b>${info.label.toUpperCase()}</b>\n\n👤 ${
-              d.employee_name ?? d.sales_name ?? '—'
-            }\n💰 Nominal: <b>${rupiah(nominal)}</b>\n📅 Tanggal: <b>${tgl}</b>\n✅ Diverifikasi oleh: <b>${sesi.email}</b>`,
-            item.proyek,
-          );
-        }
+        // Catatan: versi lama mengirim notifikasi Telegram dari sini untuk
+        // event HR/payroll/bonus/reimbursement. Telegram sudah tidak dipakai
+        // lagi dan dihapus seluruhnya. Notifikasi keluar kini hanya lewat
+        // WhatsApp, dan itu dipicu dari sisi database (trigger
+        // pengajuan_komisi_decided_sync dan finance_expense_* -> sync_log),
+        // bukan dari browser — jadi tidak ada yang perlu dipanggil di sini.
       }
 
       await sbUpdate('pengajuan', item.id, {
