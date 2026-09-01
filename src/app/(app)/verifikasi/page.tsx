@@ -56,29 +56,46 @@ function IsiVerifikasi() {
    * Verifikator cabang (`VERIFIKATOR_LL` dsb) hanya melihat pengajuan
    * bahan/tukang dari cabangnya. MANAGER dan CFO melihat semuanya —
    * pembatasan yang sama dengan versi lama.
+   *
+   * Real incident: Vando (VERIFIKATOR_LL) is also meant to approve
+   * Makassar's pengajuan (proyek "IH") -- his queue silently never showed
+   * them (proyek=eq.LL excluded everything else), so pengajuan sent to him
+   * over WhatsApp had no matching card to act on here at all. proyek_id now
+   * supports a comma-separated list after "VERIFIKATOR_" (e.g.
+   * "VERIFIKATOR_LL,IH") so one verifikator can cover more than one branch.
    */
-  const proyekFilter = useMemo(() => {
+  const proyekFilters = useMemo(() => {
     const pid = sesi.proyekId ?? '';
-    return pid.startsWith('VERIFIKATOR_') ? pid.replace('VERIFIKATOR_', '') : '';
+    if (!pid.startsWith('VERIFIKATOR_')) return [];
+    return pid
+      .replace('VERIFIKATOR_', '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
   }, [sesi.proyekId]);
 
   useJudul({
     judul: 'Verifikasi Pengajuan',
-    deskripsi: proyekFilter
-      ? `Antrian persetujuan cabang ${proyekFilter}`
-      : 'Antrian persetujuan seluruh cabang',
+    deskripsi:
+      proyekFilters.length > 0
+        ? `Antrian persetujuan cabang ${proyekFilters.join(', ')}`
+        : 'Antrian persetujuan seluruh cabang',
     tampilkanFilter: false,
   });
 
   const muat = useCallback(async () => {
     setGalat(null);
     try {
-      const qPengajuan = proyekFilter
-        ? `proyek=eq.${encodeURIComponent(proyekFilter)}&tipe=in.(bahan,tukang)&select=*&order=created_at.desc`
+      const proyekQuery =
+        proyekFilters.length === 1
+          ? `proyek=eq.${encodeURIComponent(proyekFilters[0])}`
+          : proyekFilters.length > 1
+            ? `proyek=in.(${proyekFilters.map(encodeURIComponent).join(',')})`
+            : '';
+      const qPengajuan = proyekQuery
+        ? `${proyekQuery}&tipe=in.(bahan,tukang)&select=*&order=created_at.desc`
         : 'select=*&order=created_at.desc';
-      const qCrm = proyekFilter
-        ? `proyek=eq.${encodeURIComponent(proyekFilter)}&select=*&order=created_at.desc`
-        : 'select=*&order=created_at.desc';
+      const qCrm = proyekQuery ? `${proyekQuery}&select=*&order=created_at.desc` : 'select=*&order=created_at.desc';
 
       const [rows, crmRows] = await Promise.all([
         sbQuery<Pengajuan>('pengajuan', qPengajuan),
@@ -90,7 +107,7 @@ function IsiVerifikasi() {
       setGalat(e instanceof Error ? e.message : String(e));
       setData([]);
     }
-  }, [proyekFilter]);
+  }, [proyekFilters]);
 
   useEffect(() => {
     void muat();
