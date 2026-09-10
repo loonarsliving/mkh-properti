@@ -134,3 +134,12 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
   something to invent unasked. `sumber`/`idempotency_key` columns are already
   in place so a future automatic sync from the villa side can fill this table
   without another schema change.
+
+## 2026-09-10 (later same day)
+- Added `villa_income_sync` RPC (migration `0033`) — automatic monthly sync
+  target for Loonars Villa rental/cafe/spa/lainnya income into
+  `pendapatan_villa`, called by villa-api's own new cron. Deliberately a
+  separate, narrowly-scoped function (own Vault secret, anon-key RPC path)
+  rather than extending `sync_inbound` or sharing this project's service_role
+  key with the villa system — see INTEGRATIONS.md for the reasoning. Applied
+  directly to production and tested.

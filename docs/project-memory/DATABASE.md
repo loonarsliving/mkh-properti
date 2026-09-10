@@ -69,6 +69,17 @@ it was made consistent with the rest of this app's current (pre-`0025`)
 access model rather than introducing a one-off stricter table that the
 anon-key frontend couldn't actually use yet.
 
+## `villa_income_sync` RPC (added 2026-09-10, migration `0033`)
+`public.villa_income_sync(p_periode date, p_items jsonb) returns jsonb` — inbound
+sync target for Loonars Villa's monthly income push into `pendapatan_villa`.
+See INTEGRATIONS.md "Loonars Villa" section for the full design and why it's a
+separate function from `sync_inbound`. Vault secret `villa_sync_shared_secret`
+gates it via the `x-villa-sync-secret` header (checked inside the function,
+not by Supabase's own JWT layer) — `EXECUTE` is granted to `anon`/`authenticated`
+so PostgREST's normal RPC path works with the already-public anon key; the
+secret is what actually authorizes the call, not the key. No value is
+recorded in this repo.
+
 ## Relationships (as evidenced by column usage, not a formal ERD)
 - `pengajuan.proyek` / `jurnal.proyek` reference a project code (matches `mkh_projects.kode`).
 - `users_proyek.proyek_id` maps a user to a project.

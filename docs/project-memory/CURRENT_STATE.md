@@ -55,6 +55,21 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
+## 2026-09-10 — Automatic villa income sync (new, LIVE IN PRODUCTION)
+Added `villa_income_sync` RPC (migration `0033`) so Loonars Villa's own
+`villa-api` can push monthly rental/cafe/spa/lainnya income into
+`pendapatan_villa` automatically, closing the gap noted below (the manual-entry
+Pendapatan Villa report now has a real inbound sync path, not just a
+data-shape placeholder for one). See INTEGRATIONS.md for the full design
+(dedicated Vault secret, not `sync_inbound`, not the service_role-key model).
+Applied directly to production Supabase (`gluoioiimapyhchdasfl`) and tested
+via a simulated PostgREST header — the villa-side caller was built in the
+same session (see `villa` repo's own memory for its half). **Not yet observed
+running end-to-end from a real villa-api cron fire** — the villa repo's new
+monthly cron hasn't executed yet at the time of this note; verify after its
+first scheduled run (or trigger it manually) that a real row lands in
+`pendapatan_villa` with `sumber='villa_api'`.
+
 ## 2026-09-10 — Pendapatan Villa report (new, LIVE IN PRODUCTION)
 Added `pendapatan_villa` table (migration `0032`) and a CFO-only report page
 (`/pendapatan-villa`) for Loonars Villa rental income, entered manually.
