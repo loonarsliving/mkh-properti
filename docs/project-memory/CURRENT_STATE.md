@@ -2,6 +2,36 @@
 
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
+_Diperbarui: 2026-09-10 — construction_project_financial_records (Loonars Coffee pilot)._
+
+## construction_project_financial_records — Loonars Coffee pilot (2026-09-10)
+
+New dedicated table (migration `0035`) for MK Connect's Loonars Coffee
+Construction Project Control Core pilot — one row per posted cost request
+(material purchase / contractor payment / other expense), referencing
+Loonars Jogja's existing project (`proyek = 'LL'`, `mkh_projects.kode`)
+rather than duplicating the property master, per the owner's explicit
+decision that Loonars Coffee's money lives in those same books.
+`construction_project_code` distinguishes Coffee's spend from Loonars
+Living's own villa spend within those books.
+
+`sync_inbound` gained one new branch, `construction_project_financial_record`
+(migration `0036`, full-body `CREATE OR REPLACE` per this function's own
+established convention — every other branch unchanged) — posts BOTH the
+dedicated table row AND the matching `jurnal` entry (debit Pembelian
+Material/Biaya Upah Tukang, credit Utang Toko Bangunan, under `proyek='LL'`),
+one `idempotency_key` linking both so it's never double-counted against the
+general finance table. Fires only when MK Connect's `construction_cost_requests`
+reaches POSTED (owner approved + transfer confirmed) — never at
+draft/submitted/approved.
+
+**Not yet exercised against a real MK Connect sync** — MK Connect's outbound
+trigger (`trg_construction_cost_request_sync`, its own 0256) was written and
+reviewed together with this, but end-to-end delivery (via MK Connect's
+`sync_dispatch_pending` → this project's `sync_inbound` RPC) has not been run
+against live data. Verify `next_mkh_no('LL')` doesn't collide with Loonars
+Living's own existing `LL-*` document numbering once real events start
+flowing.
 
 ## PERUBAHAN BESAR TERAKHIR — migrasi ke Next.js (2026-08-22)
 
