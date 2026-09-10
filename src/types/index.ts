@@ -121,6 +121,24 @@ export interface BayarTukang {
   proyek?: string | null;
 }
 
+/** Kategori beban villa — mengikuti model akad villa sendiri (opex & marketing flat %, lihat migrasi 0034). */
+export type KategoriBebanVilla = 'opex' | 'marketing' | 'lainnya';
+
+/** Baris `beban_villa` — pasangan `pendapatan_villa` untuk laba-rugi villa (lihat migrasi 0034). */
+export interface BebanVilla {
+  id?: number;
+  /** Tanggal 1 pada bulan bersangkutan, format yyyy-mm-dd. */
+  periode: string;
+  kategori: KategoriBebanVilla;
+  jumlah: number | string;
+  keterangan?: string | null;
+  sumber?: 'manual' | 'villa_api';
+  idempotency_key?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 /** Tipe pengajuan yang dikenal sistem. */
 export type TipePengajuan =
   | 'bahan'

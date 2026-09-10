@@ -56,10 +56,17 @@ export const NAVIGASI: GrupNav[] = [
     judul: 'Laporan SAK EMKM',
     item: [
       { label: 'Laporan Keuangan', href: '/laporan-keuangan', ikon: 'printer', peran: CFO },
-      { label: 'Pendapatan Villa', href: '/pendapatan-villa', ikon: 'dompet', peran: CFO },
       { label: 'Neraca Saldo', href: '/neraca-saldo', ikon: 'coa', peran: CFO },
       { label: 'Laba Rugi', href: '/laba-rugi', ikon: 'grafik', peran: CFO },
       { label: 'Posisi Keuangan', href: '/posisi-keuangan', ikon: 'kotak', peran: CFO },
+    ],
+  },
+  {
+    judul: 'Loonars Villa',
+    item: [
+      { label: 'Pendapatan Villa', href: '/pendapatan-villa', ikon: 'dompet', peran: CFO },
+      { label: 'Beban Villa', href: '/beban-villa', ikon: 'kas-keluar', peran: CFO },
+      { label: 'Laporan Laba-Rugi Villa', href: '/laporan-villa', ikon: 'printer', peran: CFO },
     ],
   },
   {

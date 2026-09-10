@@ -13,6 +13,7 @@ Supabase Postgres project. Project ref visible in hardcoded frontend URL / `supa
 | `cfo_users` | 0026 | Allowlist of emails permitted to access the CFO/owner dashboard |
 | `crm_payment_receipts` | 0009 (referenced)/0001 area | CRM payment receipts queue for CFO confirmation |
 | `pendapatan_villa` | 0032 | Loonars Villa rental income (rental/cafe/spa/lainnya), manual entry for now — not posted into `jurnal`; see FEATURES.md/CURRENT_STATE.md |
+| `beban_villa` | 0034 | Loonars Villa expenses (opex/marketing per akad, lainnya) — pairs with `pendapatan_villa` for `/laporan-villa`'s laba-rugi; see FEATURES.md |
 
 ## Tables referenced but not created here (pre-existing / external to migration history)
 `jurnal` (general ledger), `pengajuan` (submissions/expense requests), `aset` (assets), `utang_bank` (bank debt), `tukang_borongan` (contractor work orders), `bayar_tukang` (contractor payments), `users_proyek` (user-to-project mapping), `mkh_projects` (project master data, incl. `rekening`/`bank` columns used by `sync-inbound`), `loonars_fee` (external loonars-sales commission table, altered by migration 0009 to add columns).

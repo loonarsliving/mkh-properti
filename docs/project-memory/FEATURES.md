@@ -26,7 +26,8 @@ Tags: DONE (working code path exists and appears complete) / PARTIAL (exists but
 - **CFO dashboard (`index.html`)** — DONE: cash, journal (jurnal), assets (aset), bank debt (utang_bank), user management.
 - **Branch-based Finance Dashboard with drill-down** — DONE, commit `cea592e`/`3555b91` ("Redesign Finance Dashboard: branch-based view with drill-down").
 - **`laporan-keuangan.html` financial report page** — DONE (exists, 754 lines, wired to jurnal/branch data). Full feature completeness of every report view UNKNOWN — NEEDS CONFIRMATION without deeper line-by-line review.
-- **Pendapatan Villa report (`/pendapatan-villa`)** — PARTIAL, added 2026-09-10. Page + `pendapatan_villa` table (migration `0032`) exist and are CFO-only; income is entered **manually** per month/category (rental/cafe/spa/lainnya). Not integrated with `jurnal`. Automatic sync from the villa rental system (separate Supabase project) is a stated future intent, not yet built — do not assume any sync job exists.
+- **Pendapatan Villa report (`/pendapatan-villa`)** — DONE, added 2026-09-10, automatic sync added same day. Page + `pendapatan_villa` table (migration `0032`) are CFO-only; income can be entered manually OR arrive automatically once a month via `villa_income_sync` RPC (migration `0033`), called by villa-api's own cron. Rows show a "Manual"/"Sinkronisasi" badge. Not integrated with `jurnal`.
+- **Beban Villa (`/beban-villa`) + Laporan Laba-Rugi Villa (`/laporan-villa`)** — DONE, added 2026-09-10. `beban_villa` table (migration `0034`, manual entry only so far — no auto-sync built for the expense side yet) pairs with `pendapatan_villa` to produce a printable income statement for the Loonars Villa business line, driven by the app's global period filter.
 - **Dashboard stat-card color tinting** — DONE, cosmetic, commit `6260ade`.
 
 ## Admin/User management

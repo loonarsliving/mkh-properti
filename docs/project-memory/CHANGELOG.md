@@ -143,3 +143,27 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
   rather than extending `sync_inbound` or sharing this project's service_role
   key with the villa system — see INTEGRATIONS.md for the reasoning. Applied
   directly to production and tested.
+
+## 2026-09-10 (later same day) — Laporan Laba-Rugi Villa
+- Owner clarified the manual-entry question and asked for a proper income
+  statement for the villa business line, including expenses (not just
+  income).
+- Added `beban_villa` table (migration `0034`), a symmetric pair to
+  `pendapatan_villa` (0032). Categories (`opex`, `marketing`, `lainnya`) were
+  taken directly from reading villa's own `src/app/investor/opex/page.tsx` —
+  villa's real model computes opex/marketing as flat percentages of gross
+  revenue per the ownership agreement ("akad"), not itemized actuals, so this
+  table mirrors that rather than inventing a fictitious itemized-expense
+  system villa itself doesn't use.
+- New `/beban-villa` page (input, mirrors `/pendapatan-villa` exactly) and
+  new `/laporan-villa` page — a printable Laba Rugi Villa sheet (reuses the
+  existing `laporan-paper`/`.lt`/`.sec-title` print CSS from the SAK EMKM
+  report), driven by the same global period filter as the rest of the app.
+  Shows Pendapatan (per kategori + total), Beban (per kategori + total), and
+  Laba/Rugi Bersih.
+- Sidebar reorganized: new "Loonars Villa" group (Pendapatan Villa, Beban
+  Villa, Laporan Laba-Rugi Villa) replacing the single item that used to sit
+  under "Laporan SAK EMKM".
+- Applied `0034` to production Supabase directly (continuing the owner's
+  standing "bawa ke production" instruction from earlier the same session).
+  Verified via `tsc --noEmit` and `next build`.

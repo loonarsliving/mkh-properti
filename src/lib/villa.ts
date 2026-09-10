@@ -1,4 +1,4 @@
-import type { KategoriPendapatanVilla, PendapatanVilla } from '@/types';
+import type { BebanVilla, KategoriBebanVilla, KategoriPendapatanVilla, PendapatanVilla } from '@/types';
 
 /**
  * Pendapatan Loonars Villa — lihat migrasi 0032 untuk alasan tabel ini
@@ -41,6 +41,43 @@ export function ringkasPendapatanVilla(baris: PendapatanVilla[]): RingkasanPenda
     rental: 0,
     cafe: 0,
     spa: 0,
+    lainnya: 0,
+  };
+  let total = 0;
+  for (const b of baris) {
+    const jumlah = Number(b.jumlah) || 0;
+    perKategori[b.kategori] = (perKategori[b.kategori] ?? 0) + jumlah;
+    total += jumlah;
+  }
+  return { perKategori, total };
+}
+
+/**
+ * Beban Loonars Villa — lihat migrasi 0034. Kategori mengikuti model akad
+ * villa sendiri: opex & marketing dihitung sebagai persentase tetap dari
+ * omzet kotor (bukan rincian aktual bulanan — villa sendiri sudah berhenti
+ * mencatat opex secara itemized, lihat komentar migrasi), "lainnya" untuk
+ * biaya lain yang ingin dicatat di laporan ini.
+ */
+export const KATEGORI_BEBAN_VILLA: { id: KategoriBebanVilla; label: string }[] = [
+  { id: 'opex', label: 'Opex Properti (% omzet, sesuai akad)' },
+  { id: 'marketing', label: 'Marketing (% omzet, sesuai akad)' },
+  { id: 'lainnya', label: 'Lainnya' },
+];
+
+export function labelKategoriBebanVilla(kategori: string): string {
+  return KATEGORI_BEBAN_VILLA.find((k) => k.id === kategori)?.label ?? kategori;
+}
+
+export interface RingkasanBebanVilla {
+  perKategori: Record<KategoriBebanVilla, number>;
+  total: number;
+}
+
+export function ringkasBebanVilla(baris: BebanVilla[]): RingkasanBebanVilla {
+  const perKategori: Record<KategoriBebanVilla, number> = {
+    opex: 0,
+    marketing: 0,
     lainnya: 0,
   };
   let total = 0;
