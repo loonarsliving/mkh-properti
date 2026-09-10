@@ -55,7 +55,7 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
-## 2026-09-10 — Pendapatan Villa report (new)
+## 2026-09-10 — Pendapatan Villa report (new, LIVE IN PRODUCTION)
 Added `pendapatan_villa` table (migration `0032`) and a CFO-only report page
 (`/pendapatan-villa`) for Loonars Villa rental income, entered manually.
 **Important:** the villa rental system lives on a *different* Supabase project
@@ -66,6 +66,20 @@ villa side later; the table's `sumber`/`idempotency_key` columns exist for
 that, but no sync job/Edge Function/webhook has been built — do not assume
 one exists. Treat any future sync work here as touching two separate
 production Supabase projects; confirm scope with the owner before building it.
+
+**Applied to production 2026-09-10, owner-approved ("terapkan dan bawa ke
+production"):** migration `0032` applied directly to the live Supabase
+project `gluoioiimapyhchdasfl` via Supabase MCP (confirmed: table exists,
+RLS enabled with the intended `anon`+`authenticated` `USING (true)` policy,
+`get_advisors` security scan shows no new findings for this table). Merged
+`claude/mkh-villa-financial-report-5r1y2q` into `main` (fast-forward, no
+conflicts) and pushed — Vercel auto-deployed `dpl_2VX1GkE8nactCYV6incQ2bSQrf6N`
+to production (`target: production`, `readyState: READY`, aliased to
+`finance.haluoleo.id`). Direct `curl` verification from this session's
+sandbox was blocked by its own egress proxy policy (unrelated to the
+deploy) — readiness was confirmed via the Vercel API's deployment/alias
+state instead. A manual smoke test of `/pendapatan-villa` from an actual
+browser/CFO login is still recommended per DEPLOYMENT.md's checklist.
 
 ## Last known completed work
 A cluster of security fixes and feature additions landed 2026-08-18 through 2026-08-21:
