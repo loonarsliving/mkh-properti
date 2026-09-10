@@ -29,6 +29,7 @@ src/app/
     kas-masuk/  kas-keluar/  aset/  pinjam-antar-proyek/  utang-bank/
     gaji-tukang/  jurnal/  coa/  users/
     neraca-saldo/  laba-rugi/  posisi-keuangan/  laporan-keuangan/
+    pendapatan-villa/  (baru 2026-09-10 — pendapatan Loonars Villa, manual)
     admin-proyek/  pengeluaran/  verifikasi/
   login/  no-access/
   lapor-pengeluaran/  lapor-biaya-lain/  lapor-biaya-lain-makassar/

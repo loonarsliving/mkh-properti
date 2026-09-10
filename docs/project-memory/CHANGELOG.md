@@ -121,3 +121,16 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
   yang tidak ada di COA aplikasi diberi kategori kosong sehingga tidak ikut
   total laba rugi maupun neraca. Kini dikelompokkan dari digit pertama kode
   akun dan ditampilkan sebagai peringatan di halaman Laporan Keuangan.
+
+## 2026-09-10
+- Added `pendapatan_villa` table (migration `0032`) and a new "Pendapatan Villa"
+  report page (`/pendapatan-villa`, CFO-only) for Loonars Villa rental income
+  (rental/cafe/spa/lainnya). Manual entry for now — the villa rental system
+  ("villa" repo, Supabase project `svcmybsziaelwwdrnzcv`) runs on a completely
+  separate Supabase project from this app (`gluoioiimapyhchdasfl`), so there is
+  no existing data pipeline for this income. Deliberately not posted into
+  `jurnal` — villa income isn't part of this app's existing chart of
+  accounts/PROYEK list, and picking one would be an accounting decision, not
+  something to invent unasked. `sumber`/`idempotency_key` columns are already
+  in place so a future automatic sync from the villa side can fill this table
+  without another schema change.

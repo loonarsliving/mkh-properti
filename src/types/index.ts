@@ -197,6 +197,24 @@ export interface CrmPaymentReceipt {
   created_at?: string | null;
 }
 
+/** Kategori pendapatan villa — sama dengan pemisahan di sistem villa sendiri (rental vs walk-in cafe/spa). */
+export type KategoriPendapatanVilla = 'rental' | 'cafe' | 'spa' | 'lainnya';
+
+/** Baris `pendapatan_villa` — pendapatan Loonars Villa, dicatat terpisah dari jurnal (lihat migrasi 0032). */
+export interface PendapatanVilla {
+  id?: number;
+  /** Tanggal 1 pada bulan bersangkutan, format yyyy-mm-dd. */
+  periode: string;
+  kategori: KategoriPendapatanVilla;
+  jumlah: number | string;
+  keterangan?: string | null;
+  sumber?: 'manual' | 'villa_api';
+  idempotency_key?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface Karyawan {
   id?: number;
   nama: string;

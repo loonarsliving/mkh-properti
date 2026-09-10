@@ -55,6 +55,18 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
+## 2026-09-10 — Pendapatan Villa report (new)
+Added `pendapatan_villa` table (migration `0032`) and a CFO-only report page
+(`/pendapatan-villa`) for Loonars Villa rental income, entered manually.
+**Important:** the villa rental system lives on a *different* Supabase project
+(`svcmybsziaelwwdrnzcv`, repo `villa`) than this app (`gluoioiimapyhchdasfl`
+— see DATABASE.md), so this data does not flow in automatically yet. Owner
+intent (per 2026-09-10 conversation) is to sync it automatically from the
+villa side later; the table's `sumber`/`idempotency_key` columns exist for
+that, but no sync job/Edge Function/webhook has been built — do not assume
+one exists. Treat any future sync work here as touching two separate
+production Supabase projects; confirm scope with the owner before building it.
+
 ## Last known completed work
 A cluster of security fixes and feature additions landed 2026-08-18 through 2026-08-21:
 - `349bce5` — Fixed a stored XSS vulnerability (escape DB/user-controlled text before `innerHTML`).

@@ -12,6 +12,7 @@ Supabase Postgres project. Project ref visible in hardcoded frontend URL / `supa
 | `sync_config` | 0001 | Sync configuration (per comment context) |
 | `cfo_users` | 0026 | Allowlist of emails permitted to access the CFO/owner dashboard |
 | `crm_payment_receipts` | 0009 (referenced)/0001 area | CRM payment receipts queue for CFO confirmation |
+| `pendapatan_villa` | 0032 | Loonars Villa rental income (rental/cafe/spa/lainnya), manual entry for now — not posted into `jurnal`; see FEATURES.md/CURRENT_STATE.md |
 
 ## Tables referenced but not created here (pre-existing / external to migration history)
 `jurnal` (general ledger), `pengajuan` (submissions/expense requests), `aset` (assets), `utang_bank` (bank debt), `tukang_borongan` (contractor work orders), `bayar_tukang` (contractor payments), `users_proyek` (user-to-project mapping), `mkh_projects` (project master data, incl. `rekening`/`bank` columns used by `sync-inbound`), `loonars_fee` (external loonars-sales commission table, altered by migration 0009 to add columns).
@@ -51,6 +52,22 @@ No references to Supabase Storage (`storage.buckets`, `/storage/v1`, `.storage.`
 ## Secrets used by the database layer
 - `mk_sync_shared_secret` (name only, per migration `0009`'s comment) — stored in Supabase Vault, retrieved via `get_sync_secret()`. No value present in this repo.
 - `SUPABASE_SERVICE_ROLE_KEY` — used only inside Edge Functions via `Deno.env.get`, never in client code (this was explicitly fixed — see commit `b50250a`, "remove hardcoded service_role key", and the `admin-create-user` function's own header comment describing the prior vulnerability).
+
+## `pendapatan_villa` (added 2026-09-10, migration `0032`)
+`id, periode (date, always the 1st of the month), kategori (rental|cafe|spa|lainnya), jumlah, keterangan, sumber (manual|villa_api, default manual), idempotency_key (unique, nullable), created_by, created_at, updated_at`.
+Holds Loonars Villa rental income, entered manually via `/pendapatan-villa`
+(CFO-only). **Not wired into `jurnal`** — villa income isn't part of this
+app's PROYEK/COA, and choosing an account/proyek for it is an accounting
+decision left to the owner, not invented by this migration. `sumber`/
+`idempotency_key` exist so a future automatic sync from the villa system
+(a *different* Supabase project, `svcmybsziaelwwdrnzcv` — see "Supabase
+project" above) can populate this table without a schema change; no such
+sync exists yet. RLS follows the same permissive `anon`+`authenticated`
+`USING (true)` pattern as `crm_payment_receipts`/`jurnal`/etc. (see RLS
+section above) — this is a new table, not a live-production carry-over, but
+it was made consistent with the rest of this app's current (pre-`0025`)
+access model rather than introducing a one-off stricter table that the
+anon-key frontend couldn't actually use yet.
 
 ## Relationships (as evidenced by column usage, not a formal ERD)
 - `pengajuan.proyek` / `jurnal.proyek` reference a project code (matches `mkh_projects.kode`).
