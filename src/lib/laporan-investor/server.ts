@@ -8,7 +8,9 @@
  *   - WhatsApp: anon key + header x-sync-secret (rahasia sync MK Connect yang
  *     sudah ada, diteruskan apa adanya dari MK Connect; dicocokkan database
  *     dengan Vault mk_sync_shared_secret). MK Connect yang memastikan
- *     peminta adalah super_admin (migrasi 0041).
+ *     peminta adalah super_admin (migrasi 0041);
+ *   - tautan WA: anon key + token sekali-pakai dari ir_buat_tautan_wa
+ *     (migrasi 0042) — dipakai Whacenter untuk mengambil PDF.
  */
 
 import { createHash } from 'node:crypto';
@@ -22,11 +24,15 @@ import { DokumenLaporan } from './pdf';
 
 export type Kredensial =
   | { jenis: 'cfo'; token: string }
-  | { jenis: 'wa'; rahasia: string; nomor: string };
+  | { jenis: 'wa'; rahasia: string; nomor: string }
+  | { jenis: 'tautan'; token: string };
 
 function header(k: Kredensial): Record<string, string> {
   if (k.jenis === 'cfo') {
     return { apikey: SB_KEY, Authorization: `Bearer ${k.token}`, 'Content-Type': 'application/json' };
+  }
+  if (k.jenis === 'tautan') {
+    return { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
   }
   return {
     apikey: SB_KEY,
@@ -37,8 +43,9 @@ function header(k: Kredensial): Record<string, string> {
 }
 
 export class GalatAkses extends Error {}
+export class GalatBatas extends Error {}
 
-async function rpc<T>(k: Kredensial, fn: string, args: Record<string, unknown>): Promise<T> {
+export async function rpc<T>(k: Kredensial, fn: string, args: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: header(k),
@@ -48,10 +55,11 @@ async function rpc<T>(k: Kredensial, fn: string, args: Record<string, unknown>):
   if (res.status === 401 || res.status === 403) throw new GalatAkses('Tidak berhak');
   const teks = await res.text();
   if (!res.ok) {
-    if (teks.includes('42501') || teks.includes('Tidak berhak')) throw new GalatAkses('Tidak berhak');
+    if (teks.includes('42501') || teks.includes('28000') || teks.includes('Tidak berhak')) throw new GalatAkses('Tidak berhak');
+    if (teks.includes('53400')) throw new GalatBatas('Terlalu banyak permintaan');
     throw new Error(`Supabase ${fn} gagal (${res.status})`);
   }
-  return JSON.parse(teks) as T;
+  return (teks ? JSON.parse(teks) : null) as T;
 }
 
 const POLA_BULAN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -77,11 +85,20 @@ export async function susunLaporanServer(
   k: Kredensial,
   parsial: Partial<OpsiLaporan>,
 ): Promise<{ model: ModelLaporan; pdf: Buffer; sha256: string; namaBerkas: string }> {
-  const sampai = parsial.sampai ?? bulanIni();
-  const data = await rpc<DataLaporan>(k, 'ir_ambil_data', {
-    p_sampai: akhirBulan(sampai),
-    p_peminta_wa: k.jenis === 'wa' ? k.nomor : null,
-  });
+  let sampai = parsial.sampai ?? bulanIni();
+  let data: DataLaporan;
+  if (k.jenis === 'tautan') {
+    // Parameter tautan ditetapkan saat tautan dibuat (MK Connect), bukan dari URL.
+    const hasil = await rpc<DataLaporan & { parameter?: unknown }>(k, 'ir_ambil_data_tautan', { p_token: k.token });
+    data = hasil;
+    parsial = bacaOpsi(hasil.parameter);
+    sampai = parsial.sampai ?? bulanIni();
+  } else {
+    data = await rpc<DataLaporan>(k, 'ir_ambil_data', {
+      p_sampai: akhirBulan(sampai),
+      p_peminta_wa: k.jenis === 'wa' ? k.nomor : null,
+    });
+  }
   // "Sampai saat ini": tanpa `dari`, mulai dari bulan data pertama.
   const dari = parsial.dari ?? bulanDataPertama(data);
   const opsi: OpsiLaporan = {
@@ -97,6 +114,11 @@ export async function susunLaporanServer(
   const pdf = await renderToBuffer(elemen);
   const sha256 = createHash('sha256').update(pdf).digest('hex');
   const namaBerkas = `Laporan-Investor-MKH_${opsi.dari}_${opsi.sampai}.pdf`;
+
+  if (k.jenis === 'tautan') {
+    await rpc<null>(k, 'ir_catat_unduhan_tautan', { p_token: k.token, p_sha256: sha256, p_ukuran: pdf.length });
+    return { model, pdf, sha256, namaBerkas };
+  }
 
   await rpc<number>(k, 'ir_catat_unduhan', {
     p_kanal: k.jenis === 'cfo' ? 'web' : 'whatsapp',
