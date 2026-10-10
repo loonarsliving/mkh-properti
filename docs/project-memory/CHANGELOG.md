@@ -177,3 +177,5 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
 - Modul Laporan Investor (0040 live; halaman, PDF, endpoint WA di PR #13).
   Dependensi baru: `@react-pdf/renderer` 4.9.0.
 - Daftar proyek frontend kini memuat KDI dan LC.
+- Tahap 2 penutupan akses publik (0037) diterapkan; duplikat historis
+  Loonars Coffee dihapus (0039, disetujui owner).

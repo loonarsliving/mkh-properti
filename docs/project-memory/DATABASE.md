@@ -94,12 +94,12 @@ No secrets, keys, tokens, or passwords are recorded anywhere in this document.
 - `0036_akses_staf_login` (live): fungsi `mkh_email_login()`, `mkh_is_cfo()`,
   `mkh_is_staf()`; policy `staf_akses_penuh` di tabel keuangan; RPC
   `lapor_lapangan_kirim(p_proyek, p_pelapor, p_data)`.
-- `0037_tutup_akses_anon` (BELUM diterapkan): cabut akses anon; kunci tabel
-  aplikasi yang tidak dipakai lagi.
+- `0037_tutup_akses_anon` (live): cabut akses anon; kunci tabel aplikasi
+  yang tidak dipakai lagi. Policy lama dinetralkan `TO service_role`.
 - `0038_loonars_coffee_kode_proyek_dan_cegah_jurnal_ganda` (live): ubah
   `sync_inbound` lewat penggantian potongan tepat (bukan salin seluruh badan,
   karena repo tidak lagi punya badan lengkap yang cocok dengan produksi).
-- `0039_hapus_jurnal_ganda_loonars_coffee` (BELUM diterapkan, butuh owner).
+- `0039_hapus_jurnal_ganda_loonars_coffee` (live, disetujui owner).
 - `0040_laporan_investor` (live): `ir_unit_bisnis`, `ir_metrik_bulanan`
   (+ `ir_metrik_log` via trigger), `ir_narasi` (append-only),
   `ir_unduhan_log`, `ir_wa_penerima`; RPC `ir_metrik_terima`,

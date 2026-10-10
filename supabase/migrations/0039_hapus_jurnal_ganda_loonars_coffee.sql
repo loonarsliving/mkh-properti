@@ -1,8 +1,11 @@
 -- ============================================================================
 -- 0039 — Hapus jurnal ganda historis Loonars Coffee
 --
--- !! MENUNGGU PERSETUJUAN OWNER — mengubah isi buku besar. Jangan diterapkan
--- !! sebelum owner menyetujui secara eksplisit.
+-- STATUS: DISETUJUI owner dan DITERAPKAN ke produksi 2026-10-10.
+-- Hasil: 28 baris (14 transaksi, Rp72.174.950) dihapus; biaya & Utang Toko
+-- Bangunan LC = Rp72.174.950 (sama dengan MK Connect); neraca seimbang.
+-- Diterapkan sebagai tiga perintah terpisah (blok gabungan membuat klien
+-- Supabase MCP menggantung).
 --
 -- Latar belakang: lihat 0038. Sebelum 0038, setiap biaya pembangunan Loonars
 -- Coffee dijurnal dua kali:
@@ -25,56 +28,34 @@
 -- neraca tetap seimbang (setiap pasangan debet/kredit dihapus utuh).
 -- ============================================================================
 
-do $hapus$
-declare
-  r record;
-  v_arsip jsonb := '[]'::jsonb;
-  v_jumlah int := 0;
-  v_nominal numeric := 0;
-begin
-  for r in
-    select c.id as cpfr_id, c.jurnal_no as no_ganda, c.amount, e.no as no_asli
-      from public.construction_project_financial_records c
-      join lateral (
-        select j.no
-          from public.jurnal j
-         where j.source_system = 'mk_connect'
-           and j.idempotency_key like 'mkc:construction_expense:%'
-           and j.source_ref = c.reference_document
-           and j.d = c.amount
-         limit 1
-      ) e on true
-     where c.jurnal_no is not null
-       and c.jurnal_no <> e.no
-       and exists (select 1 from public.jurnal g where g.no = c.jurnal_no and g.idempotency_key like 'mkc:construction_cost_request:%')
-  loop
-    v_arsip := v_arsip || coalesce((
-      select jsonb_agg(to_jsonb(g)) from public.jurnal g
-       where g.no = r.no_ganda and g.idempotency_key like 'mkc:construction_cost_request:%'
-    ), '[]'::jsonb);
+-- 1) arsip baris yang akan dihapus
+insert into public.sync_log (direction, event_type, source_table, source_id, idempotency_key, payload, status)
+select 'inbound', 'jurnal_duplikat_dihapus', 'jurnal', '0039', 'migrasi:0039:hapus-jurnal-ganda-loonars-coffee',
+       jsonb_build_object('alasan', 'Biaya Loonars Coffee dijurnal dua kali (construction_expense_submitted + construction_project_financial_record) sebelum 0038',
+                          'disetujui', 'owner 2026-10-10',
+                          'jumlah_baris', count(*), 'total_debit_dihapus', coalesce(sum(g.d), 0),
+                          'baris_dihapus', coalesce(jsonb_agg(to_jsonb(g)), '[]'::jsonb)),
+       'succeeded'
+  from public.jurnal g
+ where g.idempotency_key like 'mkc:construction_cost_request:%'
+   and exists (select 1 from public.construction_project_financial_records c where c.jurnal_no = g.no
+                and exists (select 1 from public.jurnal e where e.source_system = 'mk_connect' and e.idempotency_key like 'mkc:construction_expense:%'
+                             and e.source_ref = c.reference_document and e.d = c.amount));
 
-    delete from public.jurnal g
-     where g.no = r.no_ganda and g.idempotency_key like 'mkc:construction_cost_request:%';
+-- 2) arahkan catatan biaya ke nomor jurnal asli
+update public.construction_project_financial_records c
+   set jurnal_no = (select e.no from public.jurnal e where e.source_system = 'mk_connect' and e.idempotency_key like 'mkc:construction_expense:%'
+                     and e.source_ref = c.reference_document and e.d = c.amount limit 1),
+       updated_at = now()
+ where exists (select 1 from public.jurnal g where g.no = c.jurnal_no and g.idempotency_key like 'mkc:construction_cost_request:%')
+   and exists (select 1 from public.jurnal e where e.source_system = 'mk_connect' and e.idempotency_key like 'mkc:construction_expense:%'
+                and e.source_ref = c.reference_document and e.d = c.amount);
 
-    update public.construction_project_financial_records
-       set jurnal_no = r.no_asli, updated_at = now()
-     where id = r.cpfr_id;
-
-    v_jumlah := v_jumlah + 1;
-    v_nominal := v_nominal + r.amount;
-  end loop;
-
-  insert into public.sync_log (direction, event_type, source_table, source_id, idempotency_key, payload, status)
-  values (
-    'inbound', 'jurnal_duplikat_dihapus', 'jurnal', '0039',
-    'migrasi:0039:hapus-jurnal-ganda-loonars-coffee',
-    jsonb_build_object(
-      'alasan', 'Biaya Loonars Coffee dijurnal dua kali (construction_expense_submitted + construction_project_financial_record) sebelum 0038',
-      'jumlah_transaksi', v_jumlah,
-      'total_nominal', v_nominal,
-      'baris_dihapus', v_arsip
-    ),
-    'succeeded'
-  );
-end
-$hapus$;
+-- 3) hapus jurnal ganda yang sudah diarsip dan tidak dirujuk lagi
+do $hapus$ begin
+  delete from public.jurnal g
+   where g.idempotency_key like 'mkc:construction_cost_request:%'
+     and not exists (select 1 from public.construction_project_financial_records c where c.jurnal_no = g.no)
+     and g.id in (select (x ->> 'id')::bigint from public.sync_log s, jsonb_array_elements(s.payload -> 'baris_dihapus') x
+                   where s.idempotency_key = 'migrasi:0039:hapus-jurnal-ganda-loonars-coffee');
+end $hapus$;
