@@ -55,6 +55,44 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
+## 2026-10-10 — Tutup akses publik, Loonars Coffee (LC), Laporan Investor
+
+**Keamanan (keputusan owner: tutup celah data yang bisa dilihat semua orang).**
+Selama ini anon key (publik) bisa membaca/mengubah/menghapus tabel keuangan.
+- Migrasi `0036` (**LIVE**): policy staf login (`mkh_is_staf()` = email
+  terkonfirmasi di `cfo_users`/`users_proyek`), RPC `lapor_lapangan_kirim`
+  untuk tiga form tanpa login, `next_mkh_no`/`jurnal_branch_balance_sync`
+  jadi SECURITY DEFINER. Hanya menambah — tidak ada akses yang dicabut.
+- Frontend (`src/lib/supabase.ts`, `auth.ts`, form lapor) mengirim access
+  token pengguna + refresh otomatis. **Belum live sampai PR #13 di-merge.**
+- Migrasi `0037` (**BELUM diterapkan**) mencabut akses anon. Terapkan HANYA
+  setelah frontend PR #13 live dan log API menunjukkan permintaan
+  `authenticated` dari finance.haluoleo.id berhasil. Aplikasi yang owner
+  nyatakan tidak dipakai lagi (loonars-sales, Loonars-dashboard, Kos, filehub
+  lama) ikut dikunci di 0037 (akses dicabut, data tidak dihapus).
+
+**Loonars Coffee (keputusan owner).** Migrasi `0038` (**LIVE**): kode proyek
+`LC`; `sync_inbound` memetakan cabang Loonars Coffee ke LC dan tidak lagi
+menjurnal dua kali biaya yang dikirim lewat `construction_expense_submitted`
+DAN `construction_project_financial_record`. Baris historis dipindah LL→LC.
+Duplikat historis (14 transaksi) dihapus oleh migrasi `0039` — **BELUM
+diterapkan, menunggu persetujuan owner** (mengubah isi buku besar).
+
+**Laporan Investor.** Migrasi `0040` (**LIVE**): tabel `ir_*`, RPC
+`ir_metrik_terima`, `ir_ambil_data`, `ir_catat_unduhan`. Migrasi `0041`
+(**LIVE**): tidak ada rahasia baru — villa memakai `villa_sync_shared_secret`,
+MK Connect memakai `mk_sync_shared_secret`; izin meminta laporan lewat WA =
+peran `super_admin` di MK Connect (keputusan owner). Halaman
+`/laporan-investor`, PDF server `/api/laporan-investor/pdf`, WA
+`/api/laporan-investor/wa` (meneruskan header `x-sync-secret` ke database;
+tanpa env baru). Modul realtime (keputusan owner). Dokumen:
+`docs/laporan-investor/`. Belum ada kiriman KPI dari villa/MK Connect — lihat
+spesifikasi 02/03.
+
+**Catatan alat:** Supabase MCP menggantung bila SQL memunculkan NOTICE
+(`drop ... if exists` untuk objek yang belum ada) atau memanggil fungsi
+`pg_temp`; hindari keduanya saat menerapkan migrasi lewat MCP.
+
 ## 2026-09-10 — Automatic villa income sync (new, LIVE IN PRODUCTION)
 Added `villa_income_sync` RPC (migration `0033`) so Loonars Villa's own
 `villa-api` can push monthly rental/cafe/spa/lainnya income into

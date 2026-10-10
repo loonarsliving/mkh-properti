@@ -6,7 +6,7 @@ import { OverlaySimpan, Toast, useToast } from '@/components/ui/Umum';
 import { InputRupiah } from '@/components/ui/Form';
 import { PERUSAHAAN } from '@/lib/config';
 import { rupiah, today } from '@/lib/format';
-import { sbInsert, sbRpc } from '@/lib/supabase';
+import { sbRpc } from '@/lib/supabase';
 
 /**
  * Form lapor pengeluaran untuk staf lapangan — TANPA LOGIN.
@@ -95,37 +95,28 @@ export function FormLaporLapangan({ konfig }: { konfig: KonfigLapor }) {
       const itemText = terisi.map((it) => `${it.nama} (${rupiah(it.nilai)})`).join('; ');
       const keterangan = `${rekening}${catatan ? ` | ${catatan}` : ''}`;
 
-      let no = `KK-${Date.now().toString().slice(-4)}`;
-      try {
-        const seqNo = await sbRpc<number | string>('next_mkh_no', { p_prefix: 'KK' });
-        no = `KK-${String(seqNo).padStart(3, '0')}`;
-      } catch {
-        /* pakai nomor cadangan */
-      }
-
-      await sbInsert('pengajuan', [
-        {
-          proyek: konfig.proyekId,
-          tipe: 'bahan',
-          status: 'pending',
-          created_by: `${konfig.prefixPelapor}: ${konfig.namaPelapor}`,
-          data: {
-            tgl,
-            no,
-            jenis: jenisOpt.akun,
-            akunNama: jenisOpt.nama,
-            rek,
-            rekNama,
-            item: itemText,
-            items: terisi.map((it) => ({ nama: it.nama, nilai: it.nilai })),
-            nominal: jumlah,
-            ket: keterangan,
-            keterangan,
-            proyek_nama: konfig.proyekNama,
-            pengawas: konfig.namaPelapor,
-          },
+      // Form ini tanpa login: satu-satunya akses yang dimiliki adalah RPC
+      // lapor_lapangan_kirim (migrasi 0036), yang membuat pengajuan bahan
+      // berstatus pending dan memberi nomor KK-xxx di server. created_by
+      // dikirim dengan format lama karena trigger routing (0023) membacanya.
+      await sbRpc<{ id: number; no: string }>('lapor_lapangan_kirim', {
+        p_proyek: konfig.proyekId,
+        p_pelapor: `${konfig.prefixPelapor}: ${konfig.namaPelapor}`,
+        p_data: {
+          tgl,
+          jenis: jenisOpt.akun,
+          akunNama: jenisOpt.nama,
+          rek,
+          rekNama,
+          item: itemText,
+          items: terisi.map((it) => ({ nama: it.nama, nilai: it.nilai })),
+          nominal: jumlah,
+          ket: keterangan,
+          keterangan,
+          proyek_nama: konfig.proyekNama,
+          pengawas: konfig.namaPelapor,
         },
-      ]);
+      });
 
       setTerkirim(jumlah);
     } catch (e) {

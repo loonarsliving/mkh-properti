@@ -62,6 +62,10 @@ export const NAVIGASI: GrupNav[] = [
     ],
   },
   {
+    judul: 'Investor',
+    item: [{ label: 'Laporan Investor', href: '/laporan-investor', ikon: 'grafik', peran: CFO }],
+  },
+  {
     judul: 'Loonars Villa',
     item: [
       { label: 'Pendapatan Villa', href: '/pendapatan-villa', ikon: 'dompet', peran: CFO },

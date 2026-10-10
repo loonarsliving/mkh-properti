@@ -167,3 +167,13 @@ statis ke satu aplikasi **Next.js 15 (App Router) + TypeScript + Tailwind**.
 - Applied `0034` to production Supabase directly (continuing the owner's
   standing "bawa ke production" instruction from earlier the same session).
   Verified via `tsc --noEmit` and `next build`.
+
+## 2026-10-10
+- Tutup akses publik ke data keuangan, tahap 1: migrasi 0036 (live) + frontend
+  token login (PR #13). Tahap 2 (0037) menunggu frontend live.
+- Loonars Coffee mendapat kode proyek LC; cegah jurnal ganda biaya
+  konstruksi (0038, live). Penghapusan duplikat historis (0039) menunggu
+  persetujuan owner.
+- Modul Laporan Investor (0040 live; halaman, PDF, endpoint WA di PR #13).
+  Dependensi baru: `@react-pdf/renderer` 4.9.0.
+- Daftar proyek frontend kini memuat KDI dan LC.
