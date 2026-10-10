@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Pembuat PDF Laporan Investor (route /api/laporan-investor/*) memakai
+  // @react-pdf/renderer di Node runtime; paket ini dimuat apa adanya dari
+  // node_modules alih-alih dibundel ulang oleh Next.
+  serverExternalPackages: ['@react-pdf/renderer'],
+
   // Halaman lama berbasis file .html sudah digantikan route Next.js.
   // Redirect ini menjaga URL lama (yang sudah dibagikan / di-bookmark staf
   // lapangan dan dipakai di link WhatsApp) tetap hidup setelah migrasi.
