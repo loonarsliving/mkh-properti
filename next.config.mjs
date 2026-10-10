@@ -6,6 +6,12 @@ const nextConfig = {
   // @react-pdf/renderer di Node runtime; paket ini dimuat apa adanya dari
   // node_modules alih-alih dibundel ulang oleh Next.
   serverExternalPackages: ['@react-pdf/renderer'],
+  // pdfkit memuat font standar (Helvetica dsb.) lewat import subpath
+  // '#standard-fonts/*' yang tidak terlacak otomatis oleh Vercel; tanpa ini
+  // render PDF gagal di produksi (MODULE_NOT_FOUND Helvetica.cjs).
+  outputFileTracingIncludes: {
+    '/api/laporan-investor/**': ['./node_modules/pdfkit/js/standard-fonts/**', './node_modules/pdfkit/js/data/**'],
+  },
 
   // Halaman lama berbasis file .html sudah digantikan route Next.js.
   // Redirect ini menjaga URL lama (yang sudah dibagikan / di-bookmark staf

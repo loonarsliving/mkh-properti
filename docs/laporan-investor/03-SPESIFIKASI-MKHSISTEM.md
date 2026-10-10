@@ -82,37 +82,33 @@ tidak lagi membuat jurnal ganda untuk biaya yang sudah dijurnal oleh
 untuk itu; bila ingin rapi, kirim `mkh_project_code = 'LC'` untuk cabang
 Loonars Coffee.
 
-## D. Permintaan laporan lewat WhatsApp
+## D. Permintaan laporan lewat WhatsApp — DIKERJAKAN 2026-10-10
 
-Alur (owner: "saya sebagai super admin bisa WA ke nomor sistem, kemudian
-sistem mengirimkan laporannya"):
+Alur (owner: "ketika super admin WA ke sistem `lapkeu` maka akan dikirimkan"):
 
-1. Super admin mengirim pesan ke nomor WhatsApp sistem (Meta Cloud API,
-   webhook `app/api/integrations/whatsapp/webhook`), misalnya:
-   - `LAPORAN INVESTOR` → sejak data pertama s.d. bulan ini
-   - `LAPORAN INVESTOR 2026-09` → satu bulan
-   - `LAPORAN INVESTOR 2026-09 2026-12` → rentang
-2. Handler pesan mengenali perintah itu **hanya** bila nomor pengirim milik
-   karyawan dengan peran `super_admin` di MK Connect (fitur peran yang sudah
-   ada). Pengirim lain mendapat balasan biasa / diabaikan; tidak ada daftar
-   nomor terpisah di mkh-properti.
-3. MK Connect memanggil server mkh-properti dengan rahasia sync yang sama
-   seperti `sync_inbound`:
+1. Super admin mengirim ke nomor WhatsApp sistem (Whacenter, webhook
+   `app/api/integrations/whatsapp/webhook` → `lib/ai/webhook-handler.ts`):
+   - `lapkeu` → sejak data pertama s.d. bulan ini
+   - `lapkeu 2026-09` → s.d. bulan itu
+   - `lapkeu 2026-09 2026-12` → rentang
+2. Perintah hanya dikenali di cabang `roleKey === "super_admin"` (fitur peran
+   yang sudah ada). Pengirim lain diproses seperti biasa; tidak ada daftar
+   nomor terpisah.
+3. MK Connect mengambil rahasia sync yang sudah ada (RPC `get_sync_secret`,
+   service role) lalu meminta tautan:
    ```
    POST https://finance.haluoleo.id/api/laporan-investor/wa
    x-sync-secret: <mk_sync_shared_secret yang sudah ada>
-   Content-Type: application/json
    { "nomor": "62812…", "dari": "2026-09", "sampai": "2026-12" }
+   → 200 { "url": ".../api/laporan-investor/unduh/<token>/<nama>.pdf",
+           "nama_berkas": "...", "kedaluwarsa_pada": "..." }
    ```
-   Respons sukses: `200 application/pdf` (header `Content-Disposition` berisi
-   nama berkas). `401` = rahasia salah.
-4. MK Connect mengunggah PDF ke Meta (`POST /{phone-number-id}/media`) lalu
-   mengirim pesan `type: document` dengan media id itu ke pengirim. Karena
-   super admin yang memulai percakapan, balasan ada di dalam jendela 24 jam.
-   **PDF tidak disimpan** di MK Connect (tidak di storage, tidak di log).
-5. Bila gagal, balas teks singkat (mis. "Nomor Anda belum terdaftar sebagai
-   penerima laporan" / "Laporan sedang tidak bisa dibuat, coba lagi").
-6. Batasi frekuensi (mis. 5 permintaan / jam / nomor).
+   `401` = rahasia salah, `429` = > 10 permintaan / jam / nomor.
+4. MK Connect mengirim dokumen dengan `sendWhatsAppDocument(nomor, url,
+   nama_berkas)`; Whacenter mengambil PDF dari URL itu. Token acak 256-bit,
+   berlaku 10 menit, maks 3 kali ambil (migrasi mkh-properti `0042`). PDF
+   dibuat saat diambil dan **tidak disimpan** di mana pun.
+5. Bila gagal, MK Connect membalas teks singkat.
 
-mkh-properti mencatat setiap kiriman di `ir_unduhan_log` (kanal `whatsapp`,
-nomor peminta, parameter, hash SHA-256 PDF).
+mkh-properti mencatat setiap pengambilan di `ir_unduhan_log` (kanal
+`whatsapp`, peminta `wa-super-admin:<nomor>`, parameter, hash SHA-256 PDF).
