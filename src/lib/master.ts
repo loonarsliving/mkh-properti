@@ -17,6 +17,13 @@ export const PROYEK: Proyek[] = [
   { id: 'LL', nama: 'Loonars Living', rek: '7801 8800 0168 1', bank: 'BSI', warna: '#a78bfa' },
   { id: 'GCI', nama: 'Griya Cariu Indah', rek: '5018 8000 2715', bank: 'BSI', warna: '#38bdf8' },
   { id: 'GCR', nama: 'Green Cibarusah Residence', rek: '7801880001681', bank: 'BTN', warna: '#ec4899' },
+  // KDI sudah lama dipakai sync MK Connect (construction_expense_submitted)
+  // tetapi belum terdaftar di sini, sehingga tampil sebagai "-" di laporan.
+  // Rekening bank proyek belum diketahui — dibiarkan kosong, bukan ditebak.
+  { id: 'KDI', nama: 'Pembangunan Cabang Kendari', rek: '', bank: '-', warna: '#f59e0b' },
+  // Kode sendiri untuk Loonars Coffee sejak migrasi 0038 (keputusan owner
+  // 2026-10-10); sebelumnya tercampur di LL.
+  { id: 'LC', nama: 'Loonars Coffee', rek: '', bank: '-', warna: '#92400e' },
   {
     id: 'HO',
     nama: 'Kantor Pusat / Overhead (HR, Komisi, dll)',
