@@ -64,19 +64,21 @@ Selama ini anon key (publik) bisa membaca/mengubah/menghapus tabel keuangan.
   untuk tiga form tanpa login, `next_mkh_no`/`jurnal_branch_balance_sync`
   jadi SECURITY DEFINER. Hanya menambah — tidak ada akses yang dicabut.
 - Frontend (`src/lib/supabase.ts`, `auth.ts`, form lapor) mengirim access
-  token pengguna + refresh otomatis. **Belum live sampai PR #13 di-merge.**
-- Migrasi `0037` (**BELUM diterapkan**) mencabut akses anon. Terapkan HANYA
-  setelah frontend PR #13 live dan log API menunjukkan permintaan
-  `authenticated` dari finance.haluoleo.id berhasil. Aplikasi yang owner
-  nyatakan tidak dipakai lagi (loonars-sales, Loonars-dashboard, Kos, filehub
-  lama) ikut dikunci di 0037 (akses dicabut, data tidak dihapus).
+  token pengguna + refresh otomatis. **LIVE** (PR #13, merge 71043cc).
+- Migrasi `0037` (**LIVE** 2026-10-10, setelah log membuktikan frontend
+  memakai token): akses anon ke tabel keuangan dicabut; policy lama
+  dinetralkan dengan `ALTER POLICY ... TO service_role` (bukan DROP). Aplikasi
+  yang owner nyatakan tidak dipakai lagi (loonars-sales, Loonars-dashboard,
+  Kos, filehub lama) ikut dikunci — akses dicabut, data tidak dihapus.
+  **Sejak ini, akses data hanya lewat login staf atau RPC ber-rahasia.**
 
 **Loonars Coffee (keputusan owner).** Migrasi `0038` (**LIVE**): kode proyek
 `LC`; `sync_inbound` memetakan cabang Loonars Coffee ke LC dan tidak lagi
 menjurnal dua kali biaya yang dikirim lewat `construction_expense_submitted`
 DAN `construction_project_financial_record`. Baris historis dipindah LL→LC.
-Duplikat historis (14 transaksi) dihapus oleh migrasi `0039` — **BELUM
-diterapkan, menunggu persetujuan owner** (mengubah isi buku besar).
+Duplikat historis (14 transaksi, 28 baris) dihapus oleh migrasi `0039` —
+**LIVE**, disetujui owner; arsip baris di `sync_log`
+(`migrasi:0039:hapus-jurnal-ganda-loonars-coffee`).
 
 **Laporan Investor.** Migrasi `0040` (**LIVE**): tabel `ir_*`, RPC
 `ir_metrik_terima`, `ir_ambil_data`, `ir_catat_unduhan`. Migrasi `0041`
@@ -89,9 +91,11 @@ tanpa env baru). Modul realtime (keputusan owner). Dokumen:
 `docs/laporan-investor/`. Belum ada kiriman KPI dari villa/MK Connect — lihat
 spesifikasi 02/03.
 
-**Catatan alat:** Supabase MCP menggantung bila SQL memunculkan NOTICE
-(`drop ... if exists` untuk objek yang belum ada) atau memanggil fungsi
-`pg_temp`; hindari keduanya saat menerapkan migrasi lewat MCP.
+**Catatan alat:** Supabase MCP menggantung (perubahan otomatis dibatalkan)
+untuk: perintah DROP apa pun (event trigger sql_drop), fungsi/tabel `pg_temp`,
+SELECT di tingkat atas, dan blok gabungan yang besar. Pakai blok DO kecil,
+`ALTER POLICY ... TO service_role` sebagai pengganti DROP POLICY, dan
+verifikasi tiap bagian.
 
 ## 2026-09-10 — Automatic villa income sync (new, LIVE IN PRODUCTION)
 Added `villa_income_sync` RPC (migration `0033`) so Loonars Villa's own
