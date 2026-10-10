@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SB_KEY, SB_URL } from './config';
+import { getAccessToken, perbaruiToken } from './supabase';
 
 /**
  * Autentikasi & otorisasi terpusat.
@@ -20,10 +21,9 @@ import { SB_KEY, SB_URL } from './config';
  *        - ada di allowlist `cfo_users`         -> peran CFO/owner
  *        - tidak ada                            -> sesi dibersihkan, /no-access
  *
- * Catatan: pengecekan `users_proyek`/`cfo_users` sengaja memakai anon key,
- * bukan access token user — sama seperti perilaku lama. Mengubahnya menjadi
- * access token adalah prasyarat migrasi 0025 dan HARUS dilakukan bersamaan
- * dengan penerapan migrasi itu (lihat docs/project-memory/CURRENT_STATE.md).
+ * Pengecekan `users_proyek`/`cfo_users` memakai access token pengguna:
+ * sejak migrasi 0036/0037 kedua tabel itu tidak bisa dibaca tanpa login, dan
+ * setiap orang hanya bisa melihat barisnya sendiri (kecuali staf).
  */
 
 export type Peran = 'cfo' | 'admin-proyek' | 'verifikator';
@@ -40,11 +40,13 @@ export interface StatusSesi {
   sesi: Sesi | null;
 }
 
-const ANON_HEADERS = {
-  apikey: SB_KEY,
-  Authorization: `Bearer ${SB_KEY}`,
-  'Content-Type': 'application/json',
-};
+function headerLogin(): Record<string, string> {
+  return {
+    apikey: SB_KEY,
+    Authorization: `Bearer ${getAccessToken() ?? SB_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
 
 export function bersihkanSesi(): void {
   if (typeof window !== 'undefined') window.sessionStorage.clear();
@@ -75,7 +77,7 @@ export async function verifikasiToken(token: string): Promise<string | null> {
 export async function cariProyekUser(email: string): Promise<string | null> {
   const res = await fetch(
     `${SB_URL}/rest/v1/users_proyek?email=eq.${encodeURIComponent(email)}&select=proyek_id&limit=1`,
-    { headers: ANON_HEADERS, cache: 'no-store' },
+    { headers: headerLogin(), cache: 'no-store' },
   );
   if (!res.ok) throw new Error('Gagal memeriksa penugasan proyek.');
   const data = (await res.json()) as { proyek_id?: string }[];
@@ -86,7 +88,7 @@ export async function cariProyekUser(email: string): Promise<string | null> {
 export async function apakahCfo(email: string): Promise<boolean> {
   const res = await fetch(
     `${SB_URL}/rest/v1/cfo_users?email=eq.${encodeURIComponent(email)}&select=email&limit=1`,
-    { headers: ANON_HEADERS, cache: 'no-store' },
+    { headers: headerLogin(), cache: 'no-store' },
   );
   if (!res.ok) throw new Error('Gagal memeriksa allowlist CFO.');
   const data = (await res.json()) as unknown[];
@@ -123,7 +125,14 @@ export function useGuard(izinkan: Peran[]): StatusSesi {
       }
 
       try {
-        const email = (await verifikasiToken(token)) ?? emailTersimpan();
+        // Token kedaluwarsa (default 1 jam) diperbarui dulu lewat refresh
+        // token. Tanpa sesi yang sah, data tidak akan terbaca (RLS), jadi
+        // tidak lagi jatuh ke email yang tersimpan seperti versi lama.
+        let email = await verifikasiToken(token);
+        if (!email) {
+          const baru = await perbaruiToken();
+          email = baru ? await verifikasiToken(baru) : null;
+        }
         if (!email) {
           bersihkanSesi();
           router.replace('/login');

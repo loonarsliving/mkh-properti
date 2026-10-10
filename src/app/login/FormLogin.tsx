@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
 import { SB_KEY, SB_URL, PERUSAHAAN } from '@/lib/config';
+import { perbaruiToken } from '@/lib/supabase';
 import {
   apakahCfo,
   cariProyekUser,
-  emailTersimpan,
   peranDariProyekId,
   rutaUtama,
   simpanSesi,
@@ -69,7 +69,11 @@ export function FormLogin() {
       return;
     }
     void (async () => {
-      const alamat = (await verifikasiToken(token)) ?? emailTersimpan();
+      let alamat = await verifikasiToken(token);
+      if (!alamat) {
+        const baru = await perbaruiToken();
+        alamat = baru ? await verifikasiToken(baru) : null;
+      }
       if (!alamat) {
         window.sessionStorage.clear();
         setCekSesi(false);
