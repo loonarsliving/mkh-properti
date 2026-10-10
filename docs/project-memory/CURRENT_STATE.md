@@ -79,11 +79,13 @@ Duplikat historis (14 transaksi) dihapus oleh migrasi `0039` — **BELUM
 diterapkan, menunggu persetujuan owner** (mengubah isi buku besar).
 
 **Laporan Investor.** Migrasi `0040` (**LIVE**): tabel `ir_*`, RPC
-`ir_metrik_terima` (kiriman KPI sistem lain, Vault `ir_sync_shared_secret`),
-`ir_ambil_data` (CFO atau WA ber-rahasia `ir_report_secret`),
-`ir_catat_unduhan`. Halaman `/laporan-investor`, PDF server
-`/api/laporan-investor/pdf`, WA `/api/laporan-investor/wa` (env
-`IR_REPORT_SECRET`). Modul realtime (keputusan owner). Dokumen:
+`ir_metrik_terima`, `ir_ambil_data`, `ir_catat_unduhan`. Migrasi `0041`
+(**LIVE**): tidak ada rahasia baru — villa memakai `villa_sync_shared_secret`,
+MK Connect memakai `mk_sync_shared_secret`; izin meminta laporan lewat WA =
+peran `super_admin` di MK Connect (keputusan owner). Halaman
+`/laporan-investor`, PDF server `/api/laporan-investor/pdf`, WA
+`/api/laporan-investor/wa` (meneruskan header `x-sync-secret` ke database;
+tanpa env baru). Modul realtime (keputusan owner). Dokumen:
 `docs/laporan-investor/`. Belum ada kiriman KPI dari villa/MK Connect — lihat
 spesifikasi 02/03.
 

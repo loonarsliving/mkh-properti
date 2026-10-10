@@ -17,7 +17,7 @@ tersimpan di `ir_metrik_log` (laporan menandai bulan yang pernah direvisi).
 POST https://<proyek-mkh>.supabase.co/rest/v1/rpc/ir_metrik_terima
 apikey: <anon key mkh-properti>          (sama seperti villa_income_sync)
 Authorization: Bearer <anon key mkh-properti>
-x-ir-sync-secret: <Vault secret ir_sync_shared_secret — dibuat owner>
+x-villa-sync-secret: <rahasia yang SUDAH dipakai villa_income_sync (integration_settings.mkh_finance_bridge.secret)>
 Content-Type: application/json
 
 {
@@ -34,8 +34,16 @@ Content-Type: application/json
 - Kunci di luar kontrak **ditolak** oleh database (perlindungan data pribadi).
 - Jadwal yang disarankan: **harian** untuk bulan berjalan (`sementara`) dan
   sekali setelah tutup bulan (`final`). Kiriman ulang aman (upsert).
-- Simpan konfigurasi jembatan di `integration_settings` seperti
-  `mkh_finance_bridge` (jangan di repo).
+- Tidak ada rahasia/konfigurasi baru: pakai jembatan `mkh_finance_bridge`
+  yang sudah ada (base URL diganti ke `rpc/ir_metrik_terima`). Database hanya
+  menerima sumber berawalan `villa` dari rahasia ini (migrasi 0041).
+
+## Tidak menyentuh fitur investor villa
+
+Pekerjaan ini **hanya menambah** satu pemanggilan keluar. Halaman investor,
+perhitungan dividen (`computeReport`, rumus beku PHASE0-BASELINE §2), cron
+daftar dividen, dan `villa_income_sync` tidak diubah. Fungsi yang dipakai
+hanya dipanggil (dibaca), tidak dimodifikasi.
 
 ## Pemetaan kunci → fungsi villa-api yang SUDAH ADA (jangan implementasi ulang)
 
@@ -66,7 +74,8 @@ Aturan yang wajib dihormati:
 menyimpan unit yang **ditutup di Cloudbeds** (room block) atau maintenance.
 Tanpa itu okupansi atas unit dijual tidak bisa dihitung, termasuk mundur.
 
-Usulan (perubahan skema villa — butuh persetujuan owner): tambah kolom
+Usulan (opsional; perubahan skema villa — butuh persetujuan owner dan tidak
+boleh mengganggu fitur investor): tambah kolom
 `dijual boolean` (atau `ditutup_alasan text`) ke snapshot harian, diisi dari
 `unitMaintenanceBentrok()` / room block Cloudbeds yang sudah dibaca villa-api
 saat snapshot dibuat. `unit_dijual` bulanan = rata-rata unit dijual per hari;

@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Badge, Memuat, OverlaySimpan, Panel, PesanGalat, Toast, useToast } from '@/components/ui/Umum';
 import { rupiah } from '@/lib/format';
 import { hariTerakhir } from '@/lib/periode';
-import { getAccessToken, perbaruiToken, sbInsert, sbQuery, sbRpc, sbUpdate } from '@/lib/supabase';
+import { getAccessToken, perbaruiToken, sbInsert, sbRpc, sbUpdate } from '@/lib/supabase';
 import {
   BAGIAN_LAPORAN,
   BAGIAN_NARASI,
@@ -351,7 +351,6 @@ function IsiLaporanInvestor() {
       <PanelNarasi data={data} onTersimpan={() => void muat(sampai)} toast={toast} />
       <PanelUnitBisnis units={data.unit_bisnis} onTersimpan={() => void muat(sampai)} toast={toast} />
       <PanelMetrikManual units={unitAktif} metrik={data.metrik} onTersimpan={() => void muat(sampai)} toast={toast} />
-      <PanelPenerimaWa toast={toast} />
     </div>
   );
 }
@@ -617,72 +616,6 @@ function PanelMetrikManual({
         <input className="input" type="number" placeholder="Nilai" value={nilai} onChange={(e) => setNilai(e.target.value)} />
         <button className="btn-primary" onClick={() => void simpan()} disabled={unitId === '' || nilai === ''}>
           Simpan
-        </button>
-      </div>
-    </Panel>
-  );
-}
-
-interface PenerimaWa {
-  nomor: string;
-  nama: string;
-  aktif: boolean;
-}
-
-function PanelPenerimaWa({ toast }: { toast: Toaster }) {
-  const [daftar, setDaftar] = useState<PenerimaWa[] | null>(null);
-  const [nomor, setNomor] = useState('');
-  const [nama, setNama] = useState('');
-
-  const muat = useCallback(async () => {
-    try {
-      setDaftar(await sbQuery<PenerimaWa>('ir_wa_penerima', 'select=nomor,nama,aktif&order=nama.asc'));
-    } catch (e) {
-      toast.galat(`Gagal memuat penerima WA: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    void muat();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function tambah() {
-    const bersih = nomor.replace(/\D/g, '').replace(/^0/, '62');
-    if (!/^62\d{8,14}$/.test(bersih)) {
-      toast.galat('Nomor harus format Indonesia, mis. 62812xxxxxxx');
-      return;
-    }
-    try {
-      await sbInsert('ir_wa_penerima', [{ nomor: bersih, nama: nama.trim() || bersih }]);
-      setNomor('');
-      setNama('');
-      toast.sukses('Nomor ditambahkan.');
-      void muat();
-    } catch (e) {
-      toast.galat(`Gagal: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-
-  return (
-    <Panel judul="Minta laporan lewat WhatsApp" ikon="kirim">
-      <p className="text-[10.5px] text-slate-500">
-        Nomor di bawah boleh meminta laporan dengan mengirim pesan ke nomor WhatsApp sistem (MK Connect). Nomor lain ditolak.
-        Setiap kiriman tercatat di log unduhan.
-      </p>
-      <ul className="mt-2 space-y-1 text-[12px]">
-        {(daftar ?? []).map((p) => (
-          <li key={p.nomor}>
-            <span className="font-mono">{p.nomor}</span> — {p.nama} {p.aktif ? null : <Badge anak="nonaktif" />}
-          </li>
-        ))}
-        {daftar && daftar.length === 0 ? <li className="text-slate-400">Belum ada nomor terdaftar.</li> : null}
-      </ul>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <input className="input max-w-[200px]" placeholder="62812…" value={nomor} onChange={(e) => setNomor(e.target.value)} />
-        <input className="input max-w-[220px]" placeholder="Nama" value={nama} onChange={(e) => setNama(e.target.value)} />
-        <button className="btn-primary" onClick={() => void tambah()}>
-          <Icon name="plus" className="h-4 w-4" /> Tambah nomor
         </button>
       </div>
     </Panel>

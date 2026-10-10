@@ -5,11 +5,13 @@
  * Tidak memakai service-role key. Akses ditentukan oleh database sendiri
  * (RPC ir_ambil_data, migrasi 0040):
  *   - web: access token CFO yang diteruskan dari browser;
- *   - WhatsApp: anon key + header x-ir-report-secret + nomor peminta yang
- *     terdaftar di ir_wa_penerima.
+ *   - WhatsApp: anon key + header x-sync-secret (rahasia sync MK Connect yang
+ *     sudah ada, diteruskan apa adanya dari MK Connect; dicocokkan database
+ *     dengan Vault mk_sync_shared_secret). MK Connect yang memastikan
+ *     peminta adalah super_admin (migrasi 0041).
  */
 
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { renderToBuffer, type DocumentProps } from '@react-pdf/renderer';
 import { createElement, type ReactElement } from 'react';
 import { SB_KEY, SB_URL } from '@/lib/config';
@@ -30,7 +32,7 @@ function header(k: Kredensial): Record<string, string> {
     apikey: SB_KEY,
     Authorization: `Bearer ${SB_KEY}`,
     'Content-Type': 'application/json',
-    'x-ir-report-secret': k.rahasia,
+    'x-sync-secret': k.rahasia,
   };
 }
 
@@ -105,13 +107,6 @@ export async function susunLaporanServer(
   });
 
   return { model, pdf, sha256, namaBerkas };
-}
-
-/** Perbandingan rahasia yang tahan timing attack. */
-export function rahasiaCocok(diberikan: string, seharusnya: string): boolean {
-  const a = Buffer.from(diberikan);
-  const b = Buffer.from(seharusnya);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export function responsPdf(pdf: Buffer, namaBerkas: string, sha256: string): Response {

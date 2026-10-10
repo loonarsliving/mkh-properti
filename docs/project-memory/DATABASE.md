@@ -105,5 +105,7 @@ No secrets, keys, tokens, or passwords are recorded anywhere in this document.
   `ir_unduhan_log`, `ir_wa_penerima`; RPC `ir_metrik_terima`,
   `ir_ambil_data`, `ir_catat_unduhan`; kontrak kunci `ir_kunci_metrik_v1()`.
   Semua CFO-only, tanpa policy anon.
-- Vault secret yang harus dibuat owner (nilai tidak ada di repo):
-  `ir_sync_shared_secret`, `ir_report_secret`.
+- `0041_laporan_investor_pakai_secret_yang_ada` (live): `ir_metrik_terima`
+  dan `ir_boleh_akses` memakai Vault secret yang sudah ada
+  (`mk_sync_shared_secret`, `villa_sync_shared_secret`); tidak ada secret
+  baru. `ir_wa_penerima` tidak dipakai (akses dicabut).

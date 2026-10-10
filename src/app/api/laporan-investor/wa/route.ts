@@ -1,16 +1,18 @@
-import { GalatAkses, bacaOpsi, rahasiaCocok, responsPdf, susunLaporanServer } from '@/lib/laporan-investor/server';
+import { GalatAkses, bacaOpsi, responsPdf, susunLaporanServer } from '@/lib/laporan-investor/server';
 
 /**
- * POST /api/laporan-investor/wa — dipanggil MK Connect saat super admin
+ * POST /api/laporan-investor/wa — dipanggil MK Connect saat SUPER ADMIN
  * mengirim permintaan laporan ke nomor WhatsApp sistem. Mengembalikan PDF
  * (application/pdf) yang lalu dikirim MK Connect sebagai dokumen WA.
  *
- * Header: x-ir-report-secret = env IR_REPORT_SECRET (= Vault ir_report_secret).
+ * Memakai fitur yang sudah ada (keputusan owner 2026-10-10):
+ *   - Header x-sync-secret = rahasia sync MK Connect yang sama dengan
+ *     sync_inbound. Server ini TIDAK menyimpan salinannya: header diteruskan
+ *     ke Supabase dan database yang mencocokkannya dengan Vault
+ *     mk_sync_shared_secret (ir_boleh_akses, migrasi 0041).
+ *   - Siapa yang boleh meminta = peran super_admin di MK Connect; dicek di
+ *     MK Connect sebelum memanggil route ini.
  * Body: { nomor: '62812…', dari?: 'YYYY-MM', sampai?: 'YYYY-MM', unit?: string[] }
- *
- * Dua lapis pemeriksaan: rahasia dicek di sini DAN di database
- * (ir_boleh_akses), dan nomor peminta harus terdaftar aktif di
- * ir_wa_penerima. Nomor tidak terdaftar → 403, tanpa PDF.
  * Spesifikasi sisi MK Connect: docs/laporan-investor/03-SPESIFIKASI-MKHSISTEM.md.
  */
 export const runtime = 'nodejs';
@@ -18,11 +20,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: Request): Promise<Response> {
-  const rahasia = process.env.IR_REPORT_SECRET ?? '';
-  if (!rahasia) return Response.json({ error: 'Laporan lewat WhatsApp belum dikonfigurasi' }, { status: 503 });
-
-  const diberikan = req.headers.get('x-ir-report-secret') ?? '';
-  if (!rahasiaCocok(diberikan, rahasia)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const rahasia = req.headers.get('x-sync-secret') ?? '';
+  if (!rahasia) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: Record<string, unknown> = {};
   try {
@@ -38,7 +37,7 @@ export async function POST(req: Request): Promise<Response> {
     const { pdf, namaBerkas, sha256 } = await susunLaporanServer({ jenis: 'wa', rahasia, nomor }, bacaOpsi(body));
     return responsPdf(pdf, namaBerkas, sha256);
   } catch (e) {
-    if (e instanceof GalatAkses) return Response.json({ error: 'Nomor tidak terdaftar sebagai penerima laporan' }, { status: 403 });
+    if (e instanceof GalatAkses) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('laporan-investor/wa', e);
     return Response.json({ error: 'Gagal membuat laporan' }, { status: 500 });
   }

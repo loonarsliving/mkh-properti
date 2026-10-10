@@ -5,8 +5,9 @@ _Branch produksi Mkhsistem: `claude/mk-connect-app-o9zw2p` (bukan `main`)._
 _Dokumen ini sengaja tanpa angka keuangan atau data pribadi (repo publik)._
 
 Ada empat bagian. Semua kiriman ke mkh-properti memakai RPC
-`ir_metrik_terima` (migrasi mkh-properti `0040`) dengan header
-`x-ir-sync-secret`, kecuali bagian D (permintaan laporan lewat WA).
+`ir_metrik_terima` (migrasi mkh-properti `0040`/`0041`) dengan header
+**`x-sync-secret` yang sudah dipakai `sync_inbound`** — tidak ada rahasia
+baru. Database hanya menerima sumber berawalan `mk-connect` dari rahasia ini.
 
 ## A. Headcount bulanan (event baru)
 
@@ -91,19 +92,20 @@ sistem mengirimkan laporannya"):
    - `LAPORAN INVESTOR` → sejak data pertama s.d. bulan ini
    - `LAPORAN INVESTOR 2026-09` → satu bulan
    - `LAPORAN INVESTOR 2026-09 2026-12` → rentang
-2. Handler pesan mengenali perintah itu **hanya** bila pengirim punya peran
-   `super_admin` di MK Connect. Pesan lain diproses seperti biasa.
-3. MK Connect memanggil server mkh-properti:
+2. Handler pesan mengenali perintah itu **hanya** bila nomor pengirim milik
+   karyawan dengan peran `super_admin` di MK Connect (fitur peran yang sudah
+   ada). Pengirim lain mendapat balasan biasa / diabaikan; tidak ada daftar
+   nomor terpisah di mkh-properti.
+3. MK Connect memanggil server mkh-properti dengan rahasia sync yang sama
+   seperti `sync_inbound`:
    ```
    POST https://finance.haluoleo.id/api/laporan-investor/wa
-   x-ir-report-secret: <rahasia bersama; env IR_REPORT_SECRET di Vercel mkh-properti
-                        = Vault ir_report_secret di Supabase mkh-properti>
+   x-sync-secret: <mk_sync_shared_secret yang sudah ada>
    Content-Type: application/json
    { "nomor": "62812…", "dari": "2026-09", "sampai": "2026-12" }
    ```
    Respons sukses: `200 application/pdf` (header `Content-Disposition` berisi
-   nama berkas). `403` = nomor tidak terdaftar di `ir_wa_penerima`
-   (didaftarkan CFO di halaman Laporan Investor). `503` = belum dikonfigurasi.
+   nama berkas). `401` = rahasia salah.
 4. MK Connect mengunggah PDF ke Meta (`POST /{phone-number-id}/media`) lalu
    mengirim pesan `type: document` dengan media id itu ke pengirim. Karena
    super admin yang memulai percakapan, balasan ada di dalam jendela 24 jam.
