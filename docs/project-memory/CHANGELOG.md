@@ -2,6 +2,10 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-11 — Modul Keuangan Loonars 2 (branch `claude/loonars2-finance-module-9ejyyz`, belum di-merge)
+- Migrasi `0043` (belum diterapkan): sistem 4 rekening A/B/C/D, alokasi C → B → D, pengajuan material, pengingat & laporan WA, audit log.
+- Halaman `/loonars2`, route `/api/loonars2/wa`, uji SQL `supabase/tests/`.
+
 ## 2026-06-11 to 2026-06-20 — Initial upload phase
 Six "Add files via upload" commits (`2c222fd`, `1f487a9`, `e55ca2d`, `f77d6fd`, `aac5d5d`, `cbc8089`, `8ae6a01`, `aa1e759`, `d43bbf6`, `2d3a67c`, `7f937d3`, `3615147`) — initial and early-iteration versions of the app uploaded via GitHub's web UI, no individual change descriptions available.
 

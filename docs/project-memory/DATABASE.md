@@ -109,3 +109,18 @@ No secrets, keys, tokens, or passwords are recorded anywhere in this document.
   dan `ir_boleh_akses` memakai Vault secret yang sudah ada
   (`mk_sync_shared_secret`, `villa_sync_shared_secret`); tidak ada secret
   baru. `ir_wa_penerima` tidak dipakai (akses dicabut).
+
+## 2026-10-11 — migrasi 0043 (Keuangan Loonars 2) — LIVE (diterapkan sebagai 0043a–h, lihat CURRENT_STATE.md)
+
+Tabel (semua RLS, select hanya CFO): `loonars2_settings` (1 baris),
+`loonars2_unit_types`, `loonars2_accounts` (A/B/C/D), `loonars2_units` (17),
+`loonars2_receipts`, `loonars2_allocations`, `loonars2_material_requests`,
+`loonars2_disbursements` (check aturan rekening: B=tanah, C=material/tukang/
+fee/lain_konstruksi, D=profit), `loonars2_wa_users`, `loonars2_wa_pending`,
+`loonars2_wa_log`, `loonars2_outbox`, `loonars2_audit_log`.
+Edit langsung CFO hanya untuk settings/unit_types/accounts/units/wa_users;
+uang hanya lewat RPC `loonars2_web(p_aksi, p_data)` (CFO) dan
+`loonars2_wa(p_nomor, p_aksi, p_data)` (header x-sync-secret).
+View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
+(security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
+Fungsi internal `_loonars2_*` tertutup untuk klien.
