@@ -55,6 +55,22 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
+## 2026-10-11 — Loonars 2: utang toko + pengajuan mingguan — DIBANGUN, BELUM DITERAPKAN
+
+Migrasi `0044_loonars2_utang_toko_dan_pengajuan_mingguan.sql` (belum
+diterapkan ke produksi, menunggu persetujuan owner setelah laporan uji):
+`loonars2_toko`, `loonars2_utang_toko` (per unit, kode U-n, memotong budget
+bangun unit saat disetujui), `loonars2_cicilan` (tanpa unit — tidak
+dihitung dua kali), kolom `kelompok` (kode M-n) di pengajuan, `toko_id`/
+`cicilan_id` di pengeluaran, `hari_pengajuan_mingguan` di pengaturan
+(default Jumat). Fungsi baru `_loonars2_catat_utang`,
+`_loonars2_ajukan_mingguan`, `_loonars2_putuskan_kode`,
+`_loonars2_bayar_kelompok`; `_loonars2_wa_jalankan`, `loonars2_web`,
+`loonars2_pengingat`, `_loonars2_teks_saldo`, `_loonars2_cek_kesehatan`,
+`_loonars2_ajukan`, `loonars2_v_unit` dinyatakan ulang. Tanpa DROP/DELETE.
+Dashboard: tab Utang Toko + aksi per kode di tab Pengajuan. Uji:
+`supabase/tests/loonars2_uji_utang.sql` (lulus bersama uji 0043).
+
 ## 2026-10-11 — Modul Keuangan Loonars 2 (4 rekening + WA) — LIVE
 
 Owner menyetujui ("Ya bawa ke production") setelah laporan uji.
