@@ -15,6 +15,11 @@ export const AKSI_WA_LOONARS2 = [
   'cairkan_profit',
   'ajukan',
   'bayar_pengajuan',
+  'utang',
+  'daftar_utang',
+  'ajukan_mingguan',
+  'putuskan_kode',
+  'bayar_kelompok',
   'ya',
   'batal',
   'outbox_ambil',
@@ -67,6 +72,7 @@ export interface L2Unit {
   komitmen_disetujui: number;
   terdanai_penuh: boolean;
   jatuh_tempo_efektif: string | null;
+  utang_disetujui: number;
 }
 
 export interface L2TipeUnit {
@@ -136,6 +142,47 @@ export interface L2Pengajuan {
   status: 'menunggu' | 'disetujui' | 'ditolak' | 'dibayar';
   alasan_tolak: string | null;
   diputuskan_oleh: string | null;
+  dibuat_pada: string;
+  kelompok: string | null;
+}
+
+export interface L2Toko {
+  id: number;
+  nama: string;
+  catatan: string | null;
+  utang_disetujui: number;
+  utang_menunggu: number;
+  cicilan_dibayar: number;
+  cicilan_diproses: number;
+  sisa_utang: number;
+}
+
+export interface L2Utang {
+  id: number;
+  kelompok: string;
+  toko_id: number;
+  unit_id: number;
+  deskripsi: string;
+  nominal: number;
+  tanggal: string;
+  nota_url: string | null;
+  diajukan_oleh: string;
+  pakai_buffer: boolean;
+  melewati_buffer: boolean;
+  unit_belum_terdanai: boolean;
+  status: 'menunggu' | 'disetujui' | 'ditolak';
+  alasan_tolak: string | null;
+}
+
+export interface L2Cicilan {
+  id: number;
+  kelompok: string;
+  toko_id: number;
+  nominal: number;
+  catatan: string | null;
+  diajukan_oleh: string;
+  status: 'menunggu' | 'disetujui' | 'ditolak' | 'dibayar';
+  alasan_tolak: string | null;
   dibuat_pada: string;
 }
 

@@ -15,6 +15,7 @@ import {
   LABEL_STATUS_UNIT,
   type L2Alokasi,
   type L2Audit,
+  type L2Cicilan,
   type L2Pengajuan,
   type L2Pengaturan,
   type L2Pengeluaran,
@@ -23,7 +24,9 @@ import {
   type L2Rekening,
   type L2Ringkasan,
   type L2TipeUnit,
+  type L2Toko,
   type L2Unit,
+  type L2Utang,
 } from '@/lib/loonars2';
 
 /**
@@ -40,13 +43,14 @@ export default function HalamanLoonars2() {
   );
 }
 
-type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'pengeluaran' | 'pengaturan' | 'audit';
+type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'utang' | 'pengeluaran' | 'pengaturan' | 'audit';
 
 const TAB: { id: Tab; label: string }[] = [
   { id: 'ringkasan', label: 'Ringkasan' },
   { id: 'unit', label: 'Unit' },
   { id: 'pembayaran', label: 'Pembayaran' },
   { id: 'pengajuan', label: 'Pengajuan' },
+  { id: 'utang', label: 'Utang Toko' },
   { id: 'pengeluaran', label: 'Pengeluaran' },
   { id: 'pengaturan', label: 'Pengaturan' },
   { id: 'audit', label: 'Audit Log' },
@@ -64,6 +68,9 @@ interface Data {
   pengguna: L2PenggunaWa[];
   audit: L2Audit[];
   ringkasan: L2Ringkasan;
+  toko: L2Toko[];
+  utang: L2Utang[];
+  cicilan: L2Cicilan[];
 }
 
 function pesanGalat(e: unknown): string {
@@ -85,7 +92,7 @@ function IsiLoonars2() {
   const muatUlang = useCallback(async () => {
     setGalat(null);
     try {
-      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan] =
+      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan] =
         await Promise.all([
           sbQuery<L2Rekening>('loonars2_v_rekening', 'select=*&order=kode.asc'),
           sbQuery<L2Unit>('loonars2_v_unit', 'select=*&order=nomor.asc'),
@@ -98,8 +105,11 @@ function IsiLoonars2() {
           sbQuery<L2PenggunaWa>('loonars2_wa_users', 'select=*&order=id.asc'),
           sbQuery<L2Audit>('loonars2_audit_log', 'select=*&order=id.desc&limit=150'),
           sbRpc<L2Ringkasan>('loonars2_web', { p_aksi: 'ringkasan', p_data: {} }),
+          sbQuery<L2Toko>('loonars2_v_toko', 'select=*&order=sisa_utang.desc'),
+          sbQuery<L2Utang>('loonars2_utang_toko', 'select=*&order=id.desc&limit=300'),
+          sbQuery<L2Cicilan>('loonars2_cicilan', 'select=*&order=id.desc&limit=300'),
         ]);
-      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan });
+      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan });
     } catch (e) {
       setGalat(pesanGalat(e));
     }
@@ -149,6 +159,11 @@ function IsiLoonars2() {
                 {data.pengajuan.filter((p) => p.status === 'menunggu').length}
               </span>
             ) : null}
+            {t.id === 'utang' && (data.utang.some((u) => u.status === 'menunggu') || data.cicilan.some((c) => c.status === 'menunggu')) ? (
+              <span className="ml-1 rounded-full bg-amber-400 px-1.5 text-[10px] text-slate-900">
+                {data.utang.filter((u) => u.status === 'menunggu').length + data.cicilan.filter((c) => c.status === 'menunggu').length}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -157,6 +172,7 @@ function IsiLoonars2() {
       {tab === 'unit' ? <TabUnit data={data} jalankan={jalankan} /> : null}
       {tab === 'pembayaran' ? <TabPembayaran data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengajuan' ? <TabPengajuan data={data} jalankan={jalankan} web={web} /> : null}
+      {tab === 'utang' ? <TabUtang data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengeluaran' ? <TabPengeluaran data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengaturan' ? <TabPengaturan data={data} jalankan={jalankan} /> : null}
       {tab === 'audit' ? <TabAudit data={data} /> : null}
@@ -615,12 +631,69 @@ function TabPengajuan({ data, jalankan, web }: { data: Data; jalankan: Jalankan;
     }
     void jalankan('Menyimpan keputusan…', () => web('putuskan', { id: p.id, setuju, alasan, buffer }), setuju ? 'Disetujui' : 'Ditolak');
   };
+  const putuskanKode = (kode: string, setuju: boolean) => {
+    let alasan: string | null = null;
+    if (setuju) {
+      if (!window.confirm(`Setujui semua baris ${kode} yang masih menunggu (termasuk yang memakai buffer)?`)) return;
+    } else {
+      alasan = window.prompt(`Alasan menolak ${kode}?`);
+      if (alasan === null) return;
+    }
+    void jalankan('Menyimpan keputusan…', () => web('putuskan_kode', { kode, setuju, alasan, buffer: true }), setuju ? `${kode} disetujui` : `${kode} ditolak`);
+  };
+  const bayarKode = (kode: string) => {
+    const bukti = window.prompt(`Tautan bukti transfer ${kode} (boleh kosong):`, '');
+    if (bukti === null) return;
+    void jalankan('Mencatat pembayaran…', async () => {
+      const hasil = await web('bayar_kelompok', { kode, bukti_url: bukti });
+      if (typeof hasil.pesan === 'string' && hasil.pesan.startsWith('❌')) throw new Error(hasil.pesan);
+    }, `${kode} dibayar dari C`);
+  };
+  const kelompokAktif = [
+    ...new Set([
+      ...data.pengajuan.filter((p) => p.kelompok && (p.status === 'menunggu' || p.status === 'disetujui')).map((p) => p.kelompok as string),
+      ...data.cicilan.filter((c) => c.status === 'menunggu' || c.status === 'disetujui').map((c) => c.kelompok),
+    ]),
+  ];
   const bayar = (p: L2Pengajuan) => {
     const bukti = window.prompt(`Tautan bukti transfer L2-${p.id} (boleh kosong):`, '');
     if (bukti === null) return;
     void jalankan('Mencatat pembayaran…', () => web('bayar_pengajuan', { id: p.id, bukti_url: bukti }), `L2-${p.id} dibayar dari C`);
   };
   return (
+    <div className="space-y-4">
+    {kelompokAktif.length > 0 ? (
+      <Panel judul="Pengajuan mingguan aktif" ikon="kalender">
+        <div className="space-y-2">
+          {kelompokAktif.map((kode) => {
+            const baris = data.pengajuan.filter((p) => p.kelompok === kode);
+            const cic = data.cicilan.filter((c) => c.kelompok === kode);
+            const menunggu = baris.some((p) => p.status === 'menunggu') || cic.some((c) => c.status === 'menunggu');
+            const disetujui = baris.some((p) => p.status === 'disetujui') || cic.some((c) => c.status === 'disetujui');
+            const aktif = [...baris, ...cic].filter((x) => x.status === 'menunggu' || x.status === 'disetujui');
+            const total = aktif.reduce((s, x) => s + Number(x.nominal), 0);
+            return (
+              <div key={kode} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-[12px]">
+                <b className="font-mono">{kode}</b>
+                <span className="text-slate-500">{aktif.length} baris aktif · {rupiah(total)}</span>
+                <span className="ml-auto flex gap-1">
+                  {menunggu ? (
+                    <>
+                      <button type="button" className="btn-green px-2 py-1 text-[11px]" onClick={() => putuskanKode(kode, true)}>Setujui semua</button>
+                      <button type="button" className="btn-ghost px-2 py-1 text-[11px] text-rose-600" onClick={() => putuskanKode(kode, false)}>Tolak semua</button>
+                    </>
+                  ) : null}
+                  {disetujui && !menunggu ? (
+                    <button type="button" className="btn-green px-2 py-1 text-[11px]" onClick={() => bayarKode(kode)}>Catat dibayar</button>
+                  ) : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10.5px] text-slate-500">Baris cicilan utang ada di tab Utang Toko. Satu kode dibayar sekaligus dengan satu bukti transfer.</p>
+      </Panel>
+    ) : null}
     <Panel judul={`Pengajuan material/tukang — ${data.pengajuan.length}`} ikon="dokumen" padat>
       {data.pengajuan.length === 0 ? (
         <Kosong pesan="Belum ada pengajuan. Pelaksana mengajukan lewat WhatsApp (awali dengan &quot;L2&quot;)." ikon="dokumen" />
@@ -641,7 +714,7 @@ function TabPengajuan({ data, jalankan, web }: { data: Data; jalankan: Jalankan;
             <tbody>
               {data.pengajuan.map((p) => (
                 <tr key={p.id}>
-                  <td className="font-mono">L2-{p.id}</td>
+                  <td className="font-mono">L2-{p.id}{p.kelompok ? <div className="text-[10px] text-slate-400">{p.kelompok}</div> : null}</td>
                   <td className="font-mono">{labelUnit(data, p.unit_id)}</td>
                   <td className="max-w-[360px] text-[11px]">
                     <b>{p.kategori}</b> — {p.deskripsi}
@@ -676,6 +749,143 @@ function TabPengajuan({ data, jalankan, web }: { data: Data; jalankan: Jalankan;
         </div>
       )}
     </Panel>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Utang toko & cicilan
+// ---------------------------------------------------------------------------
+function TabUtang({ data, jalankan, web }: { data: Data; jalankan: Jalankan; web: Web }) {
+  const namaToko = (id: number) => data.toko.find((t) => t.id === id)?.nama ?? '-';
+  const putuskan = (kode: string, setuju: boolean, buffer: boolean) => {
+    let alasan: string | null = null;
+    if (setuju) {
+      if (!window.confirm(`Setujui ${kode}?${buffer ? ' (memakai buffer unit)' : ''}`)) return;
+    } else {
+      alasan = window.prompt(`Alasan menolak ${kode}?`);
+      if (alasan === null) return;
+    }
+    void jalankan('Menyimpan keputusan…', () => web('putuskan_kode', { kode, setuju, alasan, buffer }), setuju ? `${kode} disetujui` : `${kode} ditolak`);
+  };
+  const kelompokUtang = [...new Set(data.utang.map((u) => u.kelompok))];
+  const totalSisa = data.toko.reduce((s, t) => s + Math.max(Number(t.sisa_utang), 0), 0);
+  return (
+    <div className="space-y-4">
+      <Panel judul={`Sisa utang per toko — total ${rupiah(totalSisa)}`} ikon="kotak" padat>
+        {data.toko.length === 0 ? (
+          <Kosong pesan='Belum ada utang toko. Pelaksana mencatat lewat WA: "L2 utang <toko> unit <n> <rincian> <nominal>".' ikon="kotak" />
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr><th>Toko</th><th className="text-right">Utang disetujui</th><th className="text-right">Sudah dicicil</th><th className="text-right">Sisa</th><th className="text-right">Menunggu</th></tr>
+            </thead>
+            <tbody>
+              {data.toko.map((t) => (
+                <tr key={t.id}>
+                  <td className="font-semibold">{t.nama}</td>
+                  <td className="text-right font-mono">{rupiah(t.utang_disetujui)}</td>
+                  <td className="text-right font-mono">{rupiah(t.cicilan_dibayar)}</td>
+                  <td className="text-right font-mono font-bold">{rupiah(t.sisa_utang)}</td>
+                  <td className="text-right text-[11px] text-slate-500">
+                    {Number(t.utang_menunggu) > 0 ? `utang ${rupiah(t.utang_menunggu)}` : ''}
+                    {Number(t.cicilan_diproses) > 0 ? ` cicilan ${rupiah(t.cicilan_diproses)}` : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Panel>
+
+      <Panel judul={`Pembelian secara utang — ${kelompokUtang.length}`} ikon="dokumen" padat>
+        {kelompokUtang.length === 0 ? (
+          <Kosong pesan="Belum ada pembelian secara utang." ikon="dokumen" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead>
+                <tr><th>Kode</th><th>Toko</th><th>Unit</th><th>Rincian</th><th className="text-right">Nominal</th><th>Tanda</th><th>Status</th><th /></tr>
+              </thead>
+              <tbody>
+                {kelompokUtang.map((kode) => {
+                  const baris = data.utang.filter((u) => u.kelompok === kode);
+                  const u0 = baris[0];
+                  const buffer = baris.some((u) => u.pakai_buffer || u.melewati_buffer);
+                  return (
+                    <tr key={kode}>
+                      <td className="font-mono">{kode}</td>
+                      <td>{namaToko(u0.toko_id)}</td>
+                      <td className="font-mono text-[11px]">{baris.map((u) => labelUnit(data, u.unit_id)).join(', ')}</td>
+                      <td className="max-w-[320px] text-[11px]">
+                        {u0.deskripsi}
+                        <div className="text-slate-400">{u0.diajukan_oleh} · {tanggalPendek(u0.tanggal)}</div>
+                        {u0.nota_url ? <a className="text-blue-600 underline" href={u0.nota_url} target="_blank" rel="noreferrer">nota</a> : null}
+                      </td>
+                      <td className="text-right font-mono">{rupiah(baris.reduce((s, u) => s + Number(u.nominal), 0))}</td>
+                      <td className="space-x-1">
+                        {baris.some((u) => u.melewati_buffer) ? <Badge nada="red" anak="melewati buffer" /> : buffer ? <Badge nada="amber" anak="pakai buffer" /> : null}
+                        {baris.some((u) => u.unit_belum_terdanai) ? <Badge nada="amber" anak="unit belum terdanai" /> : null}
+                      </td>
+                      <td>
+                        <Badge nada={u0.status === 'disetujui' ? 'green' : u0.status === 'ditolak' ? 'slate' : 'amber'} anak={u0.status} />
+                        {u0.alasan_tolak ? <div className="text-[10px] text-slate-500">{u0.alasan_tolak}</div> : null}
+                      </td>
+                      <td className="whitespace-nowrap text-right">
+                        {u0.status === 'menunggu' ? (
+                          <>
+                            <button type="button" className="btn-green px-2 py-1 text-[11px]" onClick={() => putuskan(kode, true, buffer)}>Setujui</button>{' '}
+                            <button type="button" className="btn-ghost px-2 py-1 text-[11px] text-rose-600" onClick={() => putuskan(kode, false, false)}>Tolak</button>
+                          </>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
+      <Panel judul={`Cicilan ke toko — ${data.cicilan.length}`} ikon="kas-keluar" padat>
+        {data.cicilan.length === 0 ? (
+          <Kosong pesan="Belum ada cicilan diajukan." ikon="kas-keluar" />
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr><th>Kode</th><th>Pengajuan</th><th>Toko</th><th className="text-right">Nominal</th><th>Status</th><th /></tr>
+            </thead>
+            <tbody>
+              {data.cicilan.map((c) => (
+                <tr key={c.id}>
+                  <td className="font-mono">C-{c.id}</td>
+                  <td className="font-mono">{c.kelompok}</td>
+                  <td>{namaToko(c.toko_id)}</td>
+                  <td className="text-right font-mono">{rupiah(c.nominal)}</td>
+                  <td>
+                    <Badge nada={c.status === 'dibayar' ? 'green' : c.status === 'disetujui' ? 'blue' : c.status === 'ditolak' ? 'slate' : 'amber'} anak={c.status} />
+                    {c.alasan_tolak ? <div className="text-[10px] text-slate-500">{c.alasan_tolak}</div> : null}
+                  </td>
+                  <td className="whitespace-nowrap text-right">
+                    {c.status === 'menunggu' ? (
+                      <>
+                        <button type="button" className="btn-green px-2 py-1 text-[11px]" onClick={() => putuskan(`C-${c.id}`, true, false)}>Setujui</button>{' '}
+                        <button type="button" className="btn-ghost px-2 py-1 text-[11px] text-rose-600" onClick={() => putuskan(`C-${c.id}`, false, false)}>Tolak</button>
+                      </>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="px-4 py-2 text-[10.5px] text-slate-500">
+          Cicilan dibayar bersama pengajuan mingguannya (tab Pengajuan → Catat dibayar). Cicilan tidak memotong budget unit lagi — budget sudah
+          terpotong saat utangnya disetujui.
+        </p>
+      </Panel>
+    </div>
   );
 }
 
