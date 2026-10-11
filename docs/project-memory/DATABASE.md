@@ -110,7 +110,7 @@ No secrets, keys, tokens, or passwords are recorded anywhere in this document.
   (`mk_sync_shared_secret`, `villa_sync_shared_secret`); tidak ada secret
   baru. `ir_wa_penerima` tidak dipakai (akses dicabut).
 
-## 2026-10-11 — migrasi 0043 (Keuangan Loonars 2) — BELUM DITERAPKAN
+## 2026-10-11 — migrasi 0043 (Keuangan Loonars 2) — LIVE (diterapkan sebagai 0043a–h, lihat CURRENT_STATE.md)
 
 Tabel (semua RLS, select hanya CFO): `loonars2_settings` (1 baris),
 `loonars2_unit_types`, `loonars2_accounts` (A/B/C/D), `loonars2_units` (17),

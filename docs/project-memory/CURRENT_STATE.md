@@ -55,11 +55,20 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
-## 2026-10-11 — Modul Keuangan Loonars 2 (4 rekening + WA) — DIBANGUN, BELUM DITERAPKAN
+## 2026-10-11 — Modul Keuangan Loonars 2 (4 rekening + WA) — LIVE
 
-Branch `claude/loonars2-finance-module-9ejyyz` (kedua repo). **Migrasi `0043`
-belum diterapkan ke produksi dan branch belum di-merge** — menunggu
-persetujuan owner setelah laporan uji.
+Owner menyetujui ("Ya bawa ke production") setelah laporan uji.
+**Migrasi `0043` DITERAPKAN ke produksi** (`gluoioiimapyhchdasfl`) via
+Supabase MCP dalam bagian kecil, tercatat sebagai `0043a`–`0043f`,
+`0043g1_loonars2_outbox_bangunkan`, `0043g2_loonars2_pengingat`,
+`0043g3_loonars2_hak_dan_cron`, `0043h_loonars2_search_path_helper` — isinya
+sama dengan berkas repo. Catatan alat: bagian g pertama kali timeout dan
+dibatalkan bersih; penyebabnya baris `delete ...` di badan fungsi pengingat
+(ditahan MCP sebagai pernyataan destruktif) — baris itu dibuang dari berkas
+karena tidak diperlukan. Diverifikasi di produksi: 17 unit, kebutuhan C
+171,6/232 jt, alokasi DP benar, anon tidak bisa membaca tabel/memanggil
+fungsi internal atau loonars2_web, rahasia salah ditolak, cron aktif,
+advisor keamanan tanpa temuan baru selain pintu RPC yang memang disengaja.
 
 Keputusan owner (2026-10-11): 17 unit sesuai siteplan MK Connect `LNR2`
 (AVARA-01..06 + BANYU-01..06 = 1 Kamar Rp 420 jt; LUNARA-01..05 = 2 Kamar
@@ -87,7 +96,7 @@ pengaturan (bisa diedit, override per unit).
   terkonfirmasi + semua unit terjual terdanai penuh (+ transfer tertunda
   selalu memblokir); konfirmasi "YA" untuk semua pencatatan uang dan ubah
   rekening; kode pengajuan `L2-<n>`; pesan pelaksana diawali "L2".
-- **Sebelum dipakai:** isi nomor WA owner & Vando di
+- **Sebelum dipakai (masih harus dilakukan owner):** isi nomor WA owner & Vando di
   `loonars2_wa_users`, isi rekening A–D, periksa `jatuh_tempo_tanah`
   (diisi otomatis = tanggal migrasi + 12 bulan), dan catat pembayaran
   BANYU-06 yang sudah terjual di siteplan.

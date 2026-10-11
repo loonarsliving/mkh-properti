@@ -1783,8 +1783,8 @@ begin
         'kesehatan', 'kesehatan:' || to_char(v_hari, 'YYYY-MM'));
     end if;
   end if;
-
-  delete from public.loonars2_wa_pending where kedaluwarsa_pada < now();
+  -- Konfirmasi "YA" yang kedaluwarsa tidak perlu dihapus di sini: loonars2_wa
+  -- menolaknya saat dibaca dan konfirmasi berikutnya menimpanya.
 end;
 $$;
 
@@ -1842,6 +1842,13 @@ grant execute on function public.loonars2_wa(text, text, jsonb) to anon, authent
 revoke execute on function public.loonars2_web(text, jsonb) from public, anon;
 grant execute on function public.loonars2_web(text, jsonb) to authenticated;
 grant execute on function public.loonars2_rp(numeric) to authenticated;
+
+alter function public.loonars2_rp(numeric) set search_path = public;
+alter function public._loonars2_hari_ini() set search_path = public;
+alter function public._loonars2_normalisasi_nomor(text) set search_path = public;
+alter function public._loonars2_sumber() set search_path = public;
+alter function public._loonars2_set_aktor(text, text) set search_path = public;
+alter function public.loonars2_sentuh_diubah_pada() set search_path = public;
 
 do $$
 begin
