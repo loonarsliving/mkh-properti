@@ -55,6 +55,45 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
+## 2026-10-11 — Modul Keuangan Loonars 2 (4 rekening + WA) — DIBANGUN, BELUM DITERAPKAN
+
+Branch `claude/loonars2-finance-module-9ejyyz` (kedua repo). **Migrasi `0043`
+belum diterapkan ke produksi dan branch belum di-merge** — menunggu
+persetujuan owner setelah laporan uji.
+
+Keputusan owner (2026-10-11): 17 unit sesuai siteplan MK Connect `LNR2`
+(AVARA-01..06 + BANYU-01..06 = 1 Kamar Rp 420 jt; LUNARA-01..05 = 2 Kamar
+Rp 600 jt), biaya bangun 120/160 jt, buffer 15%, **fee marketing 8% dari
+harga**, sewa tanah Rp 1 M lunas 12 bulan, DP 50%. Semua angka ada di tabel
+pengaturan (bisa diedit, override per unit).
+
+- Migrasi `0043_loonars2_keuangan.sql`: tabel `loonars2_*` (RLS CFO,
+  audit log via trigger), alokasi "unit terdanai penuh dulu" C → B → D di
+  `_loonars2_hitung_alokasi` (rupiah bulat + constraint trigger jumlah
+  alokasi = nominal), saldo dihitung dari buku besar
+  (`loonars2_v_rekening`, tidak ada kolom saldo yang bisa diedit), pintu WA
+  `loonars2_wa` (rahasia sync `mk_sync_shared_secret` yang sudah ada,
+  whitelist `loonars2_wa_users`), pintu web `loonars2_web` (khusus CFO),
+  pengingat `loonars2_pengingat` (pg_cron 15 menit) dan
+  `loonars2_outbox_bangunkan` (pg_cron 1 menit → MK Connect
+  `/api/loonars2/outbox`).
+- Frontend: `/loonars2` (dashboard), `/api/loonars2/wa` (diteruskan ke RPC,
+  pola sama dengan laporan investor), `src/lib/loonars2.ts`.
+- Sisi WA ada di Mkhsistem: `lib/ai/domains/loonars2-wa.ts`.
+- Uji: `supabase/tests/jalankan-uji-loonars2.sh` (Postgres lokal sekali
+  pakai + stub Supabase) — semua skenario lulus 2026-10-11.
+- Asumsi default yang dipilih (bisa diubah owner): target tanah diukur dari
+  total alokasi ke B (bukan saldo B); syarat profit = target tanah
+  terkonfirmasi + semua unit terjual terdanai penuh (+ transfer tertunda
+  selalu memblokir); konfirmasi "YA" untuk semua pencatatan uang dan ubah
+  rekening; kode pengajuan `L2-<n>`; pesan pelaksana diawali "L2".
+- **Sebelum dipakai:** isi nomor WA owner & Vando di
+  `loonars2_wa_users`, isi rekening A–D, periksa `jatuh_tempo_tanah`
+  (diisi otomatis = tanggal migrasi + 12 bulan), dan catat pembayaran
+  BANYU-06 yang sudah terjual di siteplan.
+- Belum: bukti foto disimpan sebagai URL Whacenter (belum disalin ke
+  Storage, sama seperti Loonars Coffee); uji ujung-ke-ujung dengan WA asli.
+
 ## 2026-10-10 — Tutup akses publik, Loonars Coffee (LC), Laporan Investor
 
 **Keamanan (keputusan owner: tutup celah data yang bisa dilihat semua orang).**

@@ -310,7 +310,7 @@ function TabUnit({ data, jalankan }: { data: Data; jalankan: Jalankan }) {
       {edit ? <FormUnit unit={edit} onTutup={() => setEdit(null)} jalankan={jalankan} /> : null}
       <Panel judul="17 unit Loonars 2" ikon="rumah" padat>
         <div className="overflow-x-auto">
-          <table className="tbl">
+          <table className="tbl whitespace-nowrap">
             <thead>
               <tr>
                 <th>Unit</th>

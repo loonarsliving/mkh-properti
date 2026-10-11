@@ -174,3 +174,13 @@ Perbaikannya adalah keputusan bisnis, bukan teknis — pilih salah satu:
 
 Jangan diubah sepihak dari sisi frontend saja — kode akun harus disepakati kedua
 sistem, kalau tidak data historis jadi tidak konsisten.
+
+## Loonars 2 via WhatsApp (2026-10-11, belum di-deploy)
+
+MK Connect (Mkhsistem `lib/ai/domains/loonars2-wa.ts`) → POST
+`https://finance.haluoleo.id/api/loonars2/wa` (header `x-sync-secret`) → RPC
+`loonars2_wa`. Arah balik: pg_cron `loonars2_outbox_bangunkan` → POST
+`<loonars2_settings.mk_connect_url>/api/loonars2/outbox` (header yang sama)
+→ MK Connect mengambil antrean (`outbox_ambil`), mengirim lewat Whacenter,
+lalu `outbox_selesai`. Tidak memakai `sync_log`/`sync_inbound`, tidak ada
+rahasia baru.
