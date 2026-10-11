@@ -124,3 +124,12 @@ uang hanya lewat RPC `loonars2_web(p_aksi, p_data)` (CFO) dan
 View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
+
+## 2026-10-11 — migrasi 0044 (utang toko + pengajuan mingguan) — LIVE (0044a–h)
+
+Tabel: `loonars2_toko`, `loonars2_utang_toko` (kode kelompok U-n, per unit),
+`loonars2_cicilan` (kode M-n, per toko). Kolom baru: `loonars2_material_requests.kelompok`,
+`loonars2_disbursements.toko_id/cicilan_id` (check: cicilan hanya dari C,
+kategori material), `loonars2_settings.hari_pengajuan_mingguan`. View baru
+`loonars2_v_toko`; `loonars2_v_unit` kini menambah `utang_disetujui` dan
+memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.

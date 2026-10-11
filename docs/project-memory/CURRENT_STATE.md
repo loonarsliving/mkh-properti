@@ -55,10 +55,14 @@ Yang perlu diketahui siapa pun yang melanjutkan:
    seimbang, seluruh 10 redirect URL lama berfungsi. Uji end-to-end terhadap
    Supabase asli belum dilakukan.
 
-## 2026-10-11 — Loonars 2: utang toko + pengajuan mingguan — DIBANGUN, BELUM DITERAPKAN
+## 2026-10-11 — Loonars 2: utang toko + pengajuan mingguan — LIVE
 
-Migrasi `0044_loonars2_utang_toko_dan_pengajuan_mingguan.sql` (belum
-diterapkan ke produksi, menunggu persetujuan owner setelah laporan uji):
+Owner menyetujui ("Ya bawa ke production dan kirim panduan ke Vando").
+Migrasi `0044` DITERAPKAN ke produksi via Supabase MCP sebagai `0044a`,
+`0044b`, `0044c`, `0044d1`, `0044d2`, `0044e`, `0044f`, `0044g`, `0044h`
+(isi sama dengan berkas; bagian 12 hak akses digabung ke 0044h). Diverifikasi:
+3 tabel baru ber-RLS, anon tanpa akses tabel/fungsi internal, laporan utang
+berjalan, cron tetap aktif. Isi migrasi:
 `loonars2_toko`, `loonars2_utang_toko` (per unit, kode U-n, memotong budget
 bangun unit saat disetujui), `loonars2_cicilan` (tanpa unit — tidak
 dihitung dua kali), kolom `kelompok` (kode M-n) di pengajuan, `toko_id`/
