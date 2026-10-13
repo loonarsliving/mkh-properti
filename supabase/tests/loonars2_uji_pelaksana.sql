@@ -55,3 +55,24 @@ select pg_temp.cek('pelaksana tidak melihat wa_users', (select count(*) from pub
 reset role;
 select pg_temp.cek('anon tidak punya EXECUTE loonars2_web_lihat', not has_function_privilege('anon', 'public.loonars2_web_lihat()', 'execute'));
 select pg_temp.cek('authenticated punya EXECUTE loonars2_web_lihat', has_function_privilege('authenticated', 'public.loonars2_web_lihat()', 'execute'));
+
+-- 0046: izin tambahan lewat loonars2_akses_web (orang yang sudah punya peran lain).
+select pg_temp.sebagai('verif@contoh.id', false);
+select pg_temp.cek('verifikator tanpa izin tambahan belum boleh', not public.loonars2_boleh_lihat());
+select pg_temp.sebagai('owner@contoh.id', true);
+insert into public.loonars2_akses_web (email, nama) values ('Verif@Contoh.id', 'Verif');
+select pg_temp.cek('email unik tidak peka huruf besar/kecil', (select count(*) from public.loonars2_akses_web) = 1);
+select pg_temp.sebagai('verif@contoh.id', false);
+select pg_temp.cek('verifikator dengan izin tambahan boleh', public.loonars2_boleh_lihat());
+select pg_temp.cek('RPC jalan untuk izin tambahan', (select jsonb_array_length(public.loonars2_web_lihat() -> 'unit')) = 17);
+select pg_temp.cek('audit mencatat penambahan akses', exists (select 1 from loonars2_audit_log where tabel = 'loonars2_akses_web' and aksi = 'INSERT'));
+insert into public.loonars2_akses_web (email, nama) values ('lain@contoh.id', 'Lain');
+select pg_temp.sebagai('lain@contoh.id', false);
+set role authenticated;
+select pg_temp.cek('pemilik email hanya melihat barisnya sendiri', (select count(*) from public.loonars2_akses_web) = 1);
+do $$ begin
+  insert into public.loonars2_akses_web (email) values ('licik@contoh.id');
+  raise exception 'GAGAL: non-CFO bisa menambah akses';
+exception when insufficient_privilege then null; end $$;
+select 'LULUS: non-CFO tidak bisa menambah akses';
+reset role;

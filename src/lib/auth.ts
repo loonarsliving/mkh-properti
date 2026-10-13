@@ -96,7 +96,29 @@ export async function cariPenugasanUser(email: string): Promise<PenugasanUser> {
   if (!res.ok) throw new Error('Gagal memeriksa penugasan proyek.');
   const data = (await res.json()) as { proyek_id?: string }[];
   const ids = Array.isArray(data) ? data.map((d) => d.proyek_id).filter((x): x is string => Boolean(x)) : [];
-  return { utama: ids.find((i) => i !== PROYEK_PELAKSANA_L2) ?? null, loonars2: ids.includes(PROYEK_PELAKSANA_L2) };
+  return {
+    utama: ids.find((i) => i !== PROYEK_PELAKSANA_L2) ?? null,
+    loonars2: ids.includes(PROYEK_PELAKSANA_L2) || (await punyaAksesWebLoonars2(email)),
+  };
+}
+
+/**
+ * Izin tambahan dashboard Loonars 2 (tabel loonars2_akses_web, migrasi 0046) untuk
+ * orang yang sudah punya peran lain. RLS: pemilik email hanya melihat barisnya
+ * sendiri. Gagal baca = tidak ada akses tambahan (tidak memblokir login).
+ */
+async function punyaAksesWebLoonars2(email: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/loonars2_akses_web?email=ilike.${encodeURIComponent(email)}&select=id&limit=1`,
+      { headers: headerLogin(), cache: 'no-store' },
+    );
+    if (!res.ok) return false;
+    const data = (await res.json()) as unknown[];
+    return Array.isArray(data) && data.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
