@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GuardHalaman } from '@/components/shell/GuardHalaman';
 import { useJudul } from '@/components/shell/JudulProvider';
+import { useSesi } from '@/components/shell/SesiProvider';
+import { TampilanPelaksana } from './TampilanPelaksana';
 import { Icon } from '@/components/ui/Icon';
 import { Badge, Kosong, Memuat, OverlaySimpan, Panel, PesanGalat, Toast, useToast } from '@/components/ui/Umum';
 import { KartuStat } from '@/components/ui/Kartu';
@@ -37,10 +39,16 @@ import {
  */
 export default function HalamanLoonars2() {
   return (
-    <GuardHalaman izinkan={['cfo']}>
-      <IsiLoonars2 />
+    <GuardHalaman izinkan={['cfo', 'pelaksana']}>
+      <PilihTampilan />
     </GuardHalaman>
   );
+}
+
+/** Owner (CFO) = dashboard penuh; pelaksana = tampilan baca-saja (migrasi 0045). */
+function PilihTampilan() {
+  const sesi = useSesi();
+  return sesi.peran === 'pelaksana' ? <TampilanPelaksana /> : <IsiLoonars2 />;
 }
 
 type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'utang' | 'pengeluaran' | 'pengaturan' | 'audit';
@@ -242,6 +250,10 @@ function TabRingkasan({ data }: { data: Data }) {
   const terjual = data.unit.filter((u) => u.status === 'dp' || u.status === 'lunas').length;
   const belumTerdanai = data.unit.filter((u) => (u.status === 'dp' || u.status === 'lunas') && !u.terdanai_penuh);
   const nada = { A: 'amber', B: 'emerald', C: 'blue', D: 'violet' } as const;
+  const tokoBerutang = data.toko.filter((t) => Number(t.sisa_utang) > 0);
+  const totalUtang = tokoBerutang.reduce((s, t) => s + Number(t.sisa_utang), 0);
+  const utangMenunggu = data.utang.filter((u) => u.status === 'menunggu').length + data.cicilan.filter((c) => c.status === 'menunggu').length;
+  const pengajuanMenunggu = data.pengajuan.filter((x) => x.status === 'menunggu').length;
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -303,6 +315,22 @@ function TabRingkasan({ data }: { data: Data }) {
           ) : null}
         </Panel>
       </div>
+
+      <Panel judul="Utang toko bangunan" ikon="kotak">
+        <div className="space-y-1.5 text-[12px] text-slate-700">
+          <Baris label="Sisa utang seluruh toko (dibayar dari C)" nilai={rupiah(totalUtang)} tebal />
+          {tokoBerutang.map((t) => (
+            <Baris key={t.id} label={`• ${t.nama}`} nilai={rupiah(t.sisa_utang)} />
+          ))}
+          <Baris label="Utang & cicilan menunggu persetujuan" nilai={`${utangMenunggu}`} />
+          <Baris label="Pengajuan material/tukang menunggu" nilai={`${pengajuanMenunggu}`} />
+        </div>
+        {tokoBerutang.length === 0 ? (
+          <p className="mt-3 text-[11px] text-slate-500">Belum ada utang toko yang disetujui. Detail dan persetujuan ada di tab Utang Toko &amp; Pengajuan.</p>
+        ) : (
+          <p className="mt-3 text-[11px] text-slate-500">Utang yang sudah disetujui sudah memotong budget unit. Detail per toko di tab Utang Toko.</p>
+        )}
+      </Panel>
     </div>
   );
 }

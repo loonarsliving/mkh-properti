@@ -7,6 +7,7 @@ import { useJudul } from '@/components/shell/JudulProvider';
 import { Icon } from '@/components/ui/Icon';
 import { Kosong, Memuat, OverlaySimpan, Panel, PesanGalat, Toast, useToast } from '@/components/ui/Umum';
 import { Bidang, PilihProyek, TagProyek } from '@/components/ui/Form';
+import { PROYEK_PELAKSANA_L2 } from '@/lib/auth';
 import { SB_KEY, SB_URL } from '@/lib/config';
 import { sbDelete, sbInsert } from '@/lib/supabase';
 import type { UsersProyek } from '@/types';
@@ -139,8 +140,15 @@ function IsiUsers() {
           />
           <Bidang
             label="Assign ke Proyek"
-            bantuan='Isi "MANAGER" atau "VERIFIKATOR" lewat database untuk peran verifikator.'
-            anak={<PilihProyek id="usr-proyek" nilai={proyek} onUbah={setProyek} />}
+            bantuan='Pilih "Loonars 2 — Pelaksana" untuk akun Vando (hanya lihat dashboard Loonars 2). Isi "MANAGER" atau "VERIFIKATOR" lewat database untuk peran verifikator.'
+            anak={
+              <PilihProyek
+                id="usr-proyek"
+                nilai={proyek}
+                onUbah={setProyek}
+                tambahan={[{ id: PROYEK_PELAKSANA_L2, nama: 'Loonars 2 — Pelaksana (hanya lihat)' }]}
+              />
+            }
           />
           <Bidang
             label="Nama Admin (opsional)"
@@ -161,7 +169,7 @@ function IsiUsers() {
 
         <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10.5px] leading-relaxed text-emerald-900">
           Admin yang dibuat hanya bisa membuka <b>Dashboard Proyek</b> dan hanya melihat data proyek
-          yang di-assign. Akses dashboard CFO diatur terpisah lewat tabel <b>cfo_users</b> di
+          yang di-assign (kecuali <b>Pelaksana Loonars 2</b>: hanya bisa membuka dashboard Loonars 2, tanpa tombol aksi). Akses dashboard CFO diatur terpisah lewat tabel <b>cfo_users</b> di
           Supabase.
         </p>
       </Panel>
@@ -202,7 +210,9 @@ function IsiUsers() {
                     <tr key={u.id}>
                       <td className="text-[11.5px]">{u.email}</td>
                       <td>
-                        {u.proyek_id === 'MANAGER' || u.proyek_id?.startsWith('VERIFIKATOR') ? (
+                        {u.proyek_id === PROYEK_PELAKSANA_L2 ? (
+                          <span className="chip bg-emerald-100 text-emerald-700">Pelaksana Loonars 2</span>
+                        ) : u.proyek_id === 'MANAGER' || u.proyek_id?.startsWith('VERIFIKATOR') ? (
                           <span className="chip bg-blue-100 text-blue-700">{u.proyek_id}</span>
                         ) : (
                           <TagProyek id={u.proyek_id} />

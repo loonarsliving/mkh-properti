@@ -16,6 +16,7 @@ import { getAccessToken, perbaruiToken } from './supabase';
  *   2. Token ditolak Supabase Auth              -> sesi dibersihkan, /login
  *   3. Terdaftar di `users_proyek`
  *        - proyek_id "MANAGER" / "VERIFIKATOR*" -> peran verifikator
+ *        - proyek_id "LOONARS2"                  -> peran pelaksana (hanya lihat Loonars 2)
  *        - selain itu                           -> peran admin proyek
  *   4. Tidak terdaftar di `users_proyek`
  *        - ada di allowlist `cfo_users`         -> peran CFO/owner
@@ -26,7 +27,7 @@ import { getAccessToken, perbaruiToken } from './supabase';
  * setiap orang hanya bisa melihat barisnya sendiri (kecuali staf).
  */
 
-export type Peran = 'cfo' | 'admin-proyek' | 'verifikator';
+export type Peran = 'cfo' | 'admin-proyek' | 'verifikator' | 'pelaksana';
 
 export interface Sesi {
   email: string;
@@ -95,13 +96,18 @@ export async function apakahCfo(email: string): Promise<boolean> {
   return Array.isArray(data) && data.length > 0;
 }
 
+/** proyek_id khusus di users_proyek untuk pelaksana Loonars 2 (migrasi 0045). */
+export const PROYEK_PELAKSANA_L2 = 'LOONARS2';
+
 export function peranDariProyekId(proyekId: string): Peran {
+  if (proyekId === PROYEK_PELAKSANA_L2) return 'pelaksana';
   return proyekId === 'MANAGER' || proyekId.startsWith('VERIFIKATOR') ? 'verifikator' : 'admin-proyek';
 }
 
 export function rutaUtama(peran: Peran): string {
   if (peran === 'verifikator') return '/verifikasi';
   if (peran === 'admin-proyek') return '/admin-proyek';
+  if (peran === 'pelaksana') return '/loonars2';
   return '/';
 }
 

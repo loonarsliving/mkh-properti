@@ -2,7 +2,12 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-10-11 — Loonars 2: utang toko + pengajuan mingguan (belum diterapkan)
+## 2026-10-13 — Loonars 2: akses web baca-saja untuk pelaksana (migrasi 0045 BELUM diterapkan)
+- Migrasi `0045`: `loonars2_boleh_lihat()` + RPC `loonars2_web_lihat()` (tanpa tabel baru). Izin = baris `users_proyek` dengan `proyek_id = 'LOONARS2'`.
+- Peran baru `pelaksana` di frontend: hanya `/loonars2` (tampilan baca-saja: proyeksi tanah, budget unit, utang toko, pengajuan, panduan WA). Tanpa saldo rekening, pembeli, harga, audit.
+- Ringkasan owner: panel Utang toko bangunan.
+
+## 2026-10-11 — Loonars 2: utang toko + pengajuan mingguan (LIVE)
 - Migrasi `0044`: utang per toko, cicilan mingguan, pengajuan mingguan multi-baris (kode M-n), pengingat mingguan ke pelaksana.
 - Dashboard: tab Utang Toko, setujui/bayar per kode.
 

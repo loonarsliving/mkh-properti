@@ -23,3 +23,5 @@ create function public.mkh_email_login() returns text language sql stable as
   $$ select nullif(current_setting('uji.email', true), '') $$;
 create function public.mkh_is_cfo() returns boolean language sql stable as
   $$ select coalesce(current_setting('uji.cfo', true), '') = 'ya' $$;
+-- Pengganti users_proyek (tabel produksi yang sudah ada; hanya kolom yang dipakai 0045).
+create table public.users_proyek (id serial primary key, email text not null, proyek_id text, nama text);

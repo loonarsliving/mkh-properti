@@ -32,16 +32,24 @@ export function PilihProyek({
   nilai,
   onUbah,
   hanya,
+  tambahan,
 }: {
   id: string;
   nilai: string;
   onUbah: (v: string) => void;
   hanya?: string[];
+  /** Opsi di luar daftar proyek (mis. peran khusus pada halaman pengguna). */
+  tambahan?: { id: string; nama: string }[];
 }) {
   const daftar = hanya ? PROYEK.filter((p) => hanya.includes(p.id)) : PROYEK;
   return (
     <select id={id} className="input" value={nilai} onChange={(e) => onUbah(e.target.value)}>
       {daftar.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.nama}
+        </option>
+      ))}
+      {(tambahan ?? []).map((p) => (
         <option key={p.id} value={p.id}>
           {p.nama}
         </option>
