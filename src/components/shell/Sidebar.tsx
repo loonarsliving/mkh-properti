@@ -24,7 +24,7 @@ export function Sidebar({
   onTutup: () => void;
 }) {
   const pathname = usePathname();
-  const grup = navigasiUntuk(sesi.peran);
+  const grup = navigasiUntuk(sesi.peran, sesi.aksesLoonars2);
 
   return (
     <>

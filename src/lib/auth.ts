@@ -34,6 +34,12 @@ export interface Sesi {
   peran: Peran;
   /** proyek_id dari users_proyek; null untuk CFO. */
   proyekId: string | null;
+  /**
+   * Boleh membuka dashboard Loonars 2 (baca-saja): CFO, pelaksana, atau siapa
+   * pun yang punya baris users_proyek 'LOONARS2' di samping perannya sendiri
+   * (mis. verifikator). Penegakan sebenarnya ada di RPC loonars2_web_lihat.
+   */
+  aksesLoonars2: boolean;
 }
 
 export interface StatusSesi {
@@ -74,16 +80,32 @@ export async function verifikasiToken(token: string): Promise<string | null> {
   return user.email ?? null;
 }
 
-/** Cari penugasan proyek user. Mengembalikan proyek_id atau null. */
-export async function cariProyekUser(email: string): Promise<string | null> {
+export interface PenugasanUser {
+  /** proyek_id utama (bukan LOONARS2); null bila hanya punya akses Loonars 2 / tidak terdaftar. */
+  utama: string | null;
+  /** Punya baris users_proyek 'LOONARS2' (akses tambahan dashboard Loonars 2). */
+  loonars2: boolean;
+}
+
+/** Cari semua penugasan proyek user (satu orang bisa punya >1 baris). */
+export async function cariPenugasanUser(email: string): Promise<PenugasanUser> {
   const res = await fetch(
-    `${SB_URL}/rest/v1/users_proyek?email=eq.${encodeURIComponent(email)}&select=proyek_id&limit=1`,
+    `${SB_URL}/rest/v1/users_proyek?email=eq.${encodeURIComponent(email)}&select=proyek_id&order=id.asc`,
     { headers: headerLogin(), cache: 'no-store' },
   );
   if (!res.ok) throw new Error('Gagal memeriksa penugasan proyek.');
   const data = (await res.json()) as { proyek_id?: string }[];
-  if (!Array.isArray(data) || data.length === 0) return null;
-  return data[0].proyek_id ?? null;
+  const ids = Array.isArray(data) ? data.map((d) => d.proyek_id).filter((x): x is string => Boolean(x)) : [];
+  return { utama: ids.find((i) => i !== PROYEK_PELAKSANA_L2) ?? null, loonars2: ids.includes(PROYEK_PELAKSANA_L2) };
+}
+
+/**
+ * Cari penugasan proyek user. Mengembalikan proyek_id atau null. Peran lain
+ * didahulukan; 'LOONARS2' hanya dikembalikan bila itu satu-satunya penugasan.
+ */
+export async function cariProyekUser(email: string): Promise<string | null> {
+  const { utama, loonars2 } = await cariPenugasanUser(email);
+  return utama ?? (loonars2 ? PROYEK_PELAKSANA_L2 : null);
 }
 
 export async function apakahCfo(email: string): Promise<boolean> {
@@ -116,7 +138,7 @@ export function rutaUtama(peran: Peran): string {
  * peran lain dialihkan ke halaman utamanya masing-masing (bukan ditolak),
  * meniru perilaku redirect halaman HTML lama.
  */
-export function useGuard(izinkan: Peran[]): StatusSesi {
+export function useGuard(izinkan: Peran[], izinkanLoonars2 = false): StatusSesi {
   const router = useRouter();
   const [state, setState] = useState<StatusSesi>({ status: 'memuat', sesi: null });
 
@@ -146,11 +168,13 @@ export function useGuard(izinkan: Peran[]): StatusSesi {
         }
         window.sessionStorage.setItem('sb_user_email', email);
 
-        const proyekId = await cariProyekUser(email);
+        const { utama, loonars2 } = await cariPenugasanUser(email);
+        const proyekId = utama ?? (loonars2 ? PROYEK_PELAKSANA_L2 : null);
         let sesi: Sesi;
 
         if (proyekId !== null) {
-          sesi = { email, peran: peranDariProyekId(proyekId), proyekId };
+          const peran = peranDariProyekId(proyekId);
+          sesi = { email, peran, proyekId, aksesLoonars2: loonars2 || peran === 'pelaksana' };
         } else {
           const cfo = await apakahCfo(email);
           if (!cfo) {
@@ -158,12 +182,12 @@ export function useGuard(izinkan: Peran[]): StatusSesi {
             router.replace('/no-access');
             return;
           }
-          sesi = { email, peran: 'cfo', proyekId: null };
+          sesi = { email, peran: 'cfo', proyekId: null, aksesLoonars2: true };
         }
 
         if (batal) return;
 
-        if (!izinkan.includes(sesi.peran)) {
+        if (!izinkan.includes(sesi.peran) && !(izinkanLoonars2 && sesi.aksesLoonars2)) {
           router.replace(rutaUtama(sesi.peran));
           setState({ status: 'ditolak', sesi });
           return;

@@ -7,6 +7,8 @@ export interface ItemNav {
   ikon: NamaIkon;
   /** Peran yang boleh melihat menu ini. */
   peran: Peran[];
+  /** Tampil juga untuk yang punya akses tambahan Loonars 2. */
+  loonars2?: boolean;
 }
 
 export interface GrupNav {
@@ -67,7 +69,7 @@ export const NAVIGASI: GrupNav[] = [
   },
   {
     judul: 'Loonars 2',
-    item: [{ label: 'Keuangan 4 Rekening', href: '/loonars2', ikon: 'bank', peran: ['cfo', 'pelaksana'] }],
+    item: [{ label: 'Keuangan 4 Rekening', href: '/loonars2', ikon: 'bank', peran: ['cfo', 'pelaksana'], loonars2: true }],
   },
   {
     judul: 'Loonars Villa',
@@ -94,8 +96,11 @@ export const NAVIGASI: GrupNav[] = [
   },
 ];
 
-export function navigasiUntuk(peran: Peran): GrupNav[] {
-  return NAVIGASI.map((g) => ({ ...g, item: g.item.filter((i) => i.peran.includes(peran)) })).filter(
+export function navigasiUntuk(peran: Peran, aksesLoonars2 = false): GrupNav[] {
+  return NAVIGASI.map((g) => ({
+    ...g,
+    item: g.item.filter((i) => i.peran.includes(peran) || (i.loonars2 === true && aksesLoonars2)),
+  })).filter(
     (g) => g.item.length > 0,
   );
 }

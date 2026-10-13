@@ -49,7 +49,7 @@ function Topbar({ onBukaMenu }: { onBukaMenu: () => void }) {
 }
 
 export default function LayoutAplikasi({ children }: { children: React.ReactNode }) {
-  const { status, sesi } = useGuard(SEMUA_PERAN);
+  const { status, sesi } = useGuard(SEMUA_PERAN, true);
   const [menuTerbuka, setMenuTerbuka] = useState(false);
 
   if (status !== 'siap' || !sesi) {

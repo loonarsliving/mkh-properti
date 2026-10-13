@@ -14,14 +14,17 @@ import { useSesi } from './SesiProvider';
  */
 export function GuardHalaman({
   izinkan,
+  atauLoonars2 = false,
   children,
 }: {
   izinkan: Peran[];
+  /** Izinkan juga siapa pun dengan akses tambahan Loonars 2 (mis. verifikator). */
+  atauLoonars2?: boolean;
   children: React.ReactNode;
 }) {
   const sesi = useSesi();
   const router = useRouter();
-  const boleh = izinkan.includes(sesi.peran);
+  const boleh = izinkan.includes(sesi.peran) || (atauLoonars2 && sesi.aksesLoonars2);
 
   useEffect(() => {
     if (!boleh) router.replace(rutaUtama(sesi.peran));

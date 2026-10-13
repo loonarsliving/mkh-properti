@@ -39,7 +39,7 @@ import {
  */
 export default function HalamanLoonars2() {
   return (
-    <GuardHalaman izinkan={['cfo', 'pelaksana']}>
+    <GuardHalaman izinkan={['cfo', 'pelaksana']} atauLoonars2>
       <PilihTampilan />
     </GuardHalaman>
   );
@@ -48,7 +48,7 @@ export default function HalamanLoonars2() {
 /** Owner (CFO) = dashboard penuh; pelaksana = tampilan baca-saja (migrasi 0045). */
 function PilihTampilan() {
   const sesi = useSesi();
-  return sesi.peran === 'pelaksana' ? <TampilanPelaksana /> : <IsiLoonars2 />;
+  return sesi.peran === 'cfo' ? <IsiLoonars2 /> : <TampilanPelaksana />;
 }
 
 type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'utang' | 'pengeluaran' | 'pengaturan' | 'audit';
