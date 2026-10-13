@@ -67,7 +67,7 @@ export const NAVIGASI: GrupNav[] = [
   },
   {
     judul: 'Loonars 2',
-    item: [{ label: 'Keuangan 4 Rekening', href: '/loonars2', ikon: 'bank', peran: CFO }],
+    item: [{ label: 'Keuangan 4 Rekening', href: '/loonars2', ikon: 'bank', peran: ['cfo', 'pelaksana'] }],
   },
   {
     judul: 'Loonars Villa',

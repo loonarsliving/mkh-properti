@@ -11,6 +11,7 @@ const LABEL_PERAN: Record<Peran, string> = {
   cfo: 'CFO / Owner',
   'admin-proyek': 'Admin Proyek',
   verifikator: 'Verifikator',
+  pelaksana: 'Pelaksana Loonars 2',
 };
 
 export function Sidebar({

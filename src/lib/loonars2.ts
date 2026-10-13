@@ -235,6 +235,35 @@ export interface L2Ringkasan {
   kesehatan: { saldo_c: number; menunggu_ke_c: number; kebutuhan_sisa: number; kurang: number };
 }
 
+/**
+ * Data baca-saja untuk pelaksana (RPC loonars2_web_lihat, migrasi 0045).
+ * Sengaja tanpa saldo rekening, nomor rekening, pembeli, harga, dan audit.
+ */
+export interface L2PelaksanaUnit {
+  id: number;
+  nomor: number;
+  kode: string;
+  tipe: string;
+  status: L2Unit['status'];
+  status_bangun: L2Unit['status_bangun'];
+  is_unit_contoh: boolean;
+  jatuh_tempo_efektif: string | null;
+  biaya_bangun: number;
+  buffer: number;
+  terpakai_konstruksi: number;
+  utang_disetujui: number;
+  komitmen_disetujui: number;
+}
+
+export interface L2Pelaksana {
+  proyeksi_tanah: L2Ringkasan['proyeksi_tanah'];
+  unit: L2PelaksanaUnit[];
+  toko: L2Toko[];
+  utang: Pick<L2Utang, 'id' | 'kelompok' | 'toko_id' | 'unit_id' | 'deskripsi' | 'nominal' | 'tanggal' | 'pakai_buffer' | 'melewati_buffer' | 'status' | 'alasan_tolak'>[];
+  cicilan: Pick<L2Cicilan, 'id' | 'kelompok' | 'toko_id' | 'nominal' | 'catatan' | 'status' | 'alasan_tolak' | 'dibuat_pada'>[];
+  pengajuan: Pick<L2Pengajuan, 'id' | 'kelompok' | 'unit_id' | 'kategori' | 'deskripsi' | 'toko' | 'nominal' | 'pakai_buffer' | 'melewati_buffer' | 'status' | 'alasan_tolak' | 'dibuat_pada'>[];
+}
+
 export const LABEL_STATUS_UNIT: Record<L2Unit['status'], string> = {
   tersedia: 'Tersedia',
   booking: 'Booking',

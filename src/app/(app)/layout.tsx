@@ -11,7 +11,7 @@ import { JudulProvider, useIsiJudul } from '@/components/shell/JudulProvider';
 import { SesiProvider } from '@/components/shell/SesiProvider';
 
 /** Semua peran boleh masuk kerangka ini; tiap halaman menyaring lebih lanjut. */
-const SEMUA_PERAN: Peran[] = ['cfo', 'admin-proyek', 'verifikator'];
+const SEMUA_PERAN: Peran[] = ['cfo', 'admin-proyek', 'verifikator', 'pelaksana'];
 
 function Topbar({ onBukaMenu }: { onBukaMenu: () => void }) {
   const { judul, deskripsi, tampilkanFilter, tampilkanFilterProyek } = useIsiJudul();
