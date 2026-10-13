@@ -59,8 +59,7 @@ Yang perlu diketahui siapa pun yang melanjutkan:
 
 Owner menyetujui ("Ya bawa ke production dan kirim panduan ke Vando").
 Migrasi `0045` (akses web baca-saja pelaksana: `loonars2_boleh_lihat`,
-`loonars2_web_lihat`) sudah di repo + lulus uji lokal, BELUM diterapkan ke
-produksi dan belum di-merge (menunggu persetujuan owner). Akun Vando dibuat owner
+`loonars2_web_lihat`) LIVE (diterapkan sebagai `0045a`, `0045b`). Akun Vando dibuat owner
 lewat Pengguna & Akses dengan proyek "Loonars 2 — Pelaksana" (users_proyek.proyek_id = 'LOONARS2').
 
 Migrasi `0044` DITERAPKAN ke produksi via Supabase MCP sebagai `0044a`,

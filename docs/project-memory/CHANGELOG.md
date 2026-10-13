@@ -2,7 +2,8 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-10-13 — Loonars 2: akses web baca-saja untuk pelaksana (migrasi 0045 BELUM diterapkan)
+## 2026-10-13 — Loonars 2: akses web baca-saja untuk pelaksana (migrasi 0045 LIVE: 0045a, 0045b)
+- Akses Loonars 2 bersifat tambahan: baris users_proyek 'LOONARS2' tidak menggantikan peran lain (mis. verifikator); `cariPenugasanUser` membaca semua baris, `Sesi.aksesLoonars2`.
 - Migrasi `0045`: `loonars2_boleh_lihat()` + RPC `loonars2_web_lihat()` (tanpa tabel baru). Izin = baris `users_proyek` dengan `proyek_id = 'LOONARS2'`.
 - Peran baru `pelaksana` di frontend: hanya `/loonars2` (tampilan baca-saja: proyeksi tanah, budget unit, utang toko, pengajuan, panduan WA). Tanpa saldo rekening, pembeli, harga, audit.
 - Ringkasan owner: panel Utang toko bangunan.

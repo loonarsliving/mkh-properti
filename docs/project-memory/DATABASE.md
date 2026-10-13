@@ -125,7 +125,7 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
-## 2026-10-13 — migrasi 0045 (akses baca-saja pelaksana) — BELUM diterapkan
+## 2026-10-13 — migrasi 0045 (akses baca-saja pelaksana) — LIVE (0045a–b)
 - Fungsi baru: `loonars2_boleh_lihat()` (CFO atau `users_proyek.proyek_id = 'LOONARS2'`), `loonars2_web_lihat()` (jsonb read-only: proyeksi tanah, unit tanpa pembeli/harga/pembayaran, toko, utang, cicilan, pengajuan). Keduanya security definer, EXECUTE hanya `authenticated`.
 - Tidak ada tabel/kolom baru dan tidak ada policy SELECT baru pada `loonars2_*`: pelaksana tidak bisa membaca tabel langsung.
 
