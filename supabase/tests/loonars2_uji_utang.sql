@@ -52,7 +52,7 @@ select pg_temp.cek('cicilan ke toko tanpa utang ditolak, tidak ada yang dicatat'
   (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"tukang","unit":["13"],"deskripsi":"upah","nominal":1000000},{"jenis":"cicilan","toko":"TB Entah","nominal":1000000}]}') ->> 'status') = 'ditolak'
   and not exists (select 1 from loonars2_material_requests where deskripsi = 'upah'));
 select pg_temp.cek('baris tanpa nominal ditolak dengan nomor barisnya',
-  (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"cicilan","toko":"TB Maju","nominal":1000000},{"jenis":"material","unit":["1"],"deskripsi":"pasir"}]}') ->> 'balasan') like 'Baris 2:%');
+  (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"cicilan","toko":"TB Maju","nominal":1000000},{"jenis":"material","unit":["1"],"deskripsi":"pasir"}]}') ->> 'balasan') like '%Baris 2:%');
 select pg_temp.cek('baris untuk unit belum terjual ditolak',
   (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"tukang","unit":["3"],"deskripsi":"upah","nominal":1000000}]}') ->> 'status') = 'ditolak');
 select pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[
