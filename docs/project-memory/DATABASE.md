@@ -125,7 +125,11 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
-## 2026-10-14 — migrasi 0047 (borongan, bahan kolektif, unit dibangun) — BELUM diterapkan
+## 2026-10-14 — migrasi 0048 (borongan otomatis) — LIVE (0048a–c)
+- `loonars2_settings`: + `tukang_nilai_per_unit` (35 jt), `tukang_retensi_per_unit` (9 jt), `tukang_minggu` (12).
+- Fungsi baru `_loonars2_siapkan_borongan`; diganti `_loonars2_ajukan_mingguan` (banyak borongan, biaya lain tanpa unit, cicilan lunas) dan `_loonars2_butuh_unit`.
+
+## 2026-10-14 — migrasi 0047 (borongan, bahan kolektif, unit dibangun) — LIVE (0047a1–h2)
 - Kolom baru: `loonars2_units.sedang_dibangun`; `loonars2_material_requests.borongan_id, minggu_ke, retensi, pesanan_id`; `loonars2_utang_toko.pesanan_id`. Indeks unik: satu minggu per unit per borongan, satu retensi per unit.
 - Tabel baru (RLS cfo_baca + audit): `loonars2_borongan` (nama, nilai_per_unit, retensi_per_unit, jumlah_minggu, status), `loonars2_borongan_unit` (unit unik), `loonars2_pesanan_bahan`, `loonars2_bahan_unit` (pembagian per item per unit; koreksi = aktif=false + baris baru, tanpa DELETE).
 - View: `loonars2_v_borongan`, `loonars2_v_rab_bahan` (security_invoker).
