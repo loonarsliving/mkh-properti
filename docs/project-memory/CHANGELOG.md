@@ -2,6 +2,10 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-14 — Loonars 2: borongan otomatis, biaya lain tanpa unit, cicilan "lunas" (migrasi 0048)
+- Pelaksana cukup mengajukan; owner tidak menyiapkan data: "tukang minggu ini" membuat borongan otomatis (ketentuan standar di `loonars2_settings`: 35 jt/unit, retensi 9 jt, 12 minggu) untuk unit sedang dibangun yang belum punya borongan; beberapa borongan aktif diajukan sekaligus; owner diberi tahu.
+- "lain ..." tanpa unit dibagi rata ke unit sedang dibangun; "cicilan <toko> lunas" / tanpa nominal memakai sisa utang dari tabel utang.
+
 ## 2026-10-14 — Loonars 2: borongan tukang, bahan kolektif, unit sedang dibangun (migrasi 0047 BELUM diterapkan)
 - Upah tukang = borongan per paket: jumlah_unit × (nilai − retensi) ÷ jumlah_minggu (6 unit × (35 jt − 9 jt) ÷ 12 = 13 jt/minggu; selisih bulat di minggu terakhir). Vando cukup "L2 tukang minggu ini"; retensi per unit diajukan setelah unit selesai/serah terima dan disetujui owner.
 - Bahan dipesan kolektif (tanpa unit), dibagi ke unit sedang dibangun (bagi rata; item bisa ditujukan ke unit tertentu dari catatan Vando/AI), hasilnya RAB pemakaian per unit; bisa dikoreksi ("L2 koreksi M-7 semen unit 1,2,3").

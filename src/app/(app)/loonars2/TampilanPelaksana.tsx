@@ -376,47 +376,50 @@ function TabPanduan() {
     <Panel judul="Cara mengajukan lewat WhatsApp (awali selalu dengan L2)" ikon="info">
       <div className="space-y-4 text-[12px] leading-relaxed text-slate-700">
         <div>
-          <p className="mb-1 font-semibold">1. Upah tukang mingguan (borongan)</p>
+          <p className="mb-1 font-semibold">1. Minta upah tukang borongan tiap minggu</p>
           <Perintah>{'L2 tukang minggu ini'}</Perintah>
           <p className="mt-1 text-[11px] text-slate-500">
-            Tidak perlu menulis nominal: sistem menghitung (jumlah unit × (nilai − retensi) ÷ jumlah minggu), menentukan minggu ke-berapa, dan membagi rata ke
-            unit borongan. Setelah unit selesai, retensinya diajukan dengan: L2 retensi unit 3
+            Tidak perlu menulis nominal. Sistem menghitung (jumlah unit × (35 jt − retensi 9 jt) ÷ 12 minggu; 6 unit = 13 jt/minggu), menentukan minggu
+            ke-berapa, dan membagi rata ke unit. Unit baru yang mulai dibangun otomatis dibuatkan borongannya. Retensi diajukan setelah unit selesai:
+            L2 retensi unit 3
           </p>
         </div>
         <div>
-          <p className="mb-1 font-semibold">2. Bahan dipesan untuk semua unit (tanpa menyebut unit)</p>
-          <Perintah>{'L2 bahan TB Maju semen 100 sak, pasir 12 rit 8,5 juta'}</Perintah>
+          <p className="mb-1 font-semibold">2. Catat utang material di toko</p>
+          <Perintah>{'L2 utang TB Maju semen 50 sak 6.500.000'}</Perintah>
           <p className="mt-1 text-[11px] text-slate-500">
-            Lampirkan foto nota. Sistem membagi ke unit yang sedang dibangun. Bila ada yang khusus, tulis di pesan: &quot;besi 60 batang untuk unit 1-3&quot;.
-            Pesan utang: L2 utang TB Maju semen 50 sak 6.500.000
+            Lampirkan foto nota. Tidak perlu menyebut unit: sistem membagi ke unit yang sedang dibangun. Beli tunai (bukan utang): L2 bahan TB Maju semen 100
+            sak, pasir 12 rit 8,5 juta
           </p>
         </div>
         <div>
-          <p className="mb-1 font-semibold">3. Pengajuan mingguan (satu pesan, satu baris per pembayaran)</p>
+          <p className="mb-1 font-semibold">3. Bayar cicilan utang material per toko</p>
+          <Perintah>{`L2 cicilan TB Maju 3 juta
+L2 cicilan TB Maju lunas`}</Perintah>
+          <p className="mt-1 text-[11px] text-slate-500">&quot;lunas&quot; memakai seluruh sisa utang toko itu. Cek sisa utang tiap toko: L2 utang (sama dengan tab Utang Toko).</p>
+        </div>
+        <div>
+          <p className="mb-1 font-semibold">4. Ajukan pembayaran lain-lain</p>
+          <Perintah>{`L2 lain listrik proyek 600 rb
+L2 bensin 200 rb
+L2 sewa alat 1,5 juta`}</Perintah>
+          <p className="mt-1 text-[11px] text-slate-500">Dibagi rata ke unit yang sedang dibangun; tulis &quot;unit 5&quot; bila khusus satu unit.</p>
+        </div>
+        <div>
+          <p className="mb-1 font-semibold">Semua sekaligus dalam satu pesan (satu baris per pembayaran)</p>
           <Perintah>{`L2 pengajuan minggu ini
 - tukang minggu ini
 - cicilan TB Maju 3 juta
+- lain listrik proyek 600 rb
 - material pasir 2 rit 1,6 juta TB Sinar`}</Perintah>
-          <p className="mt-1 text-[11px] text-slate-500">Dapat kode, mis. M-4. Owner menyetujui per kode atau per baris.</p>
+          <p className="mt-1 text-[11px] text-slate-500">Dapat kode, mis. M-4. Owner menyetujui, lalu setelah dibayar kirim foto bukti dengan keterangan: L2 bayar M-4</p>
         </div>
         <div>
-          <p className="mb-1 font-semibold">4. Sistem akan bertanya &quot;unit mana yang sedang dibangun?&quot;</p>
+          <p className="mb-1 font-semibold">Sistem akan bertanya &quot;unit mana yang sedang dibangun?&quot;</p>
           <p>
-            Balas <b>YA</b> bila daftarnya sudah benar, atau kirim daftar terbaru:
+            Balas <b>YA</b> bila daftarnya benar, atau kirim yang terbaru: <span className="font-mono">L2 unit 1-7</span>. Unit yang dibangun tidak harus
+            yang sudah laku. Salah bagi? <span className="font-mono">L2 koreksi M-7 semen unit 1,2,3</span>
           </p>
-          <Perintah>{'L2 unit 1-7'}</Perintah>
-          <p className="mt-1 text-[11px] text-slate-500">Jawaban terakhir menjadi acuan pembagian bahan dan upah.</p>
-        </div>
-        <div>
-          <p className="mb-1 font-semibold">5. Setelah dibayar, kirim foto bukti transfer dengan keterangan</p>
-          <Perintah>{'L2 bayar M-4'}</Perintah>
-        </div>
-        <div>
-          <p className="mb-1 font-semibold">6. Koreksi & cek</p>
-          <Perintah>{`L2 koreksi M-7 semen unit 1,2,3
-L2 rab unit 3
-L2 borongan
-L2 utang`}</Perintah>
         </div>
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
           Kalau budget unit hampir habis, pengajuan tetap diteruskan tapi ditandai &quot;pakai buffer&quot; dan butuh persetujuan khusus owner. Halaman ini hanya

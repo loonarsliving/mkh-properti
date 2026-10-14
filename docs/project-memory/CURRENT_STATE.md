@@ -59,8 +59,7 @@ Yang perlu diketahui siapa pun yang melanjutkan:
 
 Owner menyetujui ("Ya bawa ke production dan kirim panduan ke Vando").
 Migrasi `0047` (borongan tukang, pesanan bahan kolektif/RAB per unit, unit sedang
-dibangun) ada di repo + lulus uji lokal (183 skenario), BELUM diterapkan ke produksi
-dan belum di-merge (menunggu persetujuan owner). Detail: DATABASE.md.
+dibangun) LIVE (0047a1–h2) dan 0048 LIVE (0048a–c; borongan otomatis). Detail: DATABASE.md.
 
 Migrasi `0045` (akses web baca-saja pelaksana: `loonars2_boleh_lihat`,
 `loonars2_web_lihat`) LIVE (diterapkan sebagai `0045a`, `0045b`). Akun Vando dibuat owner
