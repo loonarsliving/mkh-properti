@@ -2,6 +2,12 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-14 — Loonars 2: borongan tukang, bahan kolektif, unit sedang dibangun (migrasi 0047 BELUM diterapkan)
+- Upah tukang = borongan per paket: jumlah_unit × (nilai − retensi) ÷ jumlah_minggu (6 unit × (35 jt − 9 jt) ÷ 12 = 13 jt/minggu; selisih bulat di minggu terakhir). Vando cukup "L2 tukang minggu ini"; retensi per unit diajukan setelah unit selesai/serah terima dan disetujui owner.
+- Bahan dipesan kolektif (tanpa unit), dibagi ke unit sedang dibangun (bagi rata; item bisa ditujukan ke unit tertentu dari catatan Vando/AI), hasilnya RAB pemakaian per unit; bisa dikoreksi ("L2 koreksi M-7 semen unit 1,2,3").
+- "Unit sedang dibangun" = acuan: Vando ditanya tiap pesan yang unitnya tidak disebut (YA / "L2 unit 1-7"); syarat DP dicabut untuk unit tersebut.
+- Tabel baru `loonars2_borongan`, `loonars2_borongan_unit`, `loonars2_pesanan_bahan`, `loonars2_bahan_unit`; kolom baru pada tabel loonars2_ sendiri; view `loonars2_v_borongan`, `loonars2_v_rab_bahan`. Dashboard: tab Borongan & RAB (owner + pelaksana). Uji SQL 183 skenario lulus.
+
 ## 2026-10-13 — Loonars 2: akses web baca-saja untuk pelaksana (migrasi 0045 LIVE: 0045a, 0045b)
 - Migrasi `0046` LIVE (0046a–c): tabel `loonars2_akses_web` (email unik, RLS, audit) untuk izin tambahan, karena `users_proyek.email` UNIK. `loonars2_boleh_lihat()` memeriksa CFO, users_proyek 'LOONARS2', atau loonars2_akses_web. Vando (verifikator) diberi akses lewat tabel ini.
 - Akses Loonars 2 bersifat tambahan: baris users_proyek 'LOONARS2' tidak menggantikan peran lain (mis. verifikator); `cariPenugasanUser` membaca semua baris, `Sesi.aksesLoonars2`.

@@ -10,6 +10,7 @@ import { Badge, Kosong, Memuat, OverlaySimpan, Panel, PesanGalat, Toast, useToas
 import { KartuStat } from '@/components/ui/Kartu';
 import { Bidang, InputRupiah } from '@/components/ui/Form';
 import { rupiah, tanggalPendek } from '@/lib/format';
+import { PanelBorongan, PanelRab, PanelUnitDibangun } from './BoronganRab';
 import { sbDelete, sbInsert, sbQuery, sbRpc, sbUpdate, sbUpdateWhere } from '@/lib/supabase';
 import {
   KATEGORI_PENGELUARAN,
@@ -17,11 +18,13 @@ import {
   LABEL_STATUS_UNIT,
   type L2Alokasi,
   type L2Audit,
+  type L2Borongan,
   type L2Cicilan,
   type L2Pengajuan,
   type L2Pengaturan,
   type L2Pengeluaran,
   type L2PenggunaWa,
+  type L2Rab,
   type L2Receipt,
   type L2Rekening,
   type L2Ringkasan,
@@ -51,13 +54,14 @@ function PilihTampilan() {
   return sesi.peran === 'cfo' ? <IsiLoonars2 /> : <TampilanPelaksana />;
 }
 
-type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'utang' | 'pengeluaran' | 'pengaturan' | 'audit';
+type Tab = 'ringkasan' | 'unit' | 'pembayaran' | 'pengajuan' | 'borongan' | 'utang' | 'pengeluaran' | 'pengaturan' | 'audit';
 
 const TAB: { id: Tab; label: string }[] = [
   { id: 'ringkasan', label: 'Ringkasan' },
   { id: 'unit', label: 'Unit' },
   { id: 'pembayaran', label: 'Pembayaran' },
   { id: 'pengajuan', label: 'Pengajuan' },
+  { id: 'borongan', label: 'Borongan & RAB' },
   { id: 'utang', label: 'Utang Toko' },
   { id: 'pengeluaran', label: 'Pengeluaran' },
   { id: 'pengaturan', label: 'Pengaturan' },
@@ -79,6 +83,9 @@ interface Data {
   toko: L2Toko[];
   utang: L2Utang[];
   cicilan: L2Cicilan[];
+  borongan: L2Borongan[];
+  rab: L2Rab[];
+  dibangun: { id: number; sedang_dibangun: boolean }[];
 }
 
 function pesanGalat(e: unknown): string {
@@ -100,7 +107,7 @@ function IsiLoonars2() {
   const muatUlang = useCallback(async () => {
     setGalat(null);
     try {
-      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan] =
+      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun] =
         await Promise.all([
           sbQuery<L2Rekening>('loonars2_v_rekening', 'select=*&order=kode.asc'),
           sbQuery<L2Unit>('loonars2_v_unit', 'select=*&order=nomor.asc'),
@@ -116,8 +123,11 @@ function IsiLoonars2() {
           sbQuery<L2Toko>('loonars2_v_toko', 'select=*&order=sisa_utang.desc'),
           sbQuery<L2Utang>('loonars2_utang_toko', 'select=*&order=id.desc&limit=300'),
           sbQuery<L2Cicilan>('loonars2_cicilan', 'select=*&order=id.desc&limit=300'),
+          sbQuery<L2Borongan>('loonars2_v_borongan', 'select=*&order=id.asc'),
+          sbQuery<L2Rab>('loonars2_v_rab_bahan', 'select=*'),
+          sbQuery<{ id: number; sedang_dibangun: boolean }>('loonars2_units', 'select=id,sedang_dibangun'),
         ]);
-      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan });
+      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun });
     } catch (e) {
       setGalat(pesanGalat(e));
     }
@@ -180,6 +190,7 @@ function IsiLoonars2() {
       {tab === 'unit' ? <TabUnit data={data} jalankan={jalankan} /> : null}
       {tab === 'pembayaran' ? <TabPembayaran data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengajuan' ? <TabPengajuan data={data} jalankan={jalankan} web={web} /> : null}
+      {tab === 'borongan' ? <TabBorongan data={data} /> : null}
       {tab === 'utang' ? <TabUtang data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengeluaran' ? <TabPengeluaran data={data} jalankan={jalankan} web={web} /> : null}
       {tab === 'pengaturan' ? <TabPengaturan data={data} jalankan={jalankan} /> : null}
@@ -784,6 +795,17 @@ function TabPengajuan({ data, jalankan, web }: { data: Data; jalankan: Jalankan;
 // ---------------------------------------------------------------------------
 // Utang toko & cicilan
 // ---------------------------------------------------------------------------
+function TabBorongan({ data }: { data: Data }) {
+  const unit = data.unit.map((u) => ({ id: u.id, nomor: u.nomor, kode: u.kode, sedang_dibangun: data.dibangun.find((d) => d.id === u.id)?.sedang_dibangun ?? false }));
+  return (
+    <div className="space-y-4">
+      <PanelUnitDibangun unit={unit} />
+      <PanelBorongan borongan={data.borongan.filter((b) => b.status !== 'batal')} />
+      <PanelRab rab={data.rab} unit={unit} />
+    </div>
+  );
+}
+
 function TabUtang({ data, jalankan, web }: { data: Data; jalankan: Jalankan; web: Web }) {
   const namaToko = (id: number) => data.toko.find((t) => t.id === id)?.nama ?? '-';
   const putuskan = (kode: string, setuju: boolean, buffer: boolean) => {

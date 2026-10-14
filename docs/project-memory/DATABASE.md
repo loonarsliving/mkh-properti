@@ -125,6 +125,13 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
+## 2026-10-14 — migrasi 0047 (borongan, bahan kolektif, unit dibangun) — BELUM diterapkan
+- Kolom baru: `loonars2_units.sedang_dibangun`; `loonars2_material_requests.borongan_id, minggu_ke, retensi, pesanan_id`; `loonars2_utang_toko.pesanan_id`. Indeks unik: satu minggu per unit per borongan, satu retensi per unit.
+- Tabel baru (RLS cfo_baca + audit): `loonars2_borongan` (nama, nilai_per_unit, retensi_per_unit, jumlah_minggu, status), `loonars2_borongan_unit` (unit unik), `loonars2_pesanan_bahan`, `loonars2_bahan_unit` (pembagian per item per unit; koreksi = aktif=false + baris baru, tanpa DELETE).
+- View: `loonars2_v_borongan`, `loonars2_v_rab_bahan` (security_invoker).
+- Fungsi: `_loonars2_nominal_minggu`, `_buat_borongan`, `_pesan_bahan`, `_koreksi_bahan`, `_teks_rab`, `_atur_unit_dibangun`, `_butuh_unit`, dll.; diganti: `_cek_unit_boleh` (DP ATAU sedang dibangun), `_ajukan_mingguan`, `_wa_jalankan`, `loonars2_pengingat` (contoh format baru), `loonars2_web_lihat` (+borongan, rab). Aksi WA baru: unit_dibangun, borongan, daftar_borongan, bahan, koreksi_bahan, rab.
+- Pembulatan: nominal & jumlah barang dibagi dengan sisa ke unit pertama; selisih borongan di minggu terakhir, jumlah selalu persis.
+
 ## 2026-10-13 — migrasi 0046 (tabel `loonars2_akses_web`) — LIVE (0046a–c)
 - Tabel baru `loonars2_akses_web (id, email, nama, dibuat_pada)`, unik `lower(email)`, RLS: CFO kelola, pemilik email hanya baca barisnya, trigger audit. Menggantikan kebutuhan baris kedua di `users_proyek` (email unik di sana). `loonars2_boleh_lihat()` diperbarui. Seed: vando@haluoleo.id.
 

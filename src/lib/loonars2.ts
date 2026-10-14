@@ -20,6 +20,12 @@ export const AKSI_WA_LOONARS2 = [
   'ajukan_mingguan',
   'putuskan_kode',
   'bayar_kelompok',
+  'unit_dibangun',
+  'borongan',
+  'daftar_borongan',
+  'bahan',
+  'koreksi_bahan',
+  'rab',
   'ya',
   'batal',
   'outbox_ambil',
@@ -144,6 +150,10 @@ export interface L2Pengajuan {
   diputuskan_oleh: string | null;
   dibuat_pada: string;
   kelompok: string | null;
+  borongan_id: number | null;
+  minggu_ke: number | null;
+  retensi: boolean;
+  pesanan_id: number | null;
 }
 
 export interface L2Toko {
@@ -253,6 +263,36 @@ export interface L2PelaksanaUnit {
   terpakai_konstruksi: number;
   utang_disetujui: number;
   komitmen_disetujui: number;
+  sedang_dibangun: boolean;
+}
+
+/** Ringkasan borongan tukang (view loonars2_v_borongan, migrasi 0047). */
+export interface L2Borongan {
+  id: number;
+  nama: string;
+  nilai_per_unit: number;
+  retensi_per_unit: number;
+  jumlah_minggu: number;
+  tanggal_mulai: string | null;
+  status: 'aktif' | 'selesai' | 'batal';
+  jumlah_unit: number;
+  total_mingguan: number;
+  total_retensi: number;
+  minggu_diajukan: number;
+  minggu_dibayar: number;
+  nominal_diajukan: number;
+  nominal_dibayar: number;
+  retensi_diajukan: number;
+  retensi_dibayar: number;
+}
+
+/** RAB pemakaian bahan per unit (view loonars2_v_rab_bahan). */
+export interface L2Rab {
+  unit_id: number;
+  item: string;
+  satuan: string | null;
+  qty: number | null;
+  nominal: number;
 }
 
 export interface L2Pelaksana {
@@ -261,7 +301,9 @@ export interface L2Pelaksana {
   toko: L2Toko[];
   utang: Pick<L2Utang, 'id' | 'kelompok' | 'toko_id' | 'unit_id' | 'deskripsi' | 'nominal' | 'tanggal' | 'pakai_buffer' | 'melewati_buffer' | 'status' | 'alasan_tolak'>[];
   cicilan: Pick<L2Cicilan, 'id' | 'kelompok' | 'toko_id' | 'nominal' | 'catatan' | 'status' | 'alasan_tolak' | 'dibuat_pada'>[];
-  pengajuan: Pick<L2Pengajuan, 'id' | 'kelompok' | 'unit_id' | 'kategori' | 'deskripsi' | 'toko' | 'nominal' | 'pakai_buffer' | 'melewati_buffer' | 'status' | 'alasan_tolak' | 'dibuat_pada'>[];
+  pengajuan: Pick<L2Pengajuan, 'id' | 'kelompok' | 'unit_id' | 'kategori' | 'deskripsi' | 'toko' | 'nominal' | 'pakai_buffer' | 'melewati_buffer' | 'status' | 'alasan_tolak' | 'dibuat_pada' | 'borongan_id' | 'minggu_ke' | 'retensi'>[];
+  borongan: L2Borongan[];
+  rab: L2Rab[];
 }
 
 export const LABEL_STATUS_UNIT: Record<L2Unit['status'], string> = {
