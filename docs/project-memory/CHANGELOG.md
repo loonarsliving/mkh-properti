@@ -2,6 +2,11 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-15 — Loonars 2: foto bukti transfer dibaca otomatis + dana talangan (migrasi 0049)
+- Insiden nyata: owner membayar upah borongan Rp 13 jt dan mengirim foto tanpa keterangan; foto itu tidak sampai ke Loonars 2 (hanya foto berketerangan "L2 ..." yang diproses) dan saldo C Rp 0 menolak pencatatan.
+- Foto tanpa keterangan dari nomor terdaftar: database dicek dulu (ada yang menunggu?), AI hanya membaca nominal (`recognizeTransferProof`), database mencocokkan persis & unik ke satu kode M-n / L2-n / transfer A→B/C/D menunggu. Bukti owner = menyetujui + mencatat dibayar; bukti pelaksana hanya mencatat yang sudah disetujui; ambigu → diminta "L2 bayar <kode>".
+- Bukti owner boleh mendahului saldo C: `loonars2_disbursements.talangan = true` (saldo C minus = dana talangan, tampil di Ringkasan). Jalur "L2 bayar ..." tetap menolak bila saldo kurang.
+
 ## 2026-10-14 — Loonars 2: borongan otomatis, biaya lain tanpa unit, cicilan "lunas" (migrasi 0048)
 - Pelaksana cukup mengajukan; owner tidak menyiapkan data: "tukang minggu ini" membuat borongan otomatis (ketentuan standar di `loonars2_settings`: 35 jt/unit, retensi 9 jt, 12 minggu) untuk unit sedang dibangun yang belum punya borongan; beberapa borongan aktif diajukan sekaligus; owner diberi tahu.
 - "lain ..." tanpa unit dibagi rata ke unit sedang dibangun; "cicilan <toko> lunas" / tanpa nominal memakai sisa utang dari tabel utang.

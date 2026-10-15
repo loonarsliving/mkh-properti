@@ -259,6 +259,7 @@ function TabRingkasan({ data }: { data: Data }) {
   const p = data.ringkasan.proyeksi_tanah;
   const k = data.ringkasan.kesehatan;
   const terjual = data.unit.filter((u) => u.status === 'dp' || u.status === 'lunas').length;
+  const talangan = data.pengeluaran.filter((x) => x.talangan).reduce((s, x) => s + Number(x.nominal), 0);
   const belumTerdanai = data.unit.filter((u) => (u.status === 'dp' || u.status === 'lunas') && !u.terdanai_penuh);
   const nada = { A: 'amber', B: 'emerald', C: 'blue', D: 'violet' } as const;
   const tokoBerutang = data.toko.filter((t) => Number(t.sisa_utang) > 0);
@@ -312,6 +313,7 @@ function TabRingkasan({ data }: { data: Data }) {
             <Baris label="Saldo C (terkonfirmasi)" nilai={rupiah(k.saldo_c)} />
             <Baris label="Sisa kebutuhan C unit terjual" nilai={rupiah(k.kebutuhan_sisa)} />
             <Baris label="Masih menunggu transfer A → C" nilai={rupiah(k.menunggu_ke_c)} />
+            <Baris label="Dana talangan (dibayar saat saldo C belum cukup)" nilai={rupiah(talangan)} />
             <Baris label="Unit terjual (DP/lunas)" nilai={`${terjual} dari ${data.unit.length}`} />
           </div>
           {k.kurang > 0 ? (
