@@ -26,6 +26,8 @@ export const AKSI_WA_LOONARS2 = [
   'bahan',
   'koreksi_bahan',
   'rab',
+  'bukti_kandidat',
+  'bukti_transfer',
   'ya',
   'batal',
   'outbox_ambil',
@@ -208,6 +210,8 @@ export interface L2Pengeluaran {
   keterangan: string | null;
   bukti_url: string | null;
   dicatat_oleh: string;
+  /** Dibayar saat saldo C belum cukup (bukti transfer owner): dana talangan, menunggu tertutup dari penjualan. */
+  talangan: boolean;
 }
 
 export interface L2PenggunaWa {

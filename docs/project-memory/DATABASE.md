@@ -125,6 +125,9 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
+## 2026-10-15 — migrasi 0049 (bukti transfer otomatis, dana talangan) — LIVE (0049a–d)
+- Kolom baru `loonars2_disbursements.talangan` (default false). Diganti: `_loonars2_catat_pengeluaran`, `_loonars2_bayar_kelompok` (boleh melewati saldo C hanya bila GUC `loonars2.talangan='ya'`, diset oleh jalur bukti owner). Baru: `_loonars2_bukti_transfer`; cabang `bukti_kandidat` & `bukti_transfer` di `_loonars2_wa_jalankan` (disisipkan lewat 0049d).
+
 ## 2026-10-14 — migrasi 0048 (borongan otomatis) — LIVE (0048a–c)
 - `loonars2_settings`: + `tukang_nilai_per_unit` (35 jt), `tukang_retensi_per_unit` (9 jt), `tukang_minggu` (12).
 - Fungsi baru `_loonars2_siapkan_borongan`; diganti `_loonars2_ajukan_mingguan` (banyak borongan, biaya lain tanpa unit, cicilan lunas) dan `_loonars2_butuh_unit`.
