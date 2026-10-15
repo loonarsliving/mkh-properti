@@ -125,6 +125,9 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
+## 2026-10-15 — migrasi 0050 (bukti diteruskan ke pelaksana) — LIVE
+- Hanya mengganti argumen gambar pada pemberitahuan ke pelaksana di `_loonars2_bayar_kelompok` (disisipkan lewat DO-block pada definisi yang ada).
+
 ## 2026-10-15 — migrasi 0049 (bukti transfer otomatis, dana talangan) — LIVE (0049a–d)
 - Kolom baru `loonars2_disbursements.talangan` (default false). Diganti: `_loonars2_catat_pengeluaran`, `_loonars2_bayar_kelompok` (boleh melewati saldo C hanya bila GUC `loonars2.talangan='ya'`, diset oleh jalur bukti owner). Baru: `_loonars2_bukti_transfer`; cabang `bukti_kandidat` & `bukti_transfer` di `_loonars2_wa_jalankan` (disisipkan lewat 0049d).
 
