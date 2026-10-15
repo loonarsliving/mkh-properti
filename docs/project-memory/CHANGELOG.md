@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-15 — Loonars 2: bukti transfer ikut diteruskan ke pelaksana (migrasi 0050)
+- `_loonars2_bayar_kelompok`: pemberitahuan "tercatat dibayar" ke pelaksana kini membawa foto bukti (sebelumnya hanya teks). Bukti M-9 (13 jt ke SARNO, 15 Okt 2026) dilampirkan ke catatan pembayaran dan dikirim ke Vando.
+
 ## 2026-10-15 — Loonars 2: foto bukti transfer dibaca otomatis + dana talangan (migrasi 0049)
 - Insiden nyata: owner membayar upah borongan Rp 13 jt dan mengirim foto tanpa keterangan; foto itu tidak sampai ke Loonars 2 (hanya foto berketerangan "L2 ..." yang diproses) dan saldo C Rp 0 menolak pencatatan.
 - Foto tanpa keterangan dari nomor terdaftar: database dicek dulu (ada yang menunggu?), AI hanya membaca nominal (`recognizeTransferProof`), database mencocokkan persis & unik ke satu kode M-n / L2-n / transfer A→B/C/D menunggu. Bukti owner = menyetujui + mencatat dibayar; bukti pelaksana hanya mencatat yang sudah disetujui; ambigu → diminta "L2 bayar <kode>".
