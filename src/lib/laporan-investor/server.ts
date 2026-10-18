@@ -81,6 +81,29 @@ function akhirBulan(p: string): string {
   return `${p}-${String(hariTerakhir(t, b)).padStart(2, '0')}`;
 }
 
+/**
+ * Model laporan TANPA PDF dan tanpa catatan unduhan — untuk ringkasan yang
+ * dibaca asisten WA owner (/api/laporan-investor/ringkasan-wa). Data dan
+ * rumusnya sama persis dengan PDF (ir_ambil_data + susunModel).
+ */
+export async function susunModelServer(
+  k: Extract<Kredensial, { jenis: 'cfo' | 'wa' }>,
+  parsial: Partial<OpsiLaporan>,
+): Promise<ModelLaporan> {
+  const sampai = parsial.sampai ?? bulanIni();
+  const data = await rpc<DataLaporan>(k, 'ir_ambil_data', {
+    p_sampai: akhirBulan(sampai),
+    p_peminta_wa: k.jenis === 'wa' ? k.nomor : null,
+  });
+  const dari = parsial.dari ?? bulanDataPertama(data);
+  return susunModel(data, {
+    unit: parsial.unit ?? [],
+    dari: dari <= sampai ? dari : sampai,
+    sampai,
+    bagian: BAGIAN_LAPORAN.map((b) => b.kunci),
+  });
+}
+
 export async function susunLaporanServer(
   k: Kredensial,
   parsial: Partial<OpsiLaporan>,

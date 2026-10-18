@@ -3,6 +3,17 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-10-18 — Ringkasan keuangan untuk asisten WA owner — dibangun, BELUM di-merge
+
+`POST /api/laporan-investor/ringkasan-wa` (hanya baca): `ir_ambil_data` +
+`susunModel` yang sama dengan PDF Laporan Investor, dikembalikan sebagai JSON
+ringkas (`src/lib/laporan-investor/ringkasan.ts`), tanpa PDF dan tanpa catatan
+unduhan. Akses sama dengan `/api/laporan-investor/wa` (x-sync-secret dicocokkan
+database lewat `ir_boleh_akses`; MK Connect memastikan super admin). Dipanggil
+asisten WA owner di Mkhsistem (`lib/ai/domains/owner-assistant.ts`). Tanpa
+migrasi. Dicek 2026-10-18 dengan data produksi (baca saja): `metrik` masih
+kosong, `pendapatan_villa` baru berisi 2026-09.
+
 ## PERUBAHAN BESAR TERAKHIR — migrasi ke Next.js (2026-08-22)
 
 Frontend berpindah dari 10 halaman HTML statis ke satu aplikasi **Next.js 15
