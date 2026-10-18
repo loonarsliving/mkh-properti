@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-18 — Ringkasan keuangan JSON untuk asisten WA owner
+- `POST /api/laporan-investor/ringkasan-wa` + `susunModelServer` (server.ts) + `susunRingkasan` (ringkasan.ts). Hanya baca, tanpa migrasi.
+
 ## 2026-10-15 — Loonars 2: bukti transfer ikut diteruskan ke pelaksana (migrasi 0050)
 - `_loonars2_bayar_kelompok`: pemberitahuan "tercatat dibayar" ke pelaksana kini membawa foto bukti (sebelumnya hanya teks). Bukti M-9 (13 jt ke SARNO, 15 Okt 2026) dilampirkan ke catatan pembayaran dan dikirim ke Vando.
 
