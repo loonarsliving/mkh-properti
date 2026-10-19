@@ -1,0 +1,33 @@
+name: CI
+
+# Gerbang otomatis sebelum merge: typecheck, lint, tes mesin akuntansi, build.
+# Tidak memakai rahasia apa pun dan tidak men-deploy apa pun (deploy tetap
+# lewat integrasi Git Vercel).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

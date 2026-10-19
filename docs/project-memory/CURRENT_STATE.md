@@ -13,6 +13,9 @@ database lewat `ir_boleh_akses`; MK Connect memastikan super admin). Dipanggil
 asisten WA owner di Mkhsistem (`lib/ai/domains/owner-assistant.ts`). Tanpa
 migrasi. Dicek 2026-10-18 dengan data produksi (baca saja): `metrik` masih
 kosong, `pendapatan_villa` baru berisi 2026-09.
+**Update 2026-10-19:** pengirim metrik dibangun di villa (`/cron/sync-mkh-income`
+→ `ir_metrik_terima`, unit `loonars-1`, sumber `villa-api`, mulai periode
+2026-10), belum di-merge. Lihat villa CURRENT_STATE.md 2026-10-19.
 
 ## PERUBAHAN BESAR TERAKHIR — migrasi ke Next.js (2026-08-22)
 
@@ -244,7 +247,10 @@ The most recent 3 commits (`9260fc6`, `ab0f1b6`, `a47daa8`) are all incremental 
 None currently open/tracked in-repo (no issue tracker content available to this audit). Historical bugs were fixed via dedicated commits (see DEVELOPMENT_WORKFLOW.md and CHANGELOG.md) — e.g., a prior regression where a construction-sync change accidentally dropped `loonars_*` sync_inbound branches (fixed in `268d5d0`).
 
 ## Technical debt
-- No automated tests, no CI/CD — all functional verification is still manual.
+- **Update 2026-10-19:** CI (`.github/workflows/ci.yml`: typecheck, lint, tes,
+  build) dan tes vitest untuk `src/lib/akuntansi/` kini ada. Belum ada tes untuk
+  halaman, RPC database, maupun laporan investor. Teks di bawah ini sejarah.
+- ~~No automated tests, no CI/CD — all functional verification is still manual.~~
   (`npm run lint` dan `npm run typecheck` kini tersedia dan bersih, tapi belum
   ada test suite maupun workflow CI yang menjalankannya otomatis.)
 - ~~Duplicated JS logic copy-pasted across every `.html` page~~ — **selesai**
