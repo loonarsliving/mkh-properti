@@ -125,6 +125,9 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
+## 2026-10-19 — migrasi 0052 (bukti transfer bayar utang toko) — LIVE
+Fungsi baru `_loonars2_ket_utang_toko`, `_loonars2_bukti_cicilan`, `_loonars2_bukti_transfer_utama`; `_loonars2_wa_jalankan` (aksi `bukti_kandidat`, `bukti_transfer`) membaca `keterangan`. Dijalankan di produksi sebagai 0052a–b. Tanpa tabel/kolom baru.
+
 ## 2026-10-19 — migrasi 0051 (utang langsung sah + penjaga double) — LIVE
 Fungsi baru `_loonars2_kunci_toko`, `_loonars2_cek_utang_double`; `_loonars2_cari_toko` memakai kunci nama. `_loonars2_pesan_bahan` & `_loonars2_catat_utang` memasukkan utang berstatus `disetujui`; `_loonars2_wa_jalankan` memeriksa double sebelum mencatat; `_loonars2_putuskan_kode` boleh menolak utang yang sudah disetujui. Tanpa tabel/kolom baru. Dijalankan di produksi sebagai 0051a–e (0051d, penghapusan 2 toko kosong, tidak selesai: DELETE lewat MCP butuh konfirmasi).
 
