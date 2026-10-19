@@ -13,6 +13,9 @@ database lewat `ir_boleh_akses`; MK Connect memastikan super admin). Dipanggil
 asisten WA owner di Mkhsistem (`lib/ai/domains/owner-assistant.ts`). Tanpa
 migrasi. Dicek 2026-10-18 dengan data produksi (baca saja): `metrik` masih
 kosong, `pendapatan_villa` baru berisi 2026-09.
+**Update 2026-10-19:** pengirim metrik dibangun di villa (`/cron/sync-mkh-income`
+→ `ir_metrik_terima`, unit `loonars-1`, sumber `villa-api`, mulai periode
+2026-10), belum di-merge. Lihat villa CURRENT_STATE.md 2026-10-19.
 
 ## PERUBAHAN BESAR TERAKHIR — migrasi ke Next.js (2026-08-22)
 
