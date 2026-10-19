@@ -22,29 +22,41 @@ select pg_temp.cek('owner tidak bisa input utang', (pg_temp.wa('6281100000001', 
 select pg_temp.cek('utang untuk unit belum terjual ditolak', (pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Maju","unit":["3"],"nominal":1000000}') ->> 'status') = 'ditolak');
 select pg_temp.cek('utang tanpa toko ditolak', (pg_temp.wa('6281100000002', 'utang', '{"unit":["13"],"nominal":1000000}') ->> 'status') = 'ditolak');
 select pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Maju","unit":["13"],"deskripsi":"semen 50 sak","nominal":6500000,"nota_url":"https://contoh/nota-utang.jpg"}') ->> 'balasan';
-select pg_temp.cek('utang tercatat menunggu persetujuan, toko dibuat otomatis',
-  exists (select 1 from loonars2_utang_toko ut join loonars2_toko t on t.id = ut.toko_id where t.nama = 'TB Maju' and ut.status = 'menunggu' and ut.nominal = 6500000));
+select pg_temp.cek('utang langsung sah tanpa persetujuan owner, toko dibuat otomatis',
+  exists (select 1 from loonars2_utang_toko ut join loonars2_toko t on t.id = ut.toko_id where t.nama = 'TB Maju' and ut.status = 'disetujui' and ut.nominal = 6500000 and ut.diputuskan_oleh like 'sistem:otomatis%'));
 select pg_temp.cek('owner menerima pesan utang beserta foto nota', exists (select 1 from loonars2_outbox where jenis = 'utang' and gambar_url = 'https://contoh/nota-utang.jpg'));
-select pg_temp.cek('utang menunggu belum memotong budget', pg_temp.terpakai('LUNARA-01') = 0);
+select pg_temp.cek('utang sah langsung memotong budget unit', pg_temp.terpakai('LUNARA-01') = 6500000);
+select pg_temp.cek('pesan ke owner menyebut sudah sah otomatis & cara menolak',
+  (select pesan from loonars2_outbox where jenis = 'utang' order by id desc limit 1) like '%Sudah sah otomatis%tolak U-%');
 select pg_temp.cek('nama toko tidak peka huruf besar/kecil',
   (pg_temp.wa('6281100000002', 'utang', '{"toko":"tb maju","unit":["13","14"],"deskripsi":"besi","nominal":10000001}') ->> 'status') = 'diajukan'
   and (select count(*) from loonars2_toko) = 1);
 select pg_temp.cek('utang 2 unit dibagi rata, jumlah persis (5.000.001 + 5.000.000)',
   (select array_agg(nominal order by id) = array[5000001, 5000000]::numeric[] from loonars2_utang_toko where kelompok = (select max(kelompok) from loonars2_utang_toko)));
 
--- 2. Persetujuan utang -----------------------------------------------------------
-select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select min(kelompok) from loonars2_utang_toko), 'setuju', true)) ->> 'balasan';
-select pg_temp.cek('utang disetujui memotong budget bangun unit', pg_temp.terpakai('LUNARA-01') = 6500000);
-select pg_temp.cek('pelaksana diberi tahu keputusan utang', exists (select 1 from loonars2_outbox where nomor = '6281100000002' and pesan like '%Utang U-%DISETUJUI%'));
-select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select max(kelompok) from loonars2_utang_toko), 'setuju', true)) ->> 'status';
-select pg_temp.cek('sisa utang TB Maju = 16.500.001', (select sisa_utang from loonars2_v_toko where nama = 'TB Maju') = 16500001);
+-- 2. Utang sah otomatis ------------------------------------------------------------
+select pg_temp.cek('sisa utang TB Maju = 16.500.001 tanpa persetujuan apa pun', (select sisa_utang from loonars2_v_toko where nama = 'TB Maju') = 16500001);
 -- BANYU-06: terpakai 100 jt + komitmen 30 jt (dari uji sebelumnya) = 130 jt; utang 20 jt → 150 jt > 138 jt
 select pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Sinar","unit":["BANYU-06"],"deskripsi":"keramik","nominal":20000000}') ->> 'status';
-select pg_temp.cek('utang melewati buffer butuh persetujuan khusus',
-  (pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select kelompok from loonars2_utang_toko order by id desc limit 1), 'setuju', true)) ->> 'balasan') like '%buffer%'
-  and (select status from loonars2_utang_toko order by id desc limit 1) = 'menunggu');
+select pg_temp.cek('utang melewati buffer tetap tercatat sah tetapi ditandai melewati buffer',
+  (select status = 'disetujui' and melewati_buffer from loonars2_utang_toko order by id desc limit 1));
 select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select kelompok from loonars2_utang_toko order by id desc limit 1), 'setuju', false, 'alasan', 'cek ulang harga')) ->> 'status';
-select pg_temp.cek('utang ditolak tidak memotong budget', (select status from loonars2_utang_toko order by id desc limit 1) = 'ditolak');
+select pg_temp.cek('owner masih bisa menolak utang yang sudah sah; tidak memotong budget lagi', (select status from loonars2_utang_toko order by id desc limit 1) = 'ditolak');
+
+-- 2b. Penjaga nota double & nama toko --------------------------------------------------
+select pg_temp.cek('nota dengan toko + total yang sama (kelompok 6.500.000) tidak dicatat dua kali',
+  (pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Maju","unit":["13"],"deskripsi":"semen 50 sak","nominal":6500000}') ->> 'status') = 'perlu_info'
+  and (select count(*) from loonars2_utang_toko where nominal = 6500000) = 1);
+select pg_temp.cek('pesan penolakan menyebut kode yang mirip & cara lanjut',
+  (pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Maju","unit":["13"],"deskripsi":"semen","nominal":6500000}') ->> 'balasan') like '%U-%nota beda%');
+select pg_temp.cek('nama toko beda penulisan = toko yang sama (Toko Besi TB Maju)',
+  public._loonars2_cari_toko('Toko Besi & Bahan Bangunan TB Maju', false) = public._loonars2_cari_toko('TB Maju', false));
+select pg_temp.cek('penjaga double juga bekerja lewat nama toko yang ditulis lain',
+  (pg_temp.wa('6281100000002', 'utang', '{"toko":"Toko Besi TB Maju","unit":["13"],"deskripsi":"semen","nominal":6500000}') ->> 'status') = 'perlu_info');
+select pg_temp.cek('nota beda (paksa) dengan total sama tetap bisa dicatat',
+  (pg_temp.wa('6281100000002', 'utang', '{"toko":"TB Maju","unit":["13"],"deskripsi":"semen nota lain","nominal":6500000,"paksa":true}') ->> 'status') = 'diajukan');
+select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select kelompok from loonars2_utang_toko order by id desc limit 1), 'setuju', false, 'alasan', 'uji')) ->> 'status';
+select pg_temp.cek('toko tetap satu setelah semua uji nama', (select count(*) from loonars2_toko where public._loonars2_kunci_toko(nama) = 'maju') = 1);
 
 -- 3. Pengajuan mingguan ----------------------------------------------------------
 select pg_temp.cek('owner tidak bisa mengajukan mingguan', (pg_temp.wa('6281100000001', 'ajukan_mingguan', '{"baris":[]}') ->> 'status') = 'tidak_berhak');

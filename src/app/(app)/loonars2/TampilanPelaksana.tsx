@@ -5,7 +5,7 @@ import { useJudul } from '@/components/shell/JudulProvider';
 import { Badge, Kosong, Memuat, Panel, PesanGalat } from '@/components/ui/Umum';
 import { rupiah, tanggalPendek } from '@/lib/format';
 import { sbRpc } from '@/lib/supabase';
-import { LABEL_STATUS_BANGUN, LABEL_STATUS_UNIT, type L2Pelaksana, type L2PelaksanaUnit } from '@/lib/loonars2';
+import { LABEL_STATUS_BANGUN, LABEL_STATUS_UNIT, tokoAda, type L2Pelaksana, type L2PelaksanaUnit } from '@/lib/loonars2';
 import { PanelBorongan, PanelRab, PanelUnitDibangun } from './BoronganRab';
 
 /**
@@ -234,7 +234,7 @@ function TabUtangToko({ data }: { data: L2Pelaksana }) {
                 </tr>
               </thead>
               <tbody>
-                {data.toko.map((t) => (
+                {data.toko.filter(tokoAda).map((t) => (
                   <tr key={t.id}>
                     <td className="font-semibold">{t.nama}</td>
                     <td className="text-right font-mono">{rupiah(t.utang_disetujui)}</td>

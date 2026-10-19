@@ -144,8 +144,9 @@ select pg_temp.cek('utang tanpa unit: ditanya dulu',
 select pg_temp.wa('6281100000002', 'ya') ->> 'balasan';
 select pg_temp.cek('utang kolektif dibagi ke 6 unit sedang dibangun, jumlah persis 3 jt, kode U',
   (select count(*) = 6 and sum(nominal) = 3000000 and bool_and(kelompok like 'U-%') from loonars2_utang_toko where pesanan_id = (select max(id) from loonars2_pesanan_bahan)));
-select pg_temp.cek('utang menunggu belum memotong budget; sisa utang toko belum berubah oleh yang menunggu',
-  (select utang_menunggu >= 3000000 from loonars2_v_toko where nama = 'TB Maju'));
+select pg_temp.cek('utang kolektif langsung sah (tanpa persetujuan owner) dan masuk sisa utang toko',
+  (select bool_and(status = 'disetujui') from loonars2_utang_toko where pesanan_id = (select max(id) from loonars2_pesanan_bahan))
+  and (select sisa_utang >= 3000000 from loonars2_v_toko where nama = 'TB Maju'));
 
 -- 7. Daftar unit sedang dibangun = acuan ---------------------------------------------------
 select pg_temp.cek('legacy: unit belum dibangun/belum DP ditolak dan menyarankan daftar unit',

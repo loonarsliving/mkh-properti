@@ -169,6 +169,11 @@ export interface L2Toko {
   sisa_utang: number;
 }
 
+/** Toko tanpa utang/cicilan sama sekali (sisa nama ganda yang sudah digabung) tidak ditampilkan. */
+export function tokoAda(t: L2Toko): boolean {
+  return Number(t.utang_disetujui) !== 0 || Number(t.utang_menunggu) !== 0 || Number(t.cicilan_dibayar) !== 0 || Number(t.cicilan_diproses) !== 0;
+}
+
 export interface L2Utang {
   id: number;
   kelompok: string;
