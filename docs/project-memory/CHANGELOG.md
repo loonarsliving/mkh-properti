@@ -2,6 +2,10 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-19 — CI + tes mesin akuntansi
+- `.github/workflows/ci.yml`: typecheck, lint, `npm test`, build di setiap PR dan push ke `main` (tanpa rahasia, tanpa deploy).
+- `vitest` + `src/lib/akuntansi/sak-emkm.test.ts` (9 tes): neraca seimbang per tahun, saldo laba awal vs periode berjalan, akun di luar COA tetap terhitung, beban pajak manual, klasifikasi arus kas, neraca saldo D = K.
+
 ## 2026-10-18 — Ringkasan keuangan JSON untuk asisten WA owner
 - `POST /api/laporan-investor/ringkasan-wa` + `susunModelServer` (server.ts) + `susunRingkasan` (ringkasan.ts). Hanya baca, tanpa migrasi.
 
