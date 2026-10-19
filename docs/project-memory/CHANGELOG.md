@@ -2,6 +2,11 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-19 — Loonars 2: laporan pembayaran utang toko sebagai PDF lewat WA (migrasi 0053)
+- Owner minta lewat WA bot ("kirim laporan utang loonars 2 pdf", "laporan pembayaran utang", "L2 laporan utang") → MK Connect meminta tautan ke MKH Property (aksi `laporan_utang`, khusus owner) lalu mengirim PDF sebagai dokumen WA.
+- Tautan berumur 15 menit, bertanda tangan HMAC-SHA256 dengan rahasia sync yang sudah ada (Vault `mk_sync_shared_secret`); PDF dibuat saat diunduh dari data terbaru (`GET /api/loonars2/laporan-utang/<token>/<nama>`), tidak disimpan. Isi: ringkasan total utang/dibayar/sisa, per toko daftar pembayaran (tanggal, kode, nominal, penerima, ada bukti) dan daftar utang per kode.
+- Data yang dilaporkan = tabel yang sudah ada (utang, cicilan, pembayaran); tanpa tabel baru.
+
 ## 2026-10-19 — Loonars 2: bukti transfer pembayaran utang toko dibaca otomatis (migrasi 0052)
 - Owner mengirim foto bukti + keterangan "pembayaran utang toko ..." tanpa ada pengajuan cicilan: sebelumnya dijawab "tidak ada pengajuan" dan tidak dicatat. Kini `_loonars2_bukti_cicilan` menentukan toko (nama di keterangan → toko yang pernah dibayar ke penerima sama → satu-satunya toko yang sisa utangnya cukup), mencatat cicilan disetujui + dibayar dari C (dana talangan bila kurang) dengan bukti, meneruskan bukti ke pelaksana. Toko tak bisa ditentukan / nominal > sisa utang: tidak dicatat, dijelaskan. Bukti kembar tidak dicatat dua kali. Adapter MK Connect mengirim keterangan foto.
 - Pembayaran 9.173.000 (19 Okt 2026) dicatat manual sebagai M-43 ke Sedia Nurut.

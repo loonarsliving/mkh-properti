@@ -125,6 +125,9 @@ View: `loonars2_v_unit`, `loonars2_v_rekening`, `loonars2_v_lama_mengendap`
 (security_invoker). Cron: `loonars2-pengingat` (*/15), `loonars2-outbox` (*/1).
 Fungsi internal `_loonars2_*` tertutup untuk klien.
 
+## 2026-10-19 — migrasi 0053 (laporan utang PDF) — LIVE
+Fungsi baru `_loonars2_tanda_laporan`, `_loonars2_buat_tautan_laporan`, `loonars2_laporan_utang_data(p_token)` (anon, tanda tangan HMAC + kedaluwarsa); `_loonars2_wa_jalankan` aksi `laporan_utang` (owner). Dijalankan di produksi sebagai 0053a–b. Tanpa tabel/kolom baru.
+
 ## 2026-10-19 — migrasi 0052 (bukti transfer bayar utang toko) — LIVE
 Fungsi baru `_loonars2_ket_utang_toko`, `_loonars2_bukti_cicilan`, `_loonars2_bukti_transfer_utama`; `_loonars2_wa_jalankan` (aksi `bukti_kandidat`, `bukti_transfer`) membaca `keterangan`. Dijalankan di produksi sebagai 0052a–b. Tanpa tabel/kolom baru.
 
