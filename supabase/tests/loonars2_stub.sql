@@ -6,6 +6,7 @@ do $$ begin
 end $$;
 create schema auth;
 create schema extensions;
+create extension if not exists pgcrypto with schema extensions;
 create schema vault;
 create table vault.secrets_stub (name text primary key, decrypted_secret text);
 create view vault.decrypted_secrets as select name, decrypted_secret from vault.secrets_stub;
