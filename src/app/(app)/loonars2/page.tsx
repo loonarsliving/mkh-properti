@@ -16,6 +16,7 @@ import {
   KATEGORI_PENGELUARAN,
   LABEL_STATUS_BANGUN,
   LABEL_STATUS_UNIT,
+  tokoAda,
   type L2Alokasi,
   type L2Audit,
   type L2Borongan,
@@ -833,7 +834,7 @@ function TabUtang({ data, jalankan, web }: { data: Data; jalankan: Jalankan; web
               <tr><th>Toko</th><th className="text-right">Utang disetujui</th><th className="text-right">Sudah dicicil</th><th className="text-right">Sisa</th><th className="text-right">Menunggu</th></tr>
             </thead>
             <tbody>
-              {data.toko.map((t) => (
+              {data.toko.filter(tokoAda).map((t) => (
                 <tr key={t.id}>
                   <td className="font-semibold">{t.nama}</td>
                   <td className="text-right font-mono">{rupiah(t.utang_disetujui)}</td>

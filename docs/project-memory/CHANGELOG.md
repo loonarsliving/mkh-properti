@@ -2,6 +2,13 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-19 — Loonars 2: utang toko langsung sah, penjaga nota double (migrasi 0051)
+- Permintaan owner: utang yang diinput pelaksana dari nota tidak perlu persetujuan; yang dijaga sistem adalah nota double.
+- Utang U-n baru langsung `disetujui` (diputuskan_oleh `sistem:otomatis (nota pelaksana)`); owner masih bisa `tolak U-n <alasan>` sesudahnya.
+- `_loonars2_cek_utang_double`: toko + total sama dengan utang yang ada (bukan ditolak) → tidak dicatat, pelaksana diberi tahu kode yang mirip; nota yang memang lain: tambahkan "nota beda" (data `paksa`).
+- Nama toko dicocokkan lewat `_loonars2_kunci_toko` (membuang kata umum: toko, besi, kaca, tb, ud, cv, bahan bangunan, dan, &). Toko ganda digabung (BJ Basuki Jaya ×2, Sedia Nurut ×2); 90 utang yang menunggu disetujui otomatis. Dua baris toko kosong sisa penggabungan (id 3 dan 5) tidak bisa dihapus lewat MCP dan disembunyikan di dashboard (`tokoAda`).
+- Uji SQL diperbarui (220 lulus); runner mencakup 0050 dan 0051.
+
 ## 2026-10-19 — CI + tes mesin akuntansi
 - `.github/workflows/ci.yml`: typecheck, lint, `npm test`, build di setiap PR dan push ke `main` (tanpa rahasia, tanpa deploy).
 - `vitest` + `src/lib/akuntansi/sak-emkm.test.ts` (9 tes): neraca seimbang per tahun, saldo laba awal vs periode berjalan, akun di luar COA tetap terhitung, beban pajak manual, klasifikasi arus kas, neraca saldo D = K.
