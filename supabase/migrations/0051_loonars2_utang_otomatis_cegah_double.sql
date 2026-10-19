@@ -45,12 +45,13 @@ declare
   v_id smallint;
 begin
   if length(v_nama) < 2 then return null; end if;
-  select id into v_id from public.loonars2_toko where lower(trim(nama)) = lower(v_nama);
+  -- kunci dulu (toko paling awal menang, sehingga sisa baris ganda tidak pernah terpilih), lalu nama persis
+  v_kunci := public._loonars2_kunci_toko(v_nama);
+  if v_kunci <> '' then
+    select id into v_id from public.loonars2_toko where public._loonars2_kunci_toko(nama) = v_kunci order by id limit 1;
+  end if;
   if v_id is null then
-    v_kunci := public._loonars2_kunci_toko(v_nama);
-    if v_kunci <> '' then
-      select id into v_id from public.loonars2_toko where public._loonars2_kunci_toko(nama) = v_kunci order by id limit 1;
-    end if;
+    select id into v_id from public.loonars2_toko where lower(trim(nama)) = lower(v_nama) order by id limit 1;
   end if;
   if v_id is null and p_buat then
     insert into public.loonars2_toko (nama) values (v_nama) returning id into v_id;
