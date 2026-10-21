@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel (migrasi 0054)
+- Lihat CURRENT_STATE.md 2026-10-21. Tabel `laporan_villa_bulanan`, `pajak_hotel_villa`, RPC `villa_laporan_terima` / `villa_laporan_ringkasan_wa`, halaman `/laporan-keuangan-villa` dan `/pajak-hotel`, endpoint `/api/laporan-villa/ringkasan-wa`. Migrasi sudah diterapkan ke produksi.
+
 ## 2026-10-19 — Loonars 2: laporan pembayaran utang toko sebagai PDF lewat WA (migrasi 0053)
 - Owner minta lewat WA bot ("kirim laporan utang loonars 2 pdf", "laporan pembayaran utang", "L2 laporan utang") → MK Connect meminta tautan ke MKH Property (aksi `laporan_utang`, khusus owner) lalu mengirim PDF sebagai dokumen WA.
 - Tautan berumur 15 menit, bertanda tangan HMAC-SHA256 dengan rahasia sync yang sudah ada (Vault `mk_sync_shared_secret`); PDF dibuat saat diunduh dari data terbaru (`GET /api/loonars2/laporan-utang/<token>/<nama>`), tidak disimpan. Isi: ringkasan total utang/dibayar/sisa, per toko daftar pembayaran (tanggal, kode, nominal, penerima, ada bukti) dan daftar utang per kode.

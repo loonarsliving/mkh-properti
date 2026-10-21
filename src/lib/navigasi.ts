@@ -77,6 +77,8 @@ export const NAVIGASI: GrupNav[] = [
       { label: 'Pendapatan Villa', href: '/pendapatan-villa', ikon: 'dompet', peran: CFO },
       { label: 'Beban Villa', href: '/beban-villa', ikon: 'kas-keluar', peran: CFO },
       { label: 'Laporan Laba-Rugi Villa', href: '/laporan-villa', ikon: 'printer', peran: CFO },
+      { label: 'Laporan Keuangan Villa', href: '/laporan-keuangan-villa', ikon: 'grafik', peran: CFO },
+      { label: 'Pajak Hotel (Dispenda)', href: '/pajak-hotel', ikon: 'kotak', peran: CFO },
     ],
   },
   {
