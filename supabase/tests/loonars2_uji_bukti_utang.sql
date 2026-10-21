@@ -37,7 +37,7 @@ select pg_temp.cek('nominal melebihi semua sisa utang: tidak dicatat, jelaskan s
 
 -- 3. Toko tidak disebut, hanya satu toko yang sisa utangnya cukup (9.173.000) -> otomatis
 create temp table sebelum as select (select saldo from loonars2_v_rekening where kode = 'C') as c;
-select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":17173000,"penerima":"PAPANG WIDIYANTO DANAMON 9036 9271 0811","tanggal":"19 Oktober 2026","keterangan":"Pembayaran utang toko bangunan loonars 2","bukti_url":"https://contoh/tf-utang.jpg"}') ->> 'balasan';
+select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":17173000,"penerima":"PAPANG WIDIYANTO DANAMON 9036 9271 0811","tanggal":"19 Oktober 2026","waktu":"15:36","keterangan":"Pembayaran utang toko bangunan loonars 2","bukti_url":"https://contoh/tf-utang.jpg"}') ->> 'balasan';
 select pg_temp.cek('bukti ke toko satu-satunya yang cukup: cicilan dibayar, sisa utang turun jadi 2.827.000', pg_temp.sisa('TB Besi Uji') = 2827000
   and exists (select 1 from loonars2_cicilan where nominal = 17173000 and status = 'dibayar' and catatan like '%PAPANG WIDIYANTO%'));
 select pg_temp.cek('saldo C turun (dana talangan bila kurang)', (select saldo from loonars2_v_rekening where kode = 'C') = (select c from sebelum) - 17173000);
@@ -46,7 +46,7 @@ select pg_temp.cek('pelaksana menerima foto bukti', exists (select 1 from loonar
 
 -- 4. Bukti yang sama tidak dicatat dua kali
 select pg_temp.cek('bukti kembar (nominal + penerima sama) ditolak',
-  (pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":17173000,"penerima":"PAPANG WIDIYANTO DANAMON 9036 9271 0811","keterangan":"pembayaran utang toko","bukti_url":"https://contoh/tf-utang2.jpg"}') ->> 'balasan') like '%sudah dicatat%'
+  (pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":17173000,"penerima":"PAPANG WIDIYANTO DANAMON 9036 9271 0811","tanggal":"19 Oktober 2026","waktu":"15:36","keterangan":"pembayaran utang toko","bukti_url":"https://contoh/tf-utang2.jpg"}') ->> 'balasan') like '%sudah dicatat%'
   and (select count(*) from loonars2_cicilan where nominal = 17173000 and status = 'dibayar') = 1);
 
 -- 5. Nama toko di keterangan menentukan toko (meski ada toko lain yang cukup)
@@ -64,6 +64,32 @@ select pg_temp.cek('dua toko cukup, toko tak disebut: tidak dicatat, minta nama 
 -- 7. Pelaksana tidak bisa memakai jalur ini
 select pg_temp.cek('bukti dari pelaksana tidak mencatat cicilan',
   (pg_temp.wa('6281100000002', 'bukti_transfer', '{"nominal":500000,"penerima":"Y","keterangan":"pembayaran utang toko TB Besi Uji","bukti_url":"https://contoh/tf-y.jpg"}') ->> 'status') = 'tidak_cocok');
-select pg_temp.cek('saldo C tidak ada yang hilang di luar uji ini', (select count(*) from loonars2_cicilan where status = 'dibayar' and catatan like 'Bukti transfer ke%') = 2);
+select pg_temp.cek('hanya dua pembayaran dari bukti sebelum bagian 8', (select count(*) from loonars2_cicilan where status = 'dibayar' and catatan like 'Bukti transfer ke%') = 2);
+
+-- 8. Beberapa transfer lama dengan nominal & penerima sama dibedakan lewat tanggal + jam
+create temp table sblm8 as select pg_temp.sisa('UD Semen Uji') as s;
+select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"10 Oktober 2026","waktu":"18:11","keterangan":"bukti cicil utang toko UD Semen Uji","bukti_url":"https://contoh/tf-a.jpg"}') ->> 'balasan';
+select pg_temp.cek('transfer lama dicatat pada TANGGAL TRANSFER (10 Okt), bukan tanggal unggah',
+  (select tanggal = date '2026-10-10' from loonars2_disbursements where bukti_url = 'https://contoh/tf-a.jpg')
+  and pg_temp.sisa('UD Semen Uji') = (select s from sblm8) - 500000);
+select pg_temp.cek('bukti yang identik (tanggal + jam sama) tidak dobel',
+  (pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"10 Oktober 2026","waktu":"18:11","keterangan":"bukti cicil utang toko UD Semen Uji","bukti_url":"https://contoh/tf-a2.jpg"}') ->> 'balasan') like '%sudah dicatat%'
+  and pg_temp.sisa('UD Semen Uji') = (select s from sblm8) - 500000);
+select pg_temp.cek('nominal & penerima & tanggal sama tetapi JAM beda = transfer lain, dicatat',
+  (pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"10 Oktober 2026","waktu":"19:30","keterangan":"bukti cicil utang toko UD Semen Uji","bukti_url":"https://contoh/tf-b.jpg"}') ->> 'status') = 'ok'
+  and pg_temp.sisa('UD Semen Uji') = (select s from sblm8) - 1000000);
+select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"03 Oktober 2026","keterangan":"bukti cicil utang toko UD Semen Uji","bukti_url":"https://contoh/tf-c.jpg"}') ->> 'status';
+select pg_temp.cek('tanggal beda (3 Okt) = transfer lain, dicatat pada 3 Okt',
+  (select tanggal = date '2026-10-03' from loonars2_disbursements where bukti_url = 'https://contoh/tf-c.jpg'));
+select pg_temp.cek('jam tidak terbaca & tanggal sama dengan yang ada: tanya, tidak dicatat',
+  (select (h ->> 'status') = 'perlu_info' and (h ->> 'balasan') like '%transfer beda%'
+     from (select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"03 Oktober 2026","keterangan":"bukti cicil utang toko UD Semen Uji","bukti_url":"https://contoh/tf-d.jpg"}') h) x)
+  and pg_temp.sisa('UD Semen Uji') = (select s from sblm8) - 1500000);
+select pg_temp.wa('6281100000001', 'bukti_transfer', '{"nominal":500000,"penerima":"PENERIMA BARU 123","tanggal":"03 Oktober 2026","paksa":"true","keterangan":"bukti cicil utang toko UD Semen Uji transfer beda","bukti_url":"https://contoh/tf-e.jpg"}') ->> 'status';
+select pg_temp.cek('kata "transfer beda" (paksa) mencatat transfer lain meski jam tidak terbaca',
+  exists (select 1 from loonars2_disbursements where bukti_url = 'https://contoh/tf-e.jpg') and pg_temp.sisa('UD Semen Uji') = (select s from sblm8) - 2000000);
+select pg_temp.cek('pembaca tanggal: format Indonesia & ISO', public._loonars2_tgl_dari_teks('10 Oktober 2026') = date '2026-10-10'
+  and public._loonars2_tgl_dari_teks('03 Okt 2026') = date '2026-10-03' and public._loonars2_tgl_dari_teks('2026-09-30') = date '2026-09-30'
+  and public._loonars2_tgl_dari_teks('tidak ada tanggal') is null);
 
 select 'SEMUA UJI BUKTI UTANG TOKO LULUS';
