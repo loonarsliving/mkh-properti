@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0054 — Loonars 2: bukti cicilan utang toko — bedakan transfer yang nominal & penerimanya sama
+-- 0055 — Loonars 2: bukti cicilan utang toko — bedakan transfer yang nominal & penerimanya sama
 -- ============================================================================
 -- Masalah (21 Okt 2026): owner mengunggah beberapa bukti cicilan LAMA ke penerima
 -- yang sama dengan nominal yang sama (mis. beberapa transfer Rp 10.000.000 ke
