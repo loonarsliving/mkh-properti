@@ -3,6 +3,21 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel untuk Dispenda (migrasi 0054)
+
+Owner: MKH Property punya laporan keuangan khusus villa yang bisa diminta lewat
+WhatsApp, plus rekap pajak hotel (PBJT jasa perhotelan) untuk Dispenda; kiriman
+dari villa cukup per hari ("agar tidak membebani"). Laporan Dispenda memakai
+angka transaksi yang SEBENARNYA — permintaan agar laporan "diatur" supaya bayar
+Rp2-5 jt sengaja TIDAK dibuat.
+
+- **Migrasi 0054 (SUDAH diterapkan ke produksi 2026-10-21 lewat Supabase MCP, setelah uji coba dalam transaksi yang dibatalkan: 11 pemeriksaan lolos, tidak ada sisa).** Tabel baru `laporan_villa_bulanan` (snapshot per bulan: kotor, komisi OTA, bersih, COGS, gross profit, OPEX/gaji, net profit, rincian jsonb; status sementara/final; bulan final tidak diturunkan), `pajak_hotel_villa` (tarif, dasar kotor/bersih, setoran; angka dibekukan saat setoran dicatat), RPC `villa_laporan_terima` (penerima kiriman; rahasia Vault `villa_sync_shared_secret` yang SUDAH dipakai villa, tanpa rahasia baru) dan `villa_laporan_ringkasan_wa` (hanya baca; akses `ir_boleh_akses`). RLS: CFO baca/kelola, anon tertutup.
+- **Villa** mengirim lewat `POST /cron/sync-laporan-villa` (villa-api) yang dipicu Vercel cron harian 00.40 WIB; bulan berjalan = sementara, tanggal 1-5 bulan lalu dikirim ulang = final. Lihat villa CURRENT_STATE 2026-10-21.
+- **Halaman baru (CFO):** `/laporan-keuangan-villa` (laba rugi villa siap cetak) dan `/pajak-hotel` (rekap per bulan, tarif bawaan 10%, dasar bawaan kotor — ubah ke bersih HANYA setelah Dispenda mengonfirmasi tertulis; catat setoran + bukti). Halaman lama `/laporan-villa`, `/pendapatan-villa`, `/beban-villa` (input manual) tidak diubah.
+- **WhatsApp:** `POST /api/laporan-villa/ringkasan-wa` (x-sync-secret + nomor, sama dengan ringkasan investor) — endpoint sudah ada; pemanggilnya (asisten WA owner di Mkhsistem) BELUM disambungkan.
+- Tidak masuk `jurnal`/COA (keputusan akuntansi tetap di owner/CFO); laporan SAK EMKM lengkap (neraca) untuk villa belum ada.
+- Catatan: kiriman bulanan lama `villa_income_sync` -> `pendapatan_villa` masih memakai total transaksi check-in (komisi OTA per persen belum dipotong), jadi angkanya berbeda dari laporan baru ini; laporan baru yang menjadi acuan.
+
 ## 2026-10-18 — Ringkasan keuangan untuk asisten WA owner — dibangun, BELUM di-merge
 
 `POST /api/laporan-investor/ringkasan-wa` (hanya baca): `ir_ambil_data` +
