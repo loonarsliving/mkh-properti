@@ -140,8 +140,8 @@ select pg_temp.cek('pencairan profit diblokir selama ada transfer tertunda',
   (pg_temp.wa('6281100000001', 'cairkan_profit', '{"nominal":1000000}') ->> 'balasan') like '%belum dipindahkan dari A%');
 
 -- 10. Pelunasan lewat jatuh tempo + pengingat ------------------------------
-update loonars2_units set jatuh_tempo_pelunasan = current_date - 3 where kode = 'AVARA-01';
-update loonars2_units set jatuh_tempo_pelunasan = current_date + 7 where kode = 'LUNARA-02';
+update loonars2_units set jatuh_tempo_pelunasan = public._loonars2_hari_ini() - 3 where kode = 'AVARA-01';
+update loonars2_units set jatuh_tempo_pelunasan = public._loonars2_hari_ini() + 7 where kode = 'LUNARA-02';
 select pg_temp.wa('6281100000001', 'receipt', '{"unit":"14","jenis":"dp","nominal":300000000,"nama_pembeli":"Sari"}') ->> 'status';
 select pg_temp.wa('6281100000001', 'ya') ->> 'status';
 update loonars2_receipts set dibuat_pada = now() - interval '25 hours' where id = (select min(re.id) from loonars2_receipts re join loonars2_allocations al on al.receipt_id = re.id where al.status = 'menunggu');

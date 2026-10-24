@@ -270,7 +270,7 @@ begin
   v_awal := jsonb_array_length(v_kurang);
 
   if p_tanpa then
-    delete from public.loonars2_wa_pending where nomor = p_user.nomor;
+    update public.loonars2_wa_pending set kedaluwarsa_pada = now() - interval '1 second' where nomor = p_user.nomor;
     return public._loonars2_wa_jalankan(p_user, v_pend.aksi, (v_data - '_perlu_rekening') || '{"tanpa_rekening":true}'::jsonb, false);
   end if;
 
@@ -303,7 +303,7 @@ begin
      where nomor = p_user.nomor;
     return jsonb_build_object('status', 'menunggu_rekening', 'balasan', '✅ Rekening dicatat.' || E'\n\n' || public._loonars2_teks_minta_rekening(v_kurang));
   end if;
-  delete from public.loonars2_wa_pending where nomor = p_user.nomor;
+  update public.loonars2_wa_pending set kedaluwarsa_pada = now() - interval '1 second' where nomor = p_user.nomor;
   return public._loonars2_wa_jalankan(p_user, v_pend.aksi, v_data - '_perlu_rekening', false);
 end;
 $$;
@@ -462,6 +462,12 @@ begin
 end;
 $$;
 
+revoke execute on function public._loonars2_ekstrak_rekening(text) from public, anon, authenticated;
+revoke execute on function public._loonars2_kunci_penerima(text) from public, anon, authenticated;
+revoke execute on function public._loonars2_hapus_rekening(text) from public, anon, authenticated;
+revoke execute on function public._loonars2_rentang_unit(integer[]) from public, anon, authenticated;
+revoke execute on function public._loonars2_blok_rekening(text) from public, anon, authenticated;
+revoke execute on function public._loonars2_teks_minta_rekening(jsonb) from public, anon, authenticated;
 revoke execute on function public._loonars2_isi_dan_cek_rekening(text, jsonb) from public, anon, authenticated;
 revoke execute on function public._loonars2_wa_rekening(public.loonars2_wa_users, jsonb, boolean) from public, anon, authenticated;
 revoke execute on function public._loonars2_rekening_dikenal(text) from public, anon, authenticated;
