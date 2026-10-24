@@ -7,7 +7,7 @@
 
 select set_config('request.headers', '{"x-sync-secret":"rahasia-uji"}', false);
 create function pg_temp.wa(n text, a text, d jsonb default '{}') returns jsonb language sql as
-  $$ select public.loonars2_wa(n, a, d) $$;
+  $$ select public.loonars2_wa(n, a, case when a in ('ajukan', 'ajukan_mingguan', 'bahan') and not (d ? 'uji_rekening') then d || '{"tanpa_rekening":true}'::jsonb else d end) $$;
 create function pg_temp.cek(label text, kondisi boolean) returns text language plpgsql as
   $$ begin if not coalesce(kondisi, false) then raise exception 'GAGAL: %', label; end if; return 'LULUS: ' || label; end $$;
 create function pg_temp.saldo(k text) returns numeric language sql as $$ select saldo from loonars2_v_rekening where kode = k $$;
@@ -71,20 +71,24 @@ select pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[
   {"jenis":"cicilan","toko":"TB Maju","nominal":3000000},
   {"jenis":"tukang","unit":["13","14"],"deskripsi":"kontraktor Pak Anang minggu 1","toko":"Pak Anang","nominal":15000001},
   {"jenis":"material","unit":["1"],"deskripsi":"pasir 2 rit","toko":"TB Sinar","nominal":1600000}]}') ->> 'balasan';
-select pg_temp.cek('pengajuan mingguan: 1 cicilan + kontraktor dibagi 2 unit + 1 material, satu kode M',
+select pg_temp.cek('pengajuan mingguan: 3 baris = 3 kode M berbeda (satu penerima, satu pengajuan)',
   (select count(*) from loonars2_cicilan where kelompok like 'M-%') = 1
   and (select count(*) from loonars2_material_requests where kelompok like 'M-%') = 3
+  and (select count(distinct kelompok) from (select kelompok from loonars2_cicilan union all select kelompok from loonars2_material_requests) x where kelompok like 'M-%') = 3
   and (select sum(nominal) from loonars2_material_requests where kelompok like 'M-%' and kategori = 'tukang') = 15000001);
-select pg_temp.cek('owner menerima satu pesan ringkasan mingguan',
-  (select count(*) from loonars2_outbox where jenis = 'pengajuan_mingguan') = 1
-  and (select pesan from loonars2_outbox where jenis = 'pengajuan_mingguan') like '%Cicilan utang TB Maju%Kontraktor/tukang%Material%Balas "setujui M-%');
+select pg_temp.cek('owner menerima satu pesan per baris, format ringkas ala Loonars 1',
+  (select count(*) from loonars2_outbox where jenis = 'pengajuan_mingguan') = 3
+  and exists (select 1 from loonars2_outbox where jenis = 'pengajuan_mingguan' and pesan like '%Item: Cicilan utang TB Maju%Nilai: Rp 3.000.000%Diinput oleh: Vando Uji%transfer%TOLAK M-%')
+  and exists (select 1 from loonars2_outbox where jenis = 'pengajuan_mingguan' and pesan like '%Kontraktor/tukang%Nilai: Rp 15.000.001%Unit: 13,14 (dibagi rata)%')
+  and not exists (select 1 from loonars2_outbox where jenis = 'pengajuan_mingguan' and pesan like '%L2-%[%'));
+create temp table kodem as select distinct kelompok from (select kelompok from loonars2_cicilan union all select kelompok from loonars2_material_requests) x where kelompok like 'M-%';
 
--- 4. Setujui & bayar satu kode ---------------------------------------------------
-select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select kelompok from loonars2_cicilan limit 1), 'setuju', true)) ->> 'balasan';
+-- 4. Setujui & bayar tiap kode ---------------------------------------------------
+select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', kelompok, 'setuju', true)) ->> 'balasan' from kodem order by kelompok;
 select pg_temp.cek('semua baris M disetujui', not exists (select 1 from loonars2_material_requests where kelompok like 'M-%' and status <> 'disetujui')
   and (select status from loonars2_cicilan limit 1) = 'disetujui');
 create temp table sebelum as select pg_temp.saldo('C') as c, pg_temp.terpakai('LUNARA-01') as l1, (select sisa_utang from loonars2_v_toko where nama = 'TB Maju') as utang;
-select pg_temp.wa('6281100000002', 'bayar_kelompok', jsonb_build_object('kode', (select kelompok from loonars2_cicilan limit 1), 'bukti_url', 'https://contoh/tf-mingguan.jpg')) ->> 'balasan';
+select pg_temp.wa('6281100000002', 'bayar_kelompok', jsonb_build_object('kode', kelompok, 'bukti_url', 'https://contoh/tf-mingguan.jpg')) ->> 'balasan' from kodem order by kelompok;
 select pg_temp.cek('bayar M: saldo C turun sebesar total (3.000.000 + 15.000.001 + 1.600.000)', pg_temp.saldo('C') = (select c from sebelum) - 19600001);
 select pg_temp.cek('bayar M: sisa utang toko turun 3 jt', (select sisa_utang from loonars2_v_toko where nama = 'TB Maju') = (select utang from sebelum) - 3000000);
 select pg_temp.cek('bayar M: cicilan TIDAK memotong budget unit lagi; kontraktor memotong', pg_temp.terpakai('LUNARA-01') = (select l1 from sebelum) + 7500001 - 0);
@@ -95,7 +99,7 @@ select pg_temp.cek('bayar ulang kode yang sama tidak dobel', (pg_temp.wa('628110
 -- 5. Tolak per baris -------------------------------------------------------------
 select pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"cicilan","toko":"TB Maju","nominal":2000000},{"jenis":"material","unit":["13"],"deskripsi":"cat","nominal":500000}]}') ->> 'status';
 select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', 'C-' || (select max(id) from loonars2_cicilan), 'setuju', false, 'alasan', 'minggu depan saja')) ->> 'status';
-select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select max(kelompok) from loonars2_material_requests), 'setuju', true)) ->> 'status';
+select pg_temp.wa('6281100000001', 'putuskan_kode', jsonb_build_object('kode', (select kelompok from loonars2_material_requests order by id desc limit 1), 'setuju', true)) ->> 'status';
 select pg_temp.cek('cicilan ditolak per baris, material tetap bisa disetujui lewat kode M',
   (select status from loonars2_cicilan order by id desc limit 1) = 'ditolak'
   and (select status from loonars2_material_requests order by id desc limit 1) = 'disetujui');

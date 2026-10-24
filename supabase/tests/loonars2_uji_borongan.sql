@@ -6,7 +6,7 @@
 
 select set_config('request.headers', '{"x-sync-secret":"rahasia-uji"}', false);
 create function pg_temp.wa(n text, a text, d jsonb default '{}') returns jsonb language sql as
-  $$ select public.loonars2_wa(n, a, d) $$;
+  $$ select public.loonars2_wa(n, a, case when a in ('ajukan', 'ajukan_mingguan', 'bahan') and not (d ? 'uji_rekening') then d || '{"tanpa_rekening":true}'::jsonb else d end) $$;
 create function pg_temp.cek(label text, kondisi boolean) returns text language plpgsql as
   $$ begin if not coalesce(kondisi, false) then raise exception 'GAGAL: %', label; end if; return 'LULUS: ' || label; end $$;
 -- nomor uji: 6281100000001 = owner, 6281100000002 = pelaksana
