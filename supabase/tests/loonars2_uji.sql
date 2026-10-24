@@ -17,7 +17,7 @@ update loonars2_accounts set bank = 'BCA', nomor_rekening = '1234567890', nama_p
 update loonars2_accounts set bank = 'Mandiri', nomor_rekening = '0987654321', nama_pemilik = 'PT MKH Konstruksi' where kode = 'C';
 
 create function pg_temp.wa(n text, a text, d jsonb default '{}') returns jsonb language sql as
-  $$ select public.loonars2_wa(n, a, d) $$;
+  $$ select public.loonars2_wa(n, a, case when a in ('ajukan', 'ajukan_mingguan', 'bahan') and not (d ? 'uji_rekening') then d || '{"tanpa_rekening":true}'::jsonb else d end) $$;
 create function pg_temp.cek(label text, kondisi boolean) returns text language plpgsql as
   $$ begin if not coalesce(kondisi, false) then raise exception 'GAGAL: %', label; end if; return 'LULUS: ' || label; end $$;
 create function pg_temp.alok(p_unit text) returns text language sql as $$

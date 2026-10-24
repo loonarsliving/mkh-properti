@@ -29,6 +29,8 @@ export const AKSI_WA_LOONARS2 = [
   'bukti_kandidat',
   'bukti_transfer',
   'laporan_utang',
+  'rekening',
+  'tanpa_rekening',
   'ya',
   'batal',
   'outbox_ambil',
