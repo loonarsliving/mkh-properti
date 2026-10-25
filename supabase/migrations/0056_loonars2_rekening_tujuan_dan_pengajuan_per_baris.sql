@@ -29,7 +29,7 @@ immutable
 as $$
 declare
   c_bank constant text := 'bca|bri|bni|bsi|btn|btpn|mandiri|danamon|cimb(?:\s+niaga)?|permata|panin|mega|ocbc|maybank|jago|seabank|jenius|sultra|bpd(?:\s+[a-z]+)?|dana|ovo|gopay|shopeepay';
-  c_no constant text := '(\d{6,18}|\d{3,5}(?:[\s\-]\d{3,5}){1,4})';
+  c_no constant text := '(\d{6,18}|\d{3,5}(?:[\s\-]\d{3,5}){1,3}(?:[\s\-]\d{1,5})?)';
   m text[];
   v_bank text;
   v_no text;
@@ -55,6 +55,11 @@ begin
   else
     m := regexp_match(p_teks, '((?:[A-Z]{2,}\s+){0,4}[A-Z]{2,})\s+[Bb]ank\M');
     if m is not null then v_an := m[1]; end if;
+  end if;
+  if v_an is null then
+    -- nama tanpa "a.n." tepat setelah nomor rekening: "Mandiri 1850 0066 1464 5 Sarno"
+    m := regexp_match(substring(p_teks from position(v_no in p_teks) + length(v_no)), '^\s*([A-Za-z][A-Za-z.'' ]{1,40}?)\s*$');
+    if m is not null then v_an := substring(trim(m[1]) from '^(\S+(?:\s+\S+){0,3})'); end if;
   end if;
   return upper(regexp_replace(regexp_replace(v_bank, '^bank\s+', '', 'i'), '\s+', ' ', 'g')) || ' ' || v_dgt
          || coalesce(' a.n. ' || nullif(upper(trim(v_an)), ''), '');

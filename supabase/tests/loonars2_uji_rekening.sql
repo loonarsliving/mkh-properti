@@ -18,6 +18,8 @@ select pg_temp.cek('rekening: nominal biasa bukan rekening; nominal setelah reke
   public._loonars2_ekstrak_rekening('reimburse mas sarno 972.000') is null
   and public._loonars2_ekstrak_rekening('bca 1234567890 972.000') = 'BCA 1234567890');
 select pg_temp.cek('rekening: nomor lalu bank', public._loonars2_ekstrak_rekening('transfer ke 7855066190 BCA a/n Irfan') like 'BCA 7855066190%');
+select pg_temp.cek('rekening: nomor 4-4-4-1 dengan nama tanpa a.n.',
+  public._loonars2_ekstrak_rekening('pembelian cat 495.000 Mandiri 1850 0066 1464 5 Sarno') = 'MANDIRI 1850006614645 a.n. SARNO');
 select pg_temp.cek('rentang unit', public._loonars2_rentang_unit(array[1,2,3,4,5,6]) = '1–6' and public._loonars2_rentang_unit(array[1,3,4]) = '1,3,4');
 
 -- Siapkan unit dibangun
