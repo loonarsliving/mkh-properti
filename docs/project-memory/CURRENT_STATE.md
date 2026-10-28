@@ -3,6 +3,18 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-10-28 — Loonars 2: upah tukang bernominal memotong plafon borongan (migrasi 0057)
+
+- Baris pengajuan mingguan "tukang … 25 jt" tanpa unit kini dicatat ke borongan
+  aktif dan dibagi rata ke unitnya; dengan unit (di satu borongan) dibagi ke unit
+  itu. Total upah borongan di luar retensi tidak boleh melewati plafon
+  (`unit × (nilai − retensi)`; Borongan tukang AVARA-01..06 = Rp 156 jt);
+  upah otomatis mingguan dipotong ke sisa plafon. Lihat CHANGELOG 2026-10-28.
+- Uji lokal `jalankan-uji-loonars2.sh`: semua lulus (termasuk uji baru
+  `loonars2_uji_upah_borongan.sql`).
+- Belum: aksi `ajukan` satu baris ("L2 unit 1-6 tukang … 20 jt") masih jalur
+  lama (hanya unit pertama, tanpa plafon).
+
 ## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel untuk Dispenda (migrasi 0054)
 
 Owner: MKH Property punya laporan keuangan khusus villa yang bisa diminta lewat

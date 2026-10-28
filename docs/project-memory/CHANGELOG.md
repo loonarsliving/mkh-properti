@@ -2,6 +2,12 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-10-28 — Loonars 2: upah tukang bernominal dihitung dari plafon borongan (migrasi 0057)
+- Kejadian: pengajuan mingguan Vando "tukang minggu ini 25 jt" (tanpa unit) + pasir + reimburse ditolak setelah YA dengan pesan "unit belum disebut … belum ada unit yang ditandai sedang dibangun", padahal AVARA-01..06 sudah ditandai. Penyebab: baris tukang BERNOMINAL tanpa unit tidak punya jalur (hanya biaya lain-lain yang otomatis dibagi), dan upah tukang bernominal tidak pernah dicatat ke borongan sehingga tidak memotong plafon.
+- Keputusan owner: dibagi rata, patokan tetap plafon borongan (Borongan tukang AVARA-01..06 = 6 × (35 jt − retensi 9 jt) = Rp 156 jt). Kini tukang bernominal tanpa unit → borongan aktif (nama mandor / satu-satunya), dibagi rata ke unit borongannya; dengan unit di satu borongan → dibagi ke unit itu; keduanya dicatat `borongan_id` + `minggu_ke` berikutnya dan ditolak bila melebihi sisa plafon (pesan menyebut plafon, sudah diajukan, sisa). Upah otomatis "L2 tukang minggu ini" dipotong ke sisa plafon. Unit di luar borongan: jalur lama.
+- Fungsi baru `_loonars2_sisa_upah_borongan`, `_loonars2_upah_borongan`; `_loonars2_ajukan_mingguan` diganti per potongan (pola 0056). Tanpa tabel/kolom baru; data lama tidak diubah. Uji: `supabase/tests/loonars2_uji_upah_borongan.sql`.
+- Belum: pengajuan satu baris "L2 unit 1-6 tukang … 20.000.000" (aksi `ajukan`) masih lewat jalur lama: hanya unit pertama yang tercatat dan tidak memotong plafon (contoh nyata: pengajuan 20 jt yang sudah dibayar tercatat seluruhnya di unit 1, tanpa borongan).
+
 ## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel (migrasi 0054)
 - Lihat CURRENT_STATE.md 2026-10-21. Tabel `laporan_villa_bulanan`, `pajak_hotel_villa`, RPC `villa_laporan_terima` / `villa_laporan_ringkasan_wa`, halaman `/laporan-keuangan-villa` dan `/pajak-hotel`, endpoint `/api/laporan-villa/ringkasan-wa`. Migrasi sudah diterapkan ke produksi.
 
