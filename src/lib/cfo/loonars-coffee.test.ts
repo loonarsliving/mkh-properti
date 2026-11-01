@@ -82,8 +82,18 @@ describe('Loonars Coffee dibiayai Loonars 2', () => {
     const m = susunModelCfo(dataDenganCoffee(), HARI);
     expect(teksBriefingHarian(m, 'u')).toMatch(/Loonars Coffee \(dibiayai L2\): realisasi Rp 184,4 jt dari budget Rp 133,4 jt — ⚠️ lewat Rp 51,0 jt/);
     const j = jawabDeterministik('berapa biaya loonars coffee?', m, faktaCfo(m));
-    expect(j.niat).toBe('loonars2');
+    expect(j.niat).toBe('pengeluaran_l2');
     expect(j.jawaban).toContain('Loonars Coffee: realisasi');
+  });
+
+  it('"total pengeluaran loonars 2" menjawab angka GABUNGAN villa + Loonars Coffee', () => {
+    const m = susunModelCfo(dataDenganCoffee(), HARI);
+    const j = jawabDeterministik('Berapa total pengeluaran loonars 2 ?', m, faktaCfo(m));
+    expect(j.niat).toBe('pengeluaran_l2');
+    expect(j.jawaban).toContain('Loonars 2: TOTAL pengeluaran pembangunan (villa Loonars Living + Loonars Coffee)');
+    expect(m.l2.belanjaKonstruksiGabungan).toBe(m.l2.biayaKonstruksiKas + 184_402_950);
+    expect(j.jawaban).toContain(`Loonars Coffee Rp 184.402.950`);
+    expect(j.jawaban).toContain('Loonars 2: TOTAL sisa utang toko');
   });
 
   it('tanpa snapshot MK Connect tetap tampil dari jurnal LC (tidak hilang dari laporan)', () => {
