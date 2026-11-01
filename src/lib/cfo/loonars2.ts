@@ -18,7 +18,7 @@
  */
 import { AKUN_KAS } from '@/lib/master';
 import type { DataCfo, L2Unit, Sumber } from './tipe';
-import { angka, bulat, jumlah } from './util';
+import { angka, bulat, jumlah, teks } from './util';
 
 export const KATEGORI_KONSTRUKSI = ['material', 'tukang', 'lain_konstruksi'] as const;
 
@@ -43,6 +43,103 @@ export interface UnitL2 {
   dibangunTanpaPembeli: boolean;
   fee: number;
   proyeksiLaba: number;
+}
+
+/**
+ * Proyek konstruksi lain yang DIBIAYAI keuangan Loonars 2 (keputusan owner
+ * 2026-11-01: Loonars Coffee memakai keuangan Loonars 2). Sumber budget &
+ * realisasi: MK Connect (snapshot 'proyek_konstruksi'); pembanding: jurnal
+ * MKH proyeknya (mis. LC). Bila snapshot belum ada, dipakai jurnal saja.
+ */
+export interface ProyekL2 {
+  id: string;
+  nama: string;
+  kodeJurnal: string | null;
+  sumber: 'mk_connect' | 'jurnal';
+  budgetTotal: number | null;
+  budgetMaterial: number | null;
+  budgetTenaga: number | null;
+  realisasiMaterial: number;
+  realisasiTenaga: number;
+  realisasiLain: number;
+  realisasiTotal: number;
+  komitmen: number;
+  selisihBudget: number | null; // + = lewat budget
+  realisasiPct: number | null;
+  materialPct: number | null;
+  utangBelumLunas: number;
+  utangLunas: number;
+  biayaTerakhir: string | null;
+  jurnal: { biaya: number; tenaga: number; utangToko: number; baris: number } | null;
+}
+
+/** Pemetaan proyek MK Connect → kode proyek jurnal MKH. */
+export const PETA_PROYEK_JURNAL: { cocok: RegExp; kode: string; nama: string }[] = [
+  { cocok: /coffee/i, kode: 'LC', nama: 'Loonars Coffee' },
+];
+
+export function proyekLoonars2(data: DataCfo): ProyekL2[] {
+  const ringkasJurnal = (kode: string) => {
+    const j = data.jurnal_bulanan.filter((x) => x.proyek === kode);
+    if (!j.length) return null;
+    const net = (pred: (a: string) => boolean, debet: boolean) =>
+      jumlah(j.filter((x) => x.akun && pred(x.akun)), (x) => (debet ? angka(x.d) - angka(x.k) : angka(x.k) - angka(x.d)));
+    return {
+      biaya: bulat(net((a) => a.startsWith('5-') || a.startsWith('6-'), true)),
+      tenaga: bulat(net((a) => a === '5-1003' || a === '5-1004', true)),
+      utangToko: bulat(net((a) => a === '2-1003' || a === '2-1001', false)),
+      baris: jumlah(j, (x) => x.n),
+    };
+  };
+  const hasil: ProyekL2[] = [];
+  const kodeTerpakai = new Set<string>();
+  for (const s of data.snapshot.filter((x) => x.jenis === 'proyek_konstruksi')) {
+    const d = s.data as Record<string, unknown>;
+    const nama = teks(d.nama);
+    const peta = PETA_PROYEK_JURNAL.find((x) => x.cocok.test(nama) || x.cocok.test(teks(d.cabang)));
+    const r = (d.realisasi ?? {}) as Record<string, number>;
+    const material = angka(r.material_purchase);
+    const tenaga = angka(r.contractor_payment) + angka(r.labor_payment) + angka(r.tukang_payment);
+    const total = jumlah(Object.values(r), (v) => v);
+    const lain = total - material - tenaga;
+    const bt = d.budget_total == null ? null : angka(d.budget_total as number);
+    const bm = d.budget_material == null ? null : angka(d.budget_material as number);
+    if (peta) kodeTerpakai.add(peta.kode);
+    hasil.push({
+      id: s.id,
+      nama: peta?.nama ?? nama,
+      kodeJurnal: peta?.kode ?? null,
+      sumber: 'mk_connect',
+      budgetTotal: bt,
+      budgetMaterial: bm,
+      budgetTenaga: d.budget_tenaga == null ? null : angka(d.budget_tenaga as number),
+      realisasiMaterial: bulat(material),
+      realisasiTenaga: bulat(tenaga),
+      realisasiLain: bulat(lain),
+      realisasiTotal: bulat(total),
+      komitmen: bulat(jumlah(Object.values((d.komitmen ?? {}) as Record<string, number>), (v) => v)),
+      selisihBudget: bt ? bulat(total - bt) : null,
+      realisasiPct: bt ? (total / bt) * 100 : null,
+      materialPct: bm ? (material / bm) * 100 : null,
+      utangBelumLunas: bulat(angka(d.utang_belum_lunas as number)),
+      utangLunas: bulat(angka(d.utang_lunas as number)),
+      biayaTerakhir: teks(d.biaya_terakhir) || null,
+      jurnal: peta ? ringkasJurnal(peta.kode) : null,
+    });
+  }
+  // Belum ada snapshot: tetap tampilkan dari jurnal agar biayanya tidak hilang dari laporan.
+  for (const peta of PETA_PROYEK_JURNAL.filter((x) => !kodeTerpakai.has(x.kode))) {
+    const j = ringkasJurnal(peta.kode);
+    if (!j) continue;
+    hasil.push({
+      id: `jurnal:${peta.kode}`, nama: peta.nama, kodeJurnal: peta.kode, sumber: 'jurnal',
+      budgetTotal: null, budgetMaterial: null, budgetTenaga: null,
+      realisasiMaterial: 0, realisasiTenaga: j.tenaga, realisasiLain: j.biaya - j.tenaga, realisasiTotal: j.biaya,
+      komitmen: 0, selisihBudget: null, realisasiPct: null, materialPct: null,
+      utangBelumLunas: Math.max(0, j.utangToko), utangLunas: 0, biayaTerakhir: null, jurnal: j,
+    });
+  }
+  return hasil;
 }
 
 export interface LaporanL2 {
@@ -78,8 +175,10 @@ export interface LaporanL2 {
   neraca: {
     kas: number;
     asetDalamPembangunan: number;
+    asetProyekLain: number;
     totalAset: number;
     utangToko: number;
+    utangProyekLain: number;
     utangOwner: number;
     uangMukaInvestor: number;
     feeTerutang: number;
@@ -88,6 +187,12 @@ export interface LaporanL2 {
     diLuarNeraca: { piutangKontrak: number; sisaSewaTanah: number };
   };
   bukuBesarLL: { kas: number; pendapatan: number; hpp: number; beban: number; jumlahBaris: number } | null;
+  /** Proyek lain yang dibiayai Loonars 2 (Loonars Coffee). */
+  proyek: ProyekL2[];
+  biayaProyekLain: number;
+  utangProyekLain: number;
+  /** Belanja konstruksi gabungan: villa Loonars 2 (kas) + proyek lain (realisasi). */
+  belanjaKonstruksiGabungan: number;
   sumber: Sumber[];
 }
 
@@ -201,9 +306,14 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
       bersih: v.masuk - v.keluarKonstruksi - v.keluarLain,
     }));
 
+  const proyek = proyekLoonars2(data);
+  const biayaProyekLain = jumlah(proyek, (x) => x.realisasiTotal);
+  const utangProyekLain = jumlah(proyek, (x) => x.utangBelumLunas);
+
   const asetDalamPembangunan = biayaKonstruksiAkrual - hppDiakui;
-  const totalAset = kasRekeningPositif + asetDalamPembangunan;
-  const totalLiabilitas = utangToko + danaTalangan + uangMukaInvestor + feeTerutang;
+  // Bangunan Loonars Coffee = aset tetap dalam penyelesaian milik lini Loonars 2.
+  const totalAset = kasRekeningPositif + asetDalamPembangunan + biayaProyekLain;
+  const totalLiabilitas = utangToko + utangProyekLain + danaTalangan + uangMukaInvestor + feeTerutang;
 
   // Buku besar MKH proyek LL (Loonars Living) — ditampilkan TERPISAH, tidak
   // dijumlahkan ke angka modul 4 rekening agar tidak terhitung ganda.
@@ -256,8 +366,10 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
     neraca: {
       kas: bulat(kasRekeningPositif),
       asetDalamPembangunan: bulat(asetDalamPembangunan),
+      asetProyekLain: bulat(biayaProyekLain),
       totalAset: bulat(totalAset),
       utangToko: bulat(utangToko),
+      utangProyekLain: bulat(utangProyekLain),
       utangOwner: bulat(danaTalangan),
       uangMukaInvestor: bulat(uangMukaInvestor),
       feeTerutang: bulat(feeTerutang),
@@ -277,8 +389,14 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
           jumlahBaris: jumlah(ll, (j) => j.n),
         }
       : null,
+    proyek,
+    biayaProyekLain: bulat(biayaProyekLain),
+    utangProyekLain: bulat(utangProyekLain),
+    belanjaKonstruksiGabungan: bulat(biayaKonstruksiKas + biayaProyekLain),
     sumber: [
       { tabel: 'loonars2_v_unit', ket: 'harga efektif, terpakai konstruksi per unit' },
+      { tabel: 'snapshot:proyek_konstruksi', ket: 'Loonars Coffee — budget & realisasi MK Connect' },
+      { tabel: 'jurnal', ket: 'proyek LC (pembanding)' },
       { tabel: 'loonars2_v_rekening', ket: 'saldo 4 rekening dari buku besar' },
       { tabel: 'loonars2_receipts' },
       { tabel: 'loonars2_disbursements' },

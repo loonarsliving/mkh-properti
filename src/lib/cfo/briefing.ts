@@ -57,6 +57,10 @@ function barisL2(m: ModelCfo): string[] {
     '🏗 *Loonars 2 — Developer & Konstruksi*',
     `Terjual ${l2.unitTerjual}/${l2.jumlahUnit} unit, nilai kontrak ${rpRingkas(l2.nilaiKontrak)}, cash-in investor ${rpRingkas(l2.cashInInvestor)}`,
     `Belanja konstruksi ${rpRingkas(l2.biayaKonstruksiKas)} (kas) · utang toko ${rpRingkas(l2.utangToko)} · dana talangan owner ${rpRingkas(l2.danaTalangan)}`,
+    ...l2.proyek.map(
+      (p) =>
+        `☕ ${p.nama} (dibiayai L2): realisasi ${rpRingkas(p.realisasiTotal)}${p.budgetTotal ? ` dari budget ${rpRingkas(p.budgetTotal)}${p.selisihBudget !== null && p.selisihBudget > 0 ? ` — ⚠️ lewat ${rpRingkas(p.selisihBudget)}` : ''}` : ''}, utang toko ${rpRingkas(p.utangBelumLunas)}`,
+    ),
   ];
 }
 

@@ -105,15 +105,20 @@ function Isi({ m }: { m: ModelCfo }) {
             ]} />
           ) : <Catatan>Belum ada data.</Catatan>}
 
-          <div className="sec-title">C. Loonars 2 — Developer &amp; Construction</div>
+          <div className="sec-title">C. Loonars 2 — Developer &amp; Construction{l2.proyek.length ? ` (termasuk ${l2.proyek.map((x) => x.nama).join(', ')})` : ''}</div>
           <TabelAngka baris={[
             { label: 'Sales contract value', nilai: l2.nilaiKontrak },
             { label: 'Investor cash-in', nilai: l2.cashInInvestor },
             { label: 'Outstanding receivables', nilai: l2.piutangKontrak },
-            { label: 'Construction expenses (kas)', nilai: l2.biayaKonstruksiKas },
+            { label: 'Construction expenses villa Loonars 2 (kas)', nilai: l2.biayaKonstruksiKas },
+            ...l2.proyek.flatMap((pr) => [
+              { label: `${pr.nama} (dibiayai Loonars 2): realisasi`, nilai: pr.realisasiTotal },
+              { label: `${pr.nama}: budget`, nilai: pr.budgetTotal, indent: true },
+              { label: `${pr.nama}: ${pr.selisihBudget !== null && pr.selisihBudget > 0 ? 'lewat budget' : 'sisa budget'}`, nilai: pr.selisihBudget === null ? null : Math.abs(pr.selisihBudget), indent: true },
+            ]),
             { label: 'Budget unit dibangun', nilai: l2.budgetUnitAktif, indent: true },
             { label: 'Aktual unit dibangun', nilai: l2.aktualUnitAktif, indent: true },
-            { label: 'Accounts payable (toko bangunan)', nilai: l2.utangToko },
+            { label: 'Accounts payable (toko bangunan, villa + proyek)', nilai: l2.utangToko + l2.utangProyekLain },
             { label: 'Utang ke owner (dana talangan)', nilai: l2.danaTalangan },
             { label: 'Proyeksi laba proyek', nilai: l2.proyeksi.laba, tebal: true },
             { label: 'Total aset', nilai: l2.neraca.totalAset },

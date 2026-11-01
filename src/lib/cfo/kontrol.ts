@@ -83,6 +83,38 @@ export function rekonsiliasi(data: DataCfo, l1: LaporanL1, l2: LaporanL2): CekRe
     ),
   );
 
+  // 1b. Proyek yang dibiayai Loonars 2 (Loonars Coffee): MK Connect vs jurnal MKH.
+  for (const p of l2.proyek.filter((x) => x.sumber === 'mk_connect' && x.jurnal)) {
+    const kode = p.kodeJurnal ?? '-';
+    hasil.push(
+      cek(
+        `proyek_biaya:${kode}`,
+        `${p.nama}: biaya material + lain-lain di MK Connect vs jurnal proyek ${kode}`,
+        { label: 'MK Connect (posted)', nilai: p.realisasiMaterial + p.realisasiLain },
+        { label: `Jurnal ${kode} (akun 5- & 6-, tanpa upah)`, nilai: p.jurnal!.biaya - p.jurnal!.tenaga },
+        'Selisih berarti ada biaya yang dijurnal tanpa pengajuan MK Connect, atau sebaliknya.',
+      ),
+    );
+    hasil.push(
+      cek(
+        `proyek_tenaga:${kode}`,
+        `${p.nama}: pembayaran tukang/kontraktor di MK Connect vs jurnal proyek ${kode}`,
+        { label: 'MK Connect (paid)', nilai: p.realisasiTenaga },
+        { label: `Jurnal ${kode} (5-1003/5-1004)`, nilai: p.jurnal!.tenaga },
+        'Pembayaran kontraktor yang tidak dijurnal membuat biaya proyek dan arus kas Loonars 2 tampak lebih kecil dari sebenarnya.',
+      ),
+    );
+    hasil.push(
+      cek(
+        `proyek_utang:${kode}`,
+        `${p.nama}: utang toko belum lunas di MK Connect vs saldo utang toko jurnal ${kode}`,
+        { label: 'MK Connect (belum lunas)', nilai: p.utangBelumLunas },
+        { label: `Jurnal ${kode} (2-1003)`, nilai: p.jurnal!.utangToko },
+        'Bila MK Connect sudah lunas tetapi jurnal masih utang, pelunasan ke toko belum dijurnal.',
+      ),
+    );
+  }
+
   // 2. Laporan villa: total per channel = total laporan (konsistensi internal).
   if (l1.terakhirFinal && l1.terakhirFinal.channel.length) {
     const b = l1.terakhirFinal;
@@ -362,6 +394,19 @@ export function susunPeringatan(c: KonteksPeringatan): Peringatan[] {
       nilai: jumlah(telat, (u) => u.sisaTagihan),
       sumber: [{ tabel: 'loonars2_v_unit', ket: 'sisa_pelunasan, jatuh_tempo_efektif' }],
     });
+  }
+  for (const pr of l2.proyek) {
+    if (pr.selisihBudget !== null && pr.selisihBudget > 0) {
+      p.push({
+        id: `l2_proyek_over:${pr.kodeJurnal ?? pr.id}`,
+        tingkat: pr.realisasiPct !== null && pr.realisasiPct >= 120 ? 'tinggi' : 'sedang',
+        lini: 'L2',
+        judul: `${pr.nama} melewati budget ${rp(pr.selisihBudget)} (${persen(pr.realisasiPct ?? 0, 0)} dari budget)`,
+        isi: `Budget ${rp(pr.budgetTotal ?? 0)}, realisasi ${rp(pr.realisasiTotal)}: material ${rp(pr.realisasiMaterial)}${pr.materialPct !== null ? ` (${persen(pr.materialPct, 0)} dari budget material ${rp(pr.budgetMaterial ?? 0)})` : ''}, tukang/kontraktor ${rp(pr.realisasiTenaga)}, lain-lain ${rp(pr.realisasiLain)} (tanpa pos budget). Dibiayai keuangan Loonars 2.`,
+        nilai: pr.selisihBudget,
+        sumber: [{ tabel: 'snapshot:proyek_konstruksi', ket: pr.nama }],
+      });
+    }
   }
   if (l2.tanah.target > 0 && l2.tanah.jatuhTempo) {
     const hari = selisihHari(c.hariIni, l2.tanah.jatuhTempo);

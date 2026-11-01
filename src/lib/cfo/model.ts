@@ -71,6 +71,13 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
       sumber: { tabel: 'loonars2_v_toko', ket: `toko #${t.id}` },
     });
   }
+  for (const p of l2.proyek.filter((x) => x.utangBelumLunas > 0)) {
+    kw.push({
+      id: `proyek_utang:${p.id}`, lini: 'L2', jenis: 'utang_supplier', pihak: `Utang toko — ${p.nama}`, nominal: p.utangBelumLunas,
+      jatuhTempo: tambahHari(hariIni, 7), jatuhTempoAsumsi: true, dasar: `Pembelian utang proyek ${p.nama} belum lunas (MK Connect)`,
+      sumber: { tabel: 'snapshot:proyek_konstruksi', ket: p.nama },
+    });
+  }
   for (const m of data.l2_pengajuan_menunggu) {
     kw.push({
       id: `l2_pengajuan:${m.id}`, lini: 'L2', jenis: m.kategori === 'tukang' ? 'upah_tukang' : 'pengajuan_material',
@@ -261,7 +268,7 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
     pendapatanOperasionalYtd: l1.ytd?.revenue ?? 0,
     cashInInvestor: l2.cashInInvestor,
     bebanOperasionalBulanIni: l1BulanIni ? bulat(l1BulanIni.cogs + l1BulanIni.opex) : 0,
-    belanjaKonstruksiTotal: l2.biayaKonstruksiKas,
+    belanjaKonstruksiTotal: l2.belanjaKonstruksiGabungan,
     belanjaKonstruksiBulanIni: bulat(l2KeluarBulanIni?.keluarKonstruksi ?? 0),
     kebutuhanDana: { optimis: skenario.optimis.kebutuhanDana, normal: skenario.normal.kebutuhanDana, pesimis: skenario.pesimis.kebutuhanDana },
     jumlahPeringatanKritis: peringatan.filter((x) => x.tingkat === 'kritis').length,

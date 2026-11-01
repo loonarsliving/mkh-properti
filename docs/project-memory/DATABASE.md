@@ -181,3 +181,6 @@ memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.
 - RPC `cfo_tindakan_sinkron(p_daftar)` (sistem/CFO), `cfo_tindakan_ubah(p_id, p_status, p_alasan)` (CFO; alasan wajib untuk diabaikan), `cfo_tutup_buku(p_periode, p_data, p_komentar)` (sekali per periode), `cfo_ambil_kerja(p_peminta_wa)` (hanya baca, data disamarkan).
 - `cfo_briefing_bangunkan` menerima `tindakan`, `tutup_buku`; `cfo_briefing_antre` menerima `tutup_buku`.
 - Cron `cfo-tindakan-sinkron`, `cfo-tutup-buku`.
+
+## 2026-11-01 — migrasi 0059 (AI CFO proyek konstruksi)
+- `cfo_sumber_terima` dinyatakan ulang: jenis `proyek_konstruksi` ditambahkan ke daftar sumber `svcmyb`. Tanpa tabel/kolom baru.

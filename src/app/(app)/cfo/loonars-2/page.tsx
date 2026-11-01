@@ -18,7 +18,7 @@ export default function HalamanCfoL2() {
               <Kpi label="Sales contract value" nilai={l2.nilaiKontrak} ikon="dokumen" nada="blue" catatan={`${l2.unitTerjual}/${l2.jumlahUnit} unit terjual`} />
               <Kpi label="Investor cash-in" nilai={l2.cashInInvestor} ikon="kas-masuk" nada="emerald" catatan="Dicatat sebagai uang muka (liabilitas) sampai serah terima" />
               <Kpi label="Outstanding receivables" nilai={l2.piutangKontrak} ikon="kalender" nada="violet" catatan="Sisa nilai kontrak (di luar neraca)" />
-              <Kpi label="Construction expenses (kas)" nilai={l2.biayaKonstruksiKas} ikon="palu" nada="slate" catatan={`Akrual termasuk utang toko: ${rp(l2.biayaKonstruksiAkrual)}`} />
+              <Kpi label="Construction expenses" nilai={l2.belanjaKonstruksiGabungan} ikon="palu" nada="slate" catatan={`Villa (kas) ${rp(l2.biayaKonstruksiKas)}${l2.proyek.map((x) => ` + ${x.nama} ${rp(x.realisasiTotal)}`).join('')}`} />
               <Kpi label="Accounts payable (toko)" nilai={l2.utangToko} ikon="kas-keluar" nada="amber" />
               <Kpi label="Dana talangan owner" nilai={l2.danaTalangan} ikon="peringatan" nada={l2.danaTalangan > 0 ? 'rose' : 'emerald'} catatan="Saldo negatif rekening = utang proyek ke owner" />
               <Kpi label="Proyeksi laba proyek" nilai={l2.proyeksi.laba} ikon="grafik" nada={l2.proyeksi.laba >= 0 ? 'emerald' : 'rose'} catatan={l2.proyeksi.marginPct === null ? undefined : `margin ${persen(l2.proyeksi.marginPct)} bila semua unit terjual`} />
@@ -60,14 +60,53 @@ export default function HalamanCfoL2() {
               </div>
             </Panel>
 
+            {l2.proyek.map((pr) => (
+              <Panel key={pr.id} judul={`Proyek dibiayai Loonars 2 — ${pr.nama}`} ikon="palu">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <TabelAngka
+                    baris={[
+                      { label: 'Budget total', nilai: pr.budgetTotal, catatan: pr.sumber === 'jurnal' ? 'Budget belum diterima dari MK Connect' : 'MK Connect (RAB / control baseline)' },
+                      { label: 'Material', nilai: pr.realisasiMaterial, indent: true, catatan: pr.budgetMaterial !== null ? `budget ${pr.budgetMaterial.toLocaleString('id-ID')}${pr.materialPct !== null ? ` · ${persen(pr.materialPct, 0)}` : ''}` : undefined },
+                      { label: 'Tukang / kontraktor', nilai: pr.realisasiTenaga, indent: true, catatan: pr.budgetTenaga !== null ? `budget ${pr.budgetTenaga.toLocaleString('id-ID')}` : undefined },
+                      { label: 'Lain-lain (tanpa pos budget)', nilai: pr.realisasiLain, indent: true },
+                      { label: 'Realisasi total', nilai: pr.realisasiTotal, tebal: true, catatan: pr.realisasiPct !== null ? `${persen(pr.realisasiPct, 0)} dari budget` : undefined },
+                      { label: pr.selisihBudget !== null && pr.selisihBudget > 0 ? 'LEWAT BUDGET' : 'Sisa budget', nilai: pr.selisihBudget === null ? null : Math.abs(pr.selisihBudget), tebal: true },
+                      { label: 'Komitmen (disetujui, belum dibayar)', nilai: pr.komitmen },
+                    ]}
+                  />
+                  <div>
+                    <TabelAngka
+                      baris={[
+                        { label: 'Utang toko belum lunas (MK Connect)', nilai: pr.utangBelumLunas },
+                        { label: 'Utang toko sudah lunas (MK Connect)', nilai: pr.utangLunas },
+                        ...(pr.jurnal
+                          ? [
+                              { label: `Jurnal ${pr.kodeJurnal}: biaya tercatat`, nilai: pr.jurnal.biaya },
+                              { label: `Jurnal ${pr.kodeJurnal}: upah/kontraktor tercatat`, nilai: pr.jurnal.tenaga, indent: true },
+                              { label: `Jurnal ${pr.kodeJurnal}: saldo utang toko`, nilai: pr.jurnal.utangToko },
+                            ]
+                          : []),
+                      ]}
+                    />
+                    <Catatan>
+                      Proyek ini memakai keuangan Loonars 2: biayanya masuk belanja konstruksi gabungan, bangunannya dicatat sebagai aset dalam penyelesaian, dan utang tokonya masuk kewajiban Loonars 2.
+                      {pr.biayaTerakhir ? ` Biaya terakhir ${labelTanggal(pr.biayaTerakhir)}.` : ''} Selisih dengan jurnal ada di Integration &amp; Sync → Rekonsiliasi.
+                    </Catatan>
+                  </div>
+                </div>
+              </Panel>
+            ))}
+
             <div className="grid gap-4 xl:grid-cols-3">
               <Panel judul="Neraca Loonars 2" ikon="kotak">
                 <TabelAngka
                   baris={[
                     { label: 'Kas di rekening (A/B/D positif)', nilai: l2.neraca.kas },
-                    { label: 'Aset dalam pembangunan (persediaan)', nilai: l2.neraca.asetDalamPembangunan },
+                    { label: 'Aset dalam pembangunan (persediaan villa)', nilai: l2.neraca.asetDalamPembangunan },
+                    ...(l2.proyek.length ? [{ label: `Aset tetap dalam penyelesaian (${l2.proyek.map((x) => x.nama).join(', ')})`, nilai: l2.neraca.asetProyekLain }] : []),
                     { label: 'Total aset', nilai: l2.neraca.totalAset, tebal: true },
-                    { label: 'Utang toko bangunan', nilai: l2.neraca.utangToko },
+                    { label: 'Utang toko bangunan (villa)', nilai: l2.neraca.utangToko },
+                    ...(l2.proyek.length ? [{ label: `Utang toko ${l2.proyek.map((x) => x.nama).join(', ')}`, nilai: l2.neraca.utangProyekLain }] : []),
                     { label: 'Utang ke owner (dana talangan)', nilai: l2.neraca.utangOwner },
                     { label: 'Uang muka investor', nilai: l2.neraca.uangMukaInvestor },
                     { label: 'Fee marketing terutang', nilai: l2.neraca.feeTerutang },

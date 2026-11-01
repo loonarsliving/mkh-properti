@@ -71,6 +71,15 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
   add('Loonars 2: budget unit yang sudah dibangun', l2.budgetUnitAktif, 'loonars2_v_unit');
   add('Loonars 2: aktual unit yang sudah dibangun', l2.aktualUnitAktif, 'loonars2_v_unit');
   add('Loonars 2: utang toko bangunan', l2.utangToko, 'loonars2_v_toko');
+  add('Loonars 2: belanja konstruksi gabungan (villa + proyek lain)', l2.belanjaKonstruksiGabungan, 'loonars2_disbursements + snapshot:proyek_konstruksi');
+  for (const p of l2.proyek) {
+    add(`Loonars 2 — ${p.nama}: budget`, p.budgetTotal, 'snapshot:proyek_konstruksi');
+    add(`Loonars 2 — ${p.nama}: realisasi`, p.realisasiTotal, 'snapshot:proyek_konstruksi',
+      `${rp(p.realisasiTotal)} (material ${rp(p.realisasiMaterial)}, tukang/kontraktor ${rp(p.realisasiTenaga)}, lain-lain ${rp(p.realisasiLain)})`);
+    add(`Loonars 2 — ${p.nama}: selisih budget`, p.selisihBudget, 'snapshot:proyek_konstruksi',
+      p.selisihBudget === null ? 'budget tidak tersedia' : p.selisihBudget > 0 ? `lewat budget ${rp(p.selisihBudget)}` : `sisa budget ${rp(-p.selisihBudget)}`);
+    add(`Loonars 2 — ${p.nama}: utang toko belum lunas`, p.utangBelumLunas, 'snapshot:proyek_konstruksi');
+  }
   add('Loonars 2: dana talangan owner', l2.danaTalangan, 'loonars2_v_rekening');
   add('Loonars 2: sisa sewa tanah', l2.tanah.sisa, 'loonars2_settings', `${rp(l2.tanah.sisa)}${l2.tanah.jatuhTempo ? `, jatuh tempo ${labelTanggal(l2.tanah.jatuhTempo)}` : ''}`);
   add('Loonars 2: proyeksi laba proyek', l2.proyeksi.laba, 'loonars2_v_unit + settings');
@@ -189,7 +198,7 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
   if (/villa|loonars ?1|hotel|okupansi|occupancy|adr|revpar|ota|hospitality|ebitda|kamar/.test(q)) {
     return ambil((f) => f.label.startsWith('Loonars 1'), 'Loonars 1 — Hospitality:', 'loonars1');
   }
-  if (/loonars ?2|konstruksi|budget|anggaran|proyek|unit|tanah|bangun/.test(q)) {
+  if (/loonars ?2|konstruksi|budget|anggaran|proyek|unit|tanah|bangun|coffee|kopi|kafe|cafe/.test(q)) {
     return ambil((f) => f.label.startsWith('Loonars 2'), 'Loonars 2 — Developer & Konstruksi:', 'loonars2');
   }
   if (/peringatan|risiko|bahaya|alert|masalah|bocor|kebocoran|abnormal/.test(q)) {
