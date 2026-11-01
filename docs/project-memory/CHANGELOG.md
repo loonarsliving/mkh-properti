@@ -2,8 +2,8 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057, branch `claude/ai-cfo-financial-manager`)
-- Pusat keuangan Loonars 1 + Loonars 2 di MKH Property: mesin perhitungan deterministik `src/lib/cfo/` (+30 tes), 10 halaman `/cfo/*`, API `/api/cfo/{chat,briefing,tanya-wa}`, migrasi `0057_ai_cfo.sql` (snapshot sumber eksternal, audit log append-only, briefing WA lewat antrean `loonars2_outbox`, pg_cron). Uji SQL `supabase/tests/jalankan-uji-cfo.sh`. Migrasi belum diterapkan ke produksi. Lihat CURRENT_STATE.md 2026-11-01 dan `docs/ai-cfo/AUDIT-DAN-DESAIN.md`.
+## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057, PR #35 + #36) — LIVE
+- Pusat keuangan Loonars 1 + Loonars 2 di MKH Property: mesin perhitungan deterministik `src/lib/cfo/` (+30 tes), 10 halaman `/cfo/*`, API `/api/cfo/{chat,briefing,tanya-wa}`, migrasi `0057_ai_cfo.sql` (snapshot sumber eksternal, audit log append-only, briefing WA lewat antrean `loonars2_outbox`, pg_cron). Uji SQL `supabase/tests/jalankan-uji-cfo.sh`. Migrasi diterapkan ke produksi (0057a–f). Lihat CURRENT_STATE.md 2026-11-01 dan `docs/ai-cfo/AUDIT-DAN-DESAIN.md`.
 
 ## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel (migrasi 0054)
 - Lihat CURRENT_STATE.md 2026-10-21. Tabel `laporan_villa_bulanan`, `pajak_hotel_villa`, RPC `villa_laporan_terima` / `villa_laporan_ringkasan_wa`, halaman `/laporan-keuangan-villa` dan `/pajak-hotel`, endpoint `/api/laporan-villa/ringkasan-wa`. Migrasi sudah diterapkan ke produksi.

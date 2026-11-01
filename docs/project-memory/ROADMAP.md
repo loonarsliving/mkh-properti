@@ -55,8 +55,8 @@ Berurutan sesuai prioritas, berdasarkan hal yang benar-benar tertinggal:
    dipakai serius, buat akun COA-nya dan jurnalkan sungguhan.
 
 ## AI CFO — langkah berikutnya (2026-11-01)
-1. Owner menyetujui & menerapkan migrasi 0057 (mkh-properti) dan 0308 (Mkhsistem); merge kedua PR.
-2. Catat penjualan BANYU-06 & AVARA-06 di modul Loonars 2 agar rekonsiliasi cocok.
+1. ✅ Migrasi 0057/0308 diterapkan & PR di-merge (2026-11-01).
+2. ✅ Penjualan BANYU-06 & AVARA-06 dicatat (receipt #1–#4). Owner: konfirmasi transfer A→C/B (WA "sudah") dan isi nomor rekening A–D yang masih placeholder.
 3. Catat saldo rekening villa secara rutin di `/cfo/loonars-1` (kas Loonars 1).
 4. Sambungkan saldo rekening villa (kas Loonars 1) — saat ini "tidak tersedia".
 5. Pastikan relasi rekening A–D Loonars 2 dengan akun bank jurnal LL.

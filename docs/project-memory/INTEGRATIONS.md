@@ -185,7 +185,7 @@ MK Connect (Mkhsistem `lib/ai/domains/loonars2-wa.ts`) → POST
 lalu `outbox_selesai`. Tidak memakai `sync_log`/`sync_inbound`, tidak ada
 rahasia baru.
 
-## AI CFO (2026-11-01, belum di-deploy)
+## AI CFO (2026-11-01, LIVE)
 
 - **Masuk dari database MK Connect + villa (svcmyb):** pg_cron `cfo-kirim-snapshot-mkh` (Mkhsistem migrasi 0308, tiap 30 menit) → `net.http_post` ke `/rest/v1/rpc/cfo_sumber_terima` di project ini, header `x-sync-secret` = Vault `mk_sync_shared_secret`, URL & anon key dari `sync_config` svcmyb (jalur sama dengan `sync_dispatch_pending`). Jenis: `investor_penjualan` (LNR2), `refund_customer`, `transfer_tertunda`, `ota_settlement`, `pengajuan_biaya_villa`. Tanpa NIK/telepon/alamat/nomor rekening.
 - **Keluar ke WhatsApp owner:** pg_cron `cfo-briefing-*` → `POST https://finance.haluoleo.id/api/cfo/briefing` (x-sync-secret) → `cfo_briefing_antre` → `loonars2_outbox` → MK Connect `/api/loonars2/outbox` → Whacenter. Tidak ada jalur WA baru.
