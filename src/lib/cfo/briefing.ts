@@ -3,6 +3,7 @@
  * deterministik), bukan oleh AI. Dikirim lewat antrean WA yang sudah ada
  * (loonars2_outbox → MK Connect → Whacenter). Maks 4000 karakter (batas outbox).
  */
+import { kodeWa, type KerjaCfo, type RingkasBulan } from './kerja';
 import type { ModelCfo } from './model';
 import type { Peringatan } from './tipe';
 import { labelBulan, labelTanggal, persen, rp, rpRingkas } from './util';
@@ -59,7 +60,32 @@ function barisL2(m: ModelCfo): string[] {
   ];
 }
 
-export function teksBriefingHarian(m: ModelCfo, url: string): string {
+function barisKerja(k: KerjaCfo | undefined, maksTindakan: number): string[] {
+  if (!k) return [];
+  const r = k.ringkasReviu;
+  const out: string[] = [''];
+  if (r.l2Kelompok || r.mkhJumlah) {
+    out.push('📝 *Reviu pengajuan oleh AI CFO:*');
+    if (r.l2Kelompok) {
+      out.push(`   Loonars 2: ${r.l2Kelompok} kelompok (${rpRingkas(r.l2Total)}) — setujui ${r.l2Setujui}, tahan ${r.l2Tahan}${r.l2Dobel ? `, cek dobel ${r.l2Dobel}` : ''}`);
+      for (const x of k.reviuL2.slice(0, 4)) {
+        out.push(`   • ${kodeWa(x.kelompok)} ${rpRingkas(x.total)} → *${x.putusan.replace('_', ' ')}*: ${x.alasan[0].slice(0, 110)}`);
+      }
+    }
+    if (r.mkhJumlah) out.push(`   MKH: ${r.mkhJumlah} menunggu (${rpRingkas(r.mkhTotal)})${r.mkhDobel ? `, ${r.mkhDobel} tampak ganda` : ''}${r.mkhBasi ? `, ${r.mkhBasi} > 30 hari` : ''}`);
+  }
+  const terbuka = k.terbukaDb.length ? k.terbukaDb : k.tindakan.map((t) => ({ ...t, id: 0, status: 'terbuka' as const }));
+  if (terbuka.length) {
+    out.push('', `🗂 *Tindakan CFO terbuka: ${terbuka.length}*${k.lewatTenggat.length ? ` (⏰ ${k.lewatTenggat.length} lewat tenggat)` : ''}`);
+    const urut = [...terbuka].sort((a, b) => ['kritis', 'tinggi', 'sedang', 'info'].indexOf(a.tingkat) - ['kritis', 'tinggi', 'sedang', 'info'].indexOf(b.tingkat) || String(a.tenggat).localeCompare(String(b.tenggat)));
+    for (const t of urut.slice(0, maksTindakan)) {
+      out.push(`   ${t.tenggat && k.lewatTenggat.some((x) => x.kunci === t.kunci) ? '⏰' : '•'} ${t.judul}${t.tenggat ? ` (tenggat ${labelTanggal(t.tenggat)})` : ''}`);
+    }
+  }
+  return out;
+}
+
+export function teksBriefingHarian(m: ModelCfo, url: string, kerja?: KerjaCfo): string {
   const pr = barisPeringatan(m, 6);
   const top = m.kewajiban.filter((k) => k.status === 'lewat' || k.status === 'minggu_ini').slice(0, 4);
   return potong(
@@ -72,6 +98,7 @@ export function teksBriefingHarian(m: ModelCfo, url: string): string {
       '',
       `🧾 *Jatuh tempo ≤7 hari:* ${rp(m.ringkasKewajiban.jatuhTempo7Hari)}${m.ringkasKewajiban.lewatJatuhTempo > 0 ? ` (lewat: ${rp(m.ringkasKewajiban.lewatJatuhTempo)})` : ''}`,
       ...top.map((k) => `   ${k.urutan}. ${k.pihak} ${rpRingkas(k.nominal)}`),
+      ...barisKerja(kerja, 5),
       '',
       pr.length ? '⚠️ *Peringatan utama:*' : '✅ Tidak ada peringatan kritis/tinggi.',
       ...pr,
@@ -82,7 +109,7 @@ export function teksBriefingHarian(m: ModelCfo, url: string): string {
   );
 }
 
-export function teksBriefingMingguan(m: ModelCfo, url: string): string {
+export function teksBriefingMingguan(m: ModelCfo, url: string, kerja?: KerjaCfo): string {
   const n = m.arusKas.skenario.normal;
   const minggu = n.mingguan.slice(0, 4).map((w) => `   ${w.label} (${labelTanggal(w.mulai)}): masuk ${rpRingkas(w.masuk)}, keluar ${rpRingkas(w.keluar)}, saldo ${rpRingkas(w.saldoAkhir)}`);
   const unit = m.l2.unit
@@ -105,8 +132,15 @@ export function teksBriefingMingguan(m: ModelCfo, url: string): string {
       ...barisL2(m),
       ...(unit.length ? ['📐 *Budget vs aktual per unit:*', ...unit] : []),
       '',
-      '🧾 *Urutan bayar yang disarankan:*',
-      ...prioritas,
+      ...(kerja
+        ? [
+            `💸 *Rencana bayar minggu ini* (kas di atas minimum ${rpRingkas(kerja.rencana.danaTersedia)}):`,
+            ...kerja.rencana.bayar.slice(0, 6).map((b) => `   ✅ ${b.pihak} ${rpRingkas(b.nominal)}`),
+            ...kerja.rencana.tunda.slice(0, 4).map((b) => `   ⏸ ${b.pihak} ${rpRingkas(b.nominal)} — ${b.alasan}`),
+            `   Total bayar ${rpRingkas(kerja.rencana.totalBayar)}, ditunda ${rpRingkas(kerja.rencana.totalTunda)}.`,
+          ]
+        : ['🧾 *Urutan bayar yang disarankan:*', ...prioritas]),
+      ...barisKerja(kerja, 6),
       ...(selisih.length ? ['', '🔎 *Rekonsiliasi belum cocok:*', ...selisih] : []),
       '',
       '⚠️ *Peringatan:*',
@@ -134,4 +168,24 @@ export function teksPeringatanKritis(m: ModelCfo, url: string): { teks: string; 
       ].join('\n'),
     ),
   };
+}
+
+/** Laporan tutup buku bulanan untuk WA owner. */
+export function teksTutupBuku(r: RingkasBulan, komentar: string, url: string): string {
+  return potong(
+    [
+      `📚 *AI CFO — Tutup Buku ${labelBulan(r.periode)}*`,
+      '',
+      ...(r.l1
+        ? [`🏨 Villa: revenue ${rp(r.l1.revenue)}, EBITDA ${rp(r.l1.ebitda)}, okupansi ${r.l1.okupansiPct === null ? '-' : persen(r.l1.okupansiPct)}, bagian MKH ${rp(r.l1.bagianMkhBersih)}`]
+        : ['🏨 Villa: tidak ada laporan bulan ini']),
+      `🏗 Loonars 2: cash-in ${rp(r.l2.masuk)}, konstruksi ${rp(r.l2.keluarKonstruksi)}; utang toko ${rpRingkas(r.l2.utangToko)}, talangan owner ${rpRingkas(r.l2.danaTalangan)}`,
+      `💰 Kas ${rpRingkas(r.posisi.kasTotal)} · kewajiban ${rpRingkas(r.posisi.kewajibanTotal)} · piutang ${rpRingkas(r.posisi.piutangTotal)}`,
+      '',
+      '*Analisis:*',
+      komentar,
+      '',
+      `Angka bulan ini dibekukan (tidak bisa diubah). Detail: ${url}/cfo/kerja`,
+    ].join('\n'),
+  );
 }

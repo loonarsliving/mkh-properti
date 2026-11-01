@@ -3,6 +3,46 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-01 — AI CFO bekerja: Meja Kerja CFO (migrasi 0058) — DIBANGUN, BELUM DI-MERGE, MIGRASI BELUM DITERAPKAN
+
+Permintaan owner: "Buat ai cfo benar2 melakukan pekerjaan sebagai cfo".
+Branch `claude/ai-cfo-meja-kerja`. Logika di `src/lib/cfo/kerja.ts` (+17 tes,
+total 65 lulus); halaman `/cfo/kerja`.
+
+- **Reviu pengajuan**: setiap kelompok pengajuan Loonars 2 yang menunggu diberi
+  rekomendasi SETUJUI / TAHAN / CEK DOBEL dari angka (cicilan utang yang sudah
+  disetujui & upah borongan → setujui; belanja baru untuk unit belum terjual →
+  tahan karena menambah talangan; melewati budget+buffer → tahan; identik
+  dengan pengajuan lain ≤30 hari → cek dobel; umur antrean). Antrean pengajuan
+  MKH (semua proyek) diperiksa: input ganda, dua klaim fee unit yang sama,
+  nominal janggal, menunggu > 30 hari. Owner tetap memutuskan (WA "setujui M-n").
+- **Tindakan CFO** (`cfo_tindakan`): tugas konkret dengan penanggung & tenggat
+  (isi rekening A–D, transfer alokasi DP, jatuh tempo pelunasan kosong, tagih
+  investor, catat saldo villa, putuskan pengajuan, bersihkan antrean, utang
+  bank, rencana pendanaan, sewa tanah, pajak hotel, selisih rekonsiliasi).
+  Sinkron tiap 2 jam (`cfo_tindakan_sinkron`): baru dibuat, teratasi ditutup
+  otomatis, muncul lagi dibuka ulang, diabaikan owner (wajib alasan) dihormati,
+  tenggat tidak dimundurkan.
+- **Rencana bayar mingguan**: kewajiban jatuh tempo ≤7 hari + pengajuan yang
+  direkomendasikan setujui, diurutkan risiko, dibatasi kas di atas kas minimum.
+  Masuk briefing mingguan.
+- **Tutup buku bulanan** (`cfo_laporan_bulanan`, append-only): tgl 2–6
+  (menunggu laporan villa final) ringkasan bulan lalu dibekukan + komentar
+  varians vs bulan sebelumnya, dikirim ke WA owner (`cfo_briefing_antre` jenis
+  `tutup_buku`, ikut saklar briefing_mingguan).
+- Briefing harian kini memuat reviu pengajuan & tindakan (⏰ lewat tenggat);
+  AI CFO Chat menjawab "pengajuan mana yang disetujui", "apa yang harus saya
+  kerjakan", "rencana bayar minggu ini".
+- **Migrasi 0058** (BELUM diterapkan): tabel `cfo_tindakan`,
+  `cfo_laporan_bulanan`; RPC `cfo_tindakan_sinkron`, `cfo_tindakan_ubah`,
+  `cfo_tutup_buku`, `cfo_ambil_kerja` (nomor rekening di keterangan/toko/
+  supplier disamarkan; status rekening A–D tanpa nomornya); perluasan
+  `cfo_briefing_bangunkan`/`cfo_briefing_antre`; cron `cfo-tindakan-sinkron`
+  (23 */2 * * *), `cfo-tutup-buku` (27 1 * * *). Uji SQL lokal lulus
+  (`supabase/tests/cfo_uji_kerja.sql`); query baca dicoba read-only di
+  produksi (119 pengajuan L2, 25 MKH, 4 alokasi menunggu, rekening A–D belum
+  terisi). Aplikasi tetap berjalan bila 0058 belum diterapkan (data kerja kosong).
+
 ## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057) — LIVE DI PRODUKSI
 
 **Status produksi (2026-11-01, disetujui owner "Jika sdh benar bawa ke production"):**

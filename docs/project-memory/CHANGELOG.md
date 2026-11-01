@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-01 — AI CFO bekerja: Meja Kerja CFO (migrasi 0058, branch `claude/ai-cfo-meja-kerja`)
+- Reviu pengajuan (Loonars 2 & MKH), daftar tindakan CFO dengan tutup otomatis, rencana bayar mingguan, tutup buku bulanan beku + komentar varians; halaman `/cfo/kerja`; briefing & chat memakai hasilnya. Migrasi belum diterapkan. Lihat CURRENT_STATE.md.
+
 ## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057, PR #35 + #36) — LIVE
 - Pusat keuangan Loonars 1 + Loonars 2 di MKH Property: mesin perhitungan deterministik `src/lib/cfo/` (+30 tes), 10 halaman `/cfo/*`, API `/api/cfo/{chat,briefing,tanya-wa}`, migrasi `0057_ai_cfo.sql` (snapshot sumber eksternal, audit log append-only, briefing WA lewat antrean `loonars2_outbox`, pg_cron). Uji SQL `supabase/tests/jalankan-uji-cfo.sh`. Migrasi diterapkan ke produksi (0057a–f). Lihat CURRENT_STATE.md 2026-11-01 dan `docs/ai-cfo/AUDIT-DAN-DESAIN.md`.
 

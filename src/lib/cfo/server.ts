@@ -13,6 +13,7 @@
 import { createHash } from 'node:crypto';
 import { rpc, type Kredensial } from '@/lib/laporan-investor/server';
 import { faktaCfo, jawabDeterministik, promptPengguna, ringkasUntukLog, validasiJawaban, type JawabanCfo } from './chat';
+import { KERJA_KOSONG, susunKerjaCfo, type DataKerja, type KerjaCfo } from './kerja';
 import { susunModelCfo, type ModelCfo } from './model';
 import type { DataCfo } from './tipe';
 import { hariIniJakarta } from './util';
@@ -23,9 +24,17 @@ export function nomorPeminta(k: KredensialCfo): string | null {
   return k.jenis === 'wa' && k.nomor ? k.nomor : null;
 }
 
-export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; model: ModelCfo }> {
-  const data = await rpc<DataCfo>(k, 'cfo_ambil_data', { p_peminta_wa: nomorPeminta(k) });
-  return { data, model: susunModelCfo(data, hariIniJakarta()) };
+export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; model: ModelCfo; kerja: KerjaCfo; dataKerja: DataKerja }> {
+  const [data, dataKerja] = await Promise.all([
+    rpc<DataCfo>(k, 'cfo_ambil_data', { p_peminta_wa: nomorPeminta(k) }),
+    // Data kerja (migrasi 0058). Bila belum tersedia, AI CFO tetap berjalan tanpa reviu/tindakan.
+    rpc<DataKerja>(k, 'cfo_ambil_kerja', { p_peminta_wa: nomorPeminta(k) }).catch((e: unknown) => {
+      console.error('cfo_ambil_kerja gagal', e);
+      return KERJA_KOSONG;
+    }),
+  ]);
+  const model = susunModelCfo(data, hariIniJakarta());
+  return { data, model, kerja: susunKerjaCfo(model, dataKerja), dataKerja };
 }
 
 export async function catat(k: KredensialCfo, aksi: string, ringkas: Record<string, unknown>): Promise<void> {
@@ -90,8 +99,9 @@ export async function tanyaCfo(
   pertanyaan: string,
   riwayat: { peran: 'owner' | 'cfo'; isi: string }[] = [],
   narasi: KredensialCfo | null = null,
+  kerja?: KerjaCfo,
 ): Promise<HasilTanya & { dasar: JawabanCfo }> {
-  const fakta = faktaCfo(model);
+  const fakta = faktaCfo(model, kerja);
   const dasar = jawabDeterministik(pertanyaan, model, fakta);
   const rujukan = (ids: string[]) => fakta.filter((f) => ids.includes(f.id)).map(({ id, label, teks, sumber }) => ({ id, label, teks, sumber }));
 
