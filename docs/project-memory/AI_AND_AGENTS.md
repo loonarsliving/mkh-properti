@@ -2,8 +2,9 @@
 
 > **DIPERBARUI 2026-11-01:** repo ini kini memiliki **AI CFO** (branch
 > `claude/ai-cfo-financial-manager`). Semua angka dihitung deterministik di
-> `src/lib/cfo/`; model bahasa (Gemini, opsional via `GEMINI_API_KEY`) hanya
-> menarasikan daftar fakta bernomor di `src/lib/cfo/server.ts`, dan setiap
+> `src/lib/cfo/`; model bahasa MILIK MK CONNECT (Mkhsistem `/api/mkh-property/ai-cfo/narasi`,
+> penyedia Gemini MK Connect; MKH Property tidak punya kunci AI) hanya
+> menarasikan daftar fakta bernomor dari `src/lib/cfo/server.ts`, dan setiap
 > nominal rupiah di jawabannya divalidasi terhadap fakta (`validasiJawaban`)
 > — bila gagal, jawaban deterministik yang dipakai. Putusan CEO challenger
 > (aman/waspada/tolak) dihitung kode (`penantang.ts`), bukan model. AI CFO

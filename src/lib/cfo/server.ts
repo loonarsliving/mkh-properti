@@ -8,7 +8,9 @@
  *            sudah ada) diteruskan apa adanya; database mencocokkannya dengan
  *            Vault (migrasi 0057, _cfo_akses).
  *   - cron : sama dengan WA tanpa nomor (pg_cron → /api/cfo/briefing).
+ * Narasi AI memakai layanan AI MK Connect (lihat narasiMkConnect).
  */
+import { createHash } from 'node:crypto';
 import { rpc, type Kredensial } from '@/lib/laporan-investor/server';
 import { faktaCfo, jawabDeterministik, promptPengguna, promptSistem, ringkasUntukLog, validasiJawaban, type JawabanCfo } from './chat';
 import { susunModelCfo, type ModelCfo } from './model';
@@ -36,40 +38,36 @@ export async function catat(k: KredensialCfo, aksi: string, ringkas: Record<stri
 }
 
 /**
- * Narasi opsional oleh Gemini (penyedia AI yang sama dengan MK Connect).
- * Aktif hanya bila GEMINI_API_KEY diisi di environment server. Tanpa itu,
- * AI CFO tetap menjawab — dengan jawaban deterministik.
+ * Narasi oleh layanan AI MK Connect (Mkhsistem) — MKH Property TIDAK punya
+ * kunci/penyedia AI sendiri. Isi permintaan di-hash, ditandatangani database
+ * (RPC cfo_tanda_ai, HMAC rahasia sync yang sudah ada, berlaku 5 menit), lalu
+ * MK Connect memverifikasi dan memanggil penyedia AI-nya (circuit breaker,
+ * telemetri) lewat POST /api/mkh-property/ai-cfo/narasi.
+ * Gagal di titik mana pun → null → jawaban deterministik dipakai.
  */
-async function narasiGemini(sistem: string, pengguna: string): Promise<string | null> {
-  const kunci = process.env.GEMINI_API_KEY;
-  if (!kunci) return null;
-  const model = process.env.CFO_AI_MODEL || 'gemini-2.5-flash';
-  const ctrl = new AbortController();
-  const waktu = setTimeout(() => ctrl.abort(), 20_000);
+const MK_CONNECT_URL = (process.env.MK_CONNECT_URL || 'https://mkh.haluoleo.id').replace(/\/$/, '');
+
+async function narasiMkConnect(k: KredensialCfo, sistem: string, pengguna: string): Promise<string | null> {
+  const body = JSON.stringify({ sistem, pengguna });
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const hash = createHash('sha256').update(body).digest('hex');
+    const tanda = await rpc<{ ts: number; sig: string }>(k, 'cfo_tanda_ai', { p_hash: hash, p_peminta_wa: nomorPeminta(k) });
+    const res = await fetch(`${MK_CONNECT_URL}/api/mkh-property/ai-cfo/narasi`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': kunci },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: sistem }] },
-        contents: [{ role: 'user', parts: [{ text: pengguna }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 900 },
-      }),
-      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-mkh-cfo-ts': String(tanda.ts), 'x-mkh-cfo-sig': tanda.sig },
+      body,
       cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) {
-      console.error('Gemini gagal', res.status);
+      console.error('AI MK Connect gagal', res.status);
       return null;
     }
-    const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const teks = j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('').trim();
-    return teks || null;
+    const j = (await res.json()) as { teks?: string };
+    return j.teks?.trim() || null;
   } catch (e) {
-    console.error('Gemini error', e);
+    console.error('AI MK Connect error', e);
     return null;
-  } finally {
-    clearTimeout(waktu);
   }
 }
 
@@ -81,16 +79,22 @@ export interface HasilTanya {
   fakta: { id: string; label: string; teks: string; sumber: string }[];
 }
 
+/**
+ * @param narasi  kredensial untuk meminta narasi AI MK Connect; null = hanya
+ *                jawaban deterministik (dipakai jalur WA, karena asisten WA
+ *                MK Connect sendiri yang merangkai jawaban akhirnya).
+ */
 export async function tanyaCfo(
   model: ModelCfo,
   pertanyaan: string,
   riwayat: { peran: 'owner' | 'cfo'; isi: string }[] = [],
+  narasi: KredensialCfo | null = null,
 ): Promise<HasilTanya & { dasar: JawabanCfo }> {
   const fakta = faktaCfo(model);
   const dasar = jawabDeterministik(pertanyaan, model, fakta);
   const rujukan = (ids: string[]) => fakta.filter((f) => ids.includes(f.id)).map(({ id, label, teks, sumber }) => ({ id, label, teks, sumber }));
 
-  const ai = await narasiGemini(promptSistem(), promptPengguna(pertanyaan, fakta, dasar, riwayat));
+  const ai = narasi ? await narasiMkConnect(narasi, promptSistem(), promptPengguna(pertanyaan, fakta, dasar, riwayat)) : null;
   if (ai && validasiJawaban(ai, fakta, dasar)) {
     const disebut = [...new Set([...ai.matchAll(/\[(F\d+)\]/g)].map((m) => m[1]))];
     return { jawaban: ai, mode: 'ai', niat: dasar.niat, putusan: dasar.evaluasi?.putusan ?? null, fakta: rujukan(disebut.length ? disebut : dasar.fakta), dasar };

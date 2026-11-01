@@ -30,6 +30,14 @@
 --   9. pg_cron               — membangunkan /api/cfo/briefing (harian, mingguan,
 --                              cek peringatan). Isi pesan disusun aplikasi dari
 --                              angka deterministik, bukan oleh database/AI.
+--  10. cfo_saldo_rekening    — saldo rekening (mis. rekening villa Loonars 1) per
+--                              tanggal, dicatat CFO; append-only. Kas berjalan =
+--                              saldo terakhir + mutasi villa sesudahnya (snapshot
+--                              villa_kas_masuk / villa_kas_keluar).
+--  11. RPC cfo_tanda_ai      — tanda tangan HMAC sekali-pakai (5 menit) agar
+--                              server MKH Property boleh memakai layanan AI milik
+--                              MK Connect (/api/mkh-property/ai-cfo/narasi).
+--                              MKH Property TIDAK punya kunci AI sendiri.
 --
 -- Prinsip yang dijaga:
 --   - Tidak ada tabel sumber yang diubah. Tidak ada DROP / DELETE.
@@ -40,7 +48,7 @@
 --
 -- Rollback (bila owner meminta): nonaktifkan cron
 --   select cron.unschedule('cfo-briefing-harian'); (dan dua job lain)
--- lalu revoke execute RPC cfo_* dari anon/authenticated. Tabel boleh dibiarkan
+-- lalu revoke execute RPC cfo_* (termasuk cfo_saldo_catat, cfo_tanda_ai) dari anon/authenticated. Tabel boleh dibiarkan
 -- (tidak dibaca aplikasi lain). Tidak ada data sumber yang perlu dipulihkan.
 -- ============================================================================
 
@@ -183,6 +191,40 @@ end;
 $$;
 
 -- ----------------------------------------------------------------------------
+-- 4b. Saldo rekening per tanggal (append-only)
+-- ----------------------------------------------------------------------------
+-- Sistem villa tidak bisa membaca bank; saldo rekening villa hanya diisi manual
+-- (sebelumnya hanya di localStorage browser halaman villa). Di sini saldo
+-- dicatat CFO dengan tanggal saldo; koreksi = baris baru, tidak ada UPDATE/DELETE.
+create table if not exists public.cfo_saldo_rekening (
+  id bigserial primary key,
+  lini text not null check (lini in ('L1', 'L2')),
+  rekening text not null check (length(rekening) between 2 and 80),
+  saldo numeric not null check (saldo = round(saldo)),
+  per_tanggal date not null,
+  catatan text check (catatan is null or length(catatan) <= 300),
+  dicatat_oleh text not null,
+  dibuat_pada timestamptz not null default now()
+);
+create index if not exists cfo_saldo_rekening_terbaru_idx on public.cfo_saldo_rekening (lini, rekening, per_tanggal desc, id desc);
+alter table public.cfo_saldo_rekening enable row level security;
+revoke all on public.cfo_saldo_rekening from anon;
+revoke all on public.cfo_saldo_rekening from authenticated;
+grant select on public.cfo_saldo_rekening to authenticated;
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'cfo_saldo_rekening' and policyname = 'cfo_baca') then
+    create policy cfo_baca on public.cfo_saldo_rekening for select to authenticated using (public.mkh_is_cfo());
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'cfo_saldo_rekening_append_only') then
+    create trigger cfo_saldo_rekening_append_only
+      before update or delete on public.cfo_saldo_rekening
+      for each row execute function public._cfo_tolak_ubah_audit();
+  end if;
+end;
+$$;
+
+-- ----------------------------------------------------------------------------
 -- 5. Siapa pemanggilnya?
 --    'cfo:<email>'  — CFO login (cfo_users)
 --    'wa:<nomor>'   — server MK Connect atas nama super admin (x-sync-secret
@@ -265,10 +307,11 @@ begin
   if v_mk is not null and v_provided is not distinct from v_mk then
     -- Database MK Connect + villa (project bersama svcmybsziaelwwdrnzcv).
     v_sumber := 'svcmyb';
-    v_boleh := array['investor_penjualan', 'refund_customer', 'transfer_tertunda', 'ota_settlement', 'pengajuan_biaya_villa'];
+    v_boleh := array['investor_penjualan', 'refund_customer', 'transfer_tertunda', 'ota_settlement', 'pengajuan_biaya_villa',
+                     'villa_kas_masuk', 'villa_kas_keluar'];
   elsif v_villa is not null and v_provided is not distinct from v_villa then
     v_sumber := 'villa_api';
-    v_boleh := array['ota_settlement', 'pengajuan_biaya_villa'];
+    v_boleh := array['ota_settlement', 'pengajuan_biaya_villa', 'villa_kas_masuk', 'villa_kas_keluar'];
   else
     raise exception 'Unauthorized' using errcode = '28000';
   end if;
@@ -436,6 +479,13 @@ begin
         'pokok', u.pokok, 'terbayar', u.terbayar, 'jt_tempo', u.jt_tempo) order by u.id)
       from public.utang_bank u), '[]'::jsonb),
 
+    -- ── Saldo rekening tercatat (terbaru per rekening) ──
+    'saldo_rekening', coalesce((
+      select jsonb_agg(jsonb_build_object('lini', x.lini, 'rekening', x.rekening, 'saldo', x.saldo,
+        'per_tanggal', x.per_tanggal, 'catatan', x.catatan, 'dicatat_oleh', x.dicatat_oleh, 'dibuat_pada', x.dibuat_pada))
+      from (select distinct on (lini, rekening) * from public.cfo_saldo_rekening
+             order by lini, rekening, per_tanggal desc, id desc) x), '[]'::jsonb),
+
     -- ── Snapshot sumber eksternal (MK Connect + villa) ──
     'snapshot', coalesce((
       select jsonb_agg(jsonb_build_object('sumber', s.sumber, 'jenis', s.jenis, 'id', s.source_id,
@@ -498,6 +548,86 @@ end;
 $$;
 revoke execute on function public.cfo_catat(text, jsonb, text) from public;
 grant execute on function public.cfo_catat(text, jsonb, text) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 8b. Catat saldo rekening (CFO)
+-- ----------------------------------------------------------------------------
+create or replace function public.cfo_saldo_catat(
+  p_lini text,
+  p_rekening text,
+  p_saldo numeric,
+  p_per_tanggal date,
+  p_catatan text default null
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_aktor text;
+begin
+  if not public.mkh_is_cfo() then
+    raise exception 'Tidak berhak' using errcode = '42501';
+  end if;
+  if p_lini not in ('L1', 'L2') or p_rekening is null or length(trim(p_rekening)) not between 2 and 80 then
+    raise exception 'Lini/rekening tidak valid' using errcode = '22023';
+  end if;
+  if p_saldo is null or p_saldo <> round(p_saldo) then
+    raise exception 'Saldo harus rupiah bulat' using errcode = '22023';
+  end if;
+  if p_per_tanggal is null or p_per_tanggal > (now() at time zone 'Asia/Jakarta')::date then
+    raise exception 'Tanggal saldo tidak boleh kosong atau di masa depan' using errcode = '22023';
+  end if;
+  v_aktor := 'cfo:' || public.mkh_email_login();
+  insert into public.cfo_saldo_rekening (lini, rekening, saldo, per_tanggal, catatan, dicatat_oleh)
+  values (p_lini, trim(p_rekening), p_saldo, p_per_tanggal, nullif(trim(p_catatan), ''), v_aktor)
+  returning id into v_id;
+  insert into public.cfo_audit_log (aktor, kanal, aksi, ringkas)
+  values (v_aktor, 'web', 'catat_saldo', jsonb_build_object('id', v_id, 'lini', p_lini, 'rekening', trim(p_rekening),
+          'saldo', p_saldo, 'per_tanggal', p_per_tanggal));
+  return v_id;
+end;
+$$;
+revoke execute on function public.cfo_saldo_catat(text, text, numeric, date, text) from public, anon;
+grant execute on function public.cfo_saldo_catat(text, text, numeric, date, text) to authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 8c. Tanda tangan untuk layanan AI MK Connect
+-- ----------------------------------------------------------------------------
+-- Server MKH Property menghitung sha256 isi permintaan narasi, lalu meminta
+-- tanda tangan di sini (hanya CFO / pemegang rahasia sync). MK Connect
+-- memverifikasi HMAC-SHA256('ai-cfo-narasi|<ts>|<sha256>') dengan rahasia sync
+-- yang sama (get_sync_secret) dan menolak bila lebih dari 5 menit. Rahasia
+-- tidak pernah keluar dari database.
+create or replace function public.cfo_tanda_ai(p_hash text, p_peminta_wa text default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, vault, extensions
+as $$
+declare
+  v_secret text;
+  v_ts bigint := floor(extract(epoch from now()))::bigint;
+begin
+  if public._cfo_akses(p_peminta_wa) is null then
+    raise exception 'Tidak berhak' using errcode = '42501';
+  end if;
+  if p_hash is null or p_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'Hash tidak valid' using errcode = '22023';
+  end if;
+  select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'mk_sync_shared_secret';
+  if v_secret is null then
+    raise exception 'Rahasia sync tidak tersedia' using errcode = '55000';
+  end if;
+  return jsonb_build_object('ts', v_ts,
+    'sig', encode(extensions.hmac(('ai-cfo-narasi|' || v_ts || '|' || p_hash)::bytea, v_secret::bytea, 'sha256'), 'hex'));
+end;
+$$;
+revoke execute on function public.cfo_tanda_ai(text, text) from public;
+grant execute on function public.cfo_tanda_ai(text, text) to anon, authenticated;
 
 -- ----------------------------------------------------------------------------
 -- 9. Antrekan briefing WA ke owner (antrean WA yang sudah ada)

@@ -16,8 +16,9 @@ dicatat di sini.
 | pg_cron MKH Property → app/MK Connect | `net.http_post` + `mk_sync_shared_secret` | Sudah ada (loonars2 outbox) |
 
 **Tidak ada rahasia baru, tidak ada service_role di frontend/repo.** AI CFO
-memakai jalur di atas apa adanya. Env opsional: `GEMINI_API_KEY` (narasi AI
-di server Vercel; tanpa itu AI CFO tetap menjawab secara deterministik).
+memakai jalur di atas apa adanya. Narasi AI memakai layanan AI MK Connect
+(`/api/mkh-property/ai-cfo/narasi`) dengan tanda tangan HMAC dari database
+MKH Property (RPC `cfo_tanda_ai`); MKH Property tidak punya kunci AI sendiri.
 
 ## 2. Project Supabase per repo
 
@@ -38,7 +39,10 @@ di server Vercel; tanpa itu AI CFO tetap menjawab secara deterministik).
 - `pajak_hotel_villa` — PBJT terutang & setoran.
 - Di svcmyb: `finance_settlements` (piutang OTA), `villa_pengajuan_biaya`
   (biaya villa belum ditransfer) → disalin sebagai snapshot (lihat §6).
-- **Belum ada:** saldo/mutasi rekening villa → kas Loonars 1 "tidak tersedia".
+- Sistem villa tidak bisa membaca bank (saldo dulu hanya di localStorage
+  halaman villa). Kas Loonars 1 kini = saldo yang dicatat CFO
+  (`cfo_saldo_rekening`) + mutasi villa sesudahnya (snapshot
+  `villa_kas_masuk` / `villa_kas_keluar`).
 
 ### Loonars 2 — Developer & Konstruksi (sumber: Mkhsistem + modul 4 rekening)
 - `loonars2_units` / `loonars2_v_unit` (17 unit, harga, biaya bangun, buffer,
@@ -118,7 +122,7 @@ Owner web → /cfo/chat ─▶ POST /api/cfo/chat (token CFO)
 - Semua angka di `src/lib/cfo/` (fungsi murni, diuji vitest 30 kasus):
   laporan L1/L2, konsolidasi, forecast harian/13 minggu/bulanan × 3 skenario,
   kewajiban & prioritas, peringatan, rekonsiliasi, CEO challenger.
-- AI (Gemini, opsional) hanya menarasikan **daftar fakta bernomor**; setiap
+- AI (penyedia MK Connect) hanya menarasikan **daftar fakta bernomor**; setiap
   nominal rupiah di jawaban AI divalidasi terhadap fakta — bila ada angka di
   luar fakta, jawaban AI ditolak dan jawaban deterministik yang ditampilkan.
 - Cash-in investor = uang muka (liabilitas kontrak) sampai serah terima;
@@ -129,10 +133,12 @@ Owner web → /cfo/chat ─▶ POST /api/cfo/chat (token CFO)
 
 1. Persetujuan menerapkan migrasi **mkh-properti 0057** dan **Mkhsistem 0308**
    ke produksi (skema baru; sesuai CLAUDE.md wajib persetujuan owner).
-2. Mencatat penjualan BANYU-06 & AVARA-06 (pembeli, harga, BF, DP) di modul
-   Loonars 2 — AI CFO tidak mengubah data sumber.
-3. Opsional: isi `GEMINI_API_KEY` di proyek Vercel `haluoleofinance` agar
-   jawaban chat dinarasikan AI (tanpa itu tetap berfungsi deterministik).
-4. Menyambungkan saldo rekening villa (Loonars 1) bila kas L1 ingin dihitung.
+2. ✅ (2026-11-01, disetujui owner) Penjualan BANYU-06 (Susanto August Satria)
+   & AVARA-06 (Adijana) dicatat lewat fungsi bisnis Loonars 2
+   (`_loonars2_catat_receipt`, receipt #1–#4: BF 5 jt + DP 205/210 jt), alokasi
+   C/B otomatis menunggu konfirmasi transfer owner; instruksi transfer dikirim
+   ke WA owner (outbox #452–#455). Nomor rekening A–D di instruksi masih
+   placeholder — perlu diisi owner.
+3. Kas Loonars 1: catat saldo rekening villa (per tanggal) di `/cfo/loonars-1`; kas berjalan dihitung dari mutasi villa (settlement diterima, walk-in lunas, biaya ditransfer). Gaji & bagi hasil investor belum tercatat di sistem villa → perbarui saldo setelah membayarnya.
 5. Memastikan hubungan rekening fisik A–D (modul Loonars 2) dengan akun bank
    jurnal proyek LL (saat ini diasumsikan berbeda).

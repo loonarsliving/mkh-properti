@@ -157,7 +157,9 @@ export type JenisSnapshot =
   | 'refund_customer'
   | 'transfer_tertunda'
   | 'ota_settlement'
-  | 'pengajuan_biaya_villa';
+  | 'pengajuan_biaya_villa'
+  | 'villa_kas_masuk'
+  | 'villa_kas_keluar';
 
 export interface Snapshot {
   sumber: string;
@@ -166,6 +168,16 @@ export interface Snapshot {
   data: Record<string, unknown>;
   diterima_pada: string;
   sumber_diubah_pada: string | null;
+}
+
+export interface SaldoRekening {
+  lini: 'L1' | 'L2' | string;
+  rekening: string;
+  saldo: Num;
+  per_tanggal: string;
+  catatan: string | null;
+  dicatat_oleh: string;
+  dibuat_pada: string;
 }
 
 export interface SyncLog {
@@ -209,6 +221,8 @@ export interface DataCfo {
   jurnal_bulanan: JurnalBulanan[];
   pengajuan_menunggu: PengajuanMenunggu[];
   utang_bank: UtangBank[];
+  /** saldo rekening tercatat terbaru per (lini, rekening) — cfo_saldo_rekening */
+  saldo_rekening?: SaldoRekening[];
   snapshot: Snapshot[];
   kesegaran: Record<string, string | null>;
   sync_log: SyncLog[];

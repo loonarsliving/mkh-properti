@@ -404,3 +404,42 @@ describe('briefing WhatsApp & deteksi abnormal', () => {
     expect(deteksiAbnormal(d).some((x) => x.id.startsWith('kembar:') && x.id.includes('999'))).toBe(true);
   });
 });
+
+describe('kas villa (Loonars 1): saldo tercatat + mutasi sesudahnya', () => {
+  function denganSaldo(): DataCfo {
+    const d = dataProduksi();
+    d.saldo_rekening = [{ lini: 'L1', rekening: 'BTN Villa', saldo: 40_000_000, per_tanggal: '2026-10-28', catatan: null, dicatat_oleh: 'cfo:o@u', dibuat_pada: '2026-10-28T03:00:00Z' }];
+    const snap = (jenis: string, id: string, tanggal: string, nominal: number) => ({ sumber: 'svcmyb', jenis, id, data: { tanggal, nominal, jenis: 'ota' }, diterima_pada: HARI, sumber_diubah_pada: null });
+    d.snapshot = [
+      snap('villa_kas_masuk', 'ota:lama', '2026-10-27', 9_000_000), // sebelum tanggal saldo → sudah termasuk saldo
+      snap('villa_kas_masuk', 'ota:1', '2026-10-29', 6_000_000),
+      snap('villa_kas_masuk', 'web:2', '2026-10-30', 1_500_000),
+      snap('villa_kas_keluar', 'biaya:3', '2026-10-31', 2_000_000),
+    ];
+    return d;
+  }
+
+  it('menghitung kas berjalan tanpa menghitung ulang mutasi sebelum tanggal saldo', () => {
+    const l1 = laporanLoonars1(denganSaldo(), HARI);
+    expect(l1.kas!.masukSesudah).toBe(7_500_000);
+    expect(l1.kas!.keluarSesudah).toBe(2_000_000);
+    expect(l1.kas!.kasBerjalan).toBe(45_500_000);
+    expect(l1.kas!.umurHari).toBe(4);
+    expect(l1.neraca.kas).toBe(45_500_000);
+  });
+
+  it('kas villa ikut posisi kas & forecast; tanpa saldo muncul peringatan untuk mencatat', () => {
+    const tanpa = susunModelCfo(dataProduksi(), HARI);
+    const dengan = susunModelCfo(denganSaldo(), HARI);
+    expect(dengan.kasTotal - tanpa.kasTotal).toBe(45_500_000);
+    expect(dengan.arusKas.input.kasAwal).toBe(dengan.kasTotal);
+    expect(tanpa.peringatan.some((p) => p.id === 'l1_saldo_belum_dicatat')).toBe(true);
+    expect(dengan.peringatan.some((p) => p.id === 'l1_saldo_belum_dicatat')).toBe(false);
+  });
+
+  it('saldo lebih dari 7 hari memicu peringatan usang', () => {
+    const d = denganSaldo();
+    d.saldo_rekening![0].per_tanggal = '2026-10-15';
+    expect(susunModelCfo(d, HARI).peringatan.some((p) => p.id.startsWith('l1_saldo_usang'))).toBe(true);
+  });
+});

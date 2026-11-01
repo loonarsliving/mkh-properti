@@ -55,7 +55,7 @@ src/lib/
   ekspor.ts  format.ts  terbilang.ts  notifikasi.ts
   cfo/              AI CFO: mesin deterministik (loonars1, loonars2, arus-kas,
                     kewajiban, kontrol, penantang, model, briefing, chat) +
-                    server.ts (RPC & narasi Gemini opsional, hanya server)
+                    server.ts (RPC & narasi via layanan AI MK Connect, hanya server)
 ```
 
 ### Keadaan bersama (state)

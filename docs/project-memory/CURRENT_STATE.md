@@ -32,15 +32,17 @@ Branch `claude/ai-cfo-financial-manager`. Audit & desain lengkap:
   (x-sync-secret dari pg_cron, atau token CFO untuk pratinjau/kirim manual),
   `POST /api/cfo/tanya-wa` (x-sync-secret + nomor, dipanggil tool `ai_cfo`
   asisten WA owner di Mkhsistem). Semua hanya baca + audit log.
-- **AI**: Gemini opsional (`GEMINI_API_KEY`, `CFO_AI_MODEL` di env server).
-  Env BELUM diisi di Vercel → chat berjalan dalam mode deterministik. Narasi AI
-  ditolak otomatis bila memuat nominal di luar daftar fakta.
+- **AI**: narasi AI memakai layanan AI MK Connect (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Narasi ditolak otomatis bila memuat nominal di luar daftar fakta; jalur WA (`tanya-wa`) hanya deterministik karena asisten WA MK Connect yang merangkai jawaban akhir.
+- **Kas Loonars 1**: tabel `cfo_saldo_rekening` (append-only) — CFO mencatat saldo rekening villa per tanggal di `/cfo/loonars-1`; kas berjalan = saldo + mutasi villa sesudahnya (snapshot `villa_kas_masuk`: settlement RECEIVED + walk-in lunas; `villa_kas_keluar`: biaya villa ditransfer). Peringatan bila belum dicatat atau > 7 hari.
 - **Data MK Connect/villa** (penjualan LNR2, refund, settlement OTA, transfer
   tertunda, pengajuan biaya villa) masuk lewat Mkhsistem migrasi `0308`
   (BELUM diterapkan). Sebelum itu halaman Sinkronisasi menampilkan
   "belum pernah" dan rekonsiliasi siteplan "tidak bisa dicek".
-- Temuan audit yang perlu tindakan owner: 2 unit LNR2 sudah terjual di siteplan
-  tetapi belum dicatat di modul Loonars 2; rekening C −Rp 123,99 jt (talangan);
+- 2026-11-01 (disetujui owner): penjualan BANYU-06 & AVARA-06 dicatat di modul
+  Loonars 2 lewat `_loonars2_catat_receipt` (receipt #1–#4, total Rp 425 jt,
+  alokasi C/B menunggu konfirmasi transfer; instruksi WA owner outbox #452–#455).
+  Nomor rekening A–D masih placeholder.
+- Temuan audit lain yang perlu tindakan owner: rekening C −Rp 123,99 jt (talangan);
   utang bank AFP Rp 1,49 M jatuh tempo 31 Des 2026.
 
 ## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel untuk Dispenda (migrasi 0054)

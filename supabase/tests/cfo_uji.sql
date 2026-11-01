@@ -169,6 +169,64 @@ begin
   end if;
 end $$;
 
+-- 7b. Saldo rekening (CFO, append-only) + mutasi villa + tanda tangan AI.
+do $$
+declare v jsonb; v_id bigint; v_hash text := repeat('ab', 32);
+begin
+  perform set_config('request.headers', '{}', false);
+  begin
+    perform public.cfo_saldo_catat('L1', 'BTN Villa', 1000, current_date, null);
+    raise exception 'GAGAL: bukan CFO bisa catat saldo';
+  exception when sqlstate '42501' then null;
+  end;
+  perform set_config('uji.cfo', 'ya', false);
+  perform set_config('uji.email', 'owner@uji', false);
+  v_id := public.cfo_saldo_catat('L1', 'BTN Villa', 50000000, current_date - 3, 'cek mutasi');
+  perform public.cfo_saldo_catat('L1', 'BTN Villa', 52000000, current_date - 1, null);
+  begin
+    perform public.cfo_saldo_catat('L1', 'BTN Villa', 1, current_date + 1, null);
+    raise exception 'GAGAL: tanggal masa depan lolos';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform public.cfo_saldo_catat('L1', 'BTN Villa', 1.5, current_date, null);
+    raise exception 'GAGAL: saldo pecahan lolos';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    update public.cfo_saldo_rekening set saldo = 0 where id = v_id;
+    raise exception 'GAGAL: saldo bisa diubah';
+  exception when sqlstate '42501' then null;
+  end;
+  v := public.cfo_ambil_data(null);
+  if jsonb_array_length(v -> 'saldo_rekening') <> 1 or (v -> 'saldo_rekening' -> 0 ->> 'saldo')::numeric <> 52000000 then
+    raise exception 'GAGAL: saldo terbaru %', v -> 'saldo_rekening';
+  end if;
+  if not exists (select 1 from public.cfo_audit_log where aksi = 'catat_saldo') then raise exception 'GAGAL: audit saldo'; end if;
+  perform set_config('uji.cfo', '', false);
+  perform set_config('uji.email', '', false);
+
+  -- tanda tangan AI: tanpa akses ditolak; dengan rahasia → HMAC benar.
+  begin
+    perform public.cfo_tanda_ai(v_hash, null);
+    raise exception 'GAGAL: tanda AI tanpa akses lolos';
+  exception when sqlstate '42501' then null;
+  end;
+  perform set_config('request.headers', '{"x-sync-secret":"rahasia-uji"}', false);
+  v := public.cfo_tanda_ai(v_hash, null);
+  if v ->> 'sig' <> encode(extensions.hmac(('ai-cfo-narasi|' || (v ->> 'ts') || '|' || v_hash)::bytea, 'rahasia-uji'::bytea, 'sha256'), 'hex') then
+    raise exception 'GAGAL: tanda tangan AI salah';
+  end if;
+  begin
+    perform public.cfo_tanda_ai('bukan-hash', null);
+    raise exception 'GAGAL: hash tidak valid lolos';
+  exception when sqlstate '22023' then null;
+  end;
+
+  v := public.cfo_sumber_terima('villa_kas_masuk', '[{"id":"ota:1","data":{"tanggal":"2026-11-01","nominal":1000000,"jenis":"ota"}}]', true);
+  if (v ->> 'baru')::int <> 1 then raise exception 'GAGAL: villa_kas_masuk %', v; end if;
+end $$;
+
 -- 8. Anon tidak bisa membaca tabel CFO; cron terjadwal; bangunkan memanggil URL benar.
 set role anon;
 do $$

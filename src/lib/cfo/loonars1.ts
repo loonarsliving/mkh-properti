@@ -9,11 +9,14 @@
  *
  * Batas data yang jujur dinyatakan (bukan ditebak):
  *  - Depresiasi, bunga, dan PPh belum tercatat di sumber → Net Profit = EBITDA.
- *  - Saldo kas/bank villa belum tersambung → kas Loonars 1 "tidak tersedia".
+ *  - Sistem villa tidak bisa membaca bank. Kas Loonars 1 = saldo rekening villa
+ *    terakhir yang DICATAT CFO (cfo_saldo_rekening, bertanggal) + mutasi villa
+ *    sesudah tanggal itu (settlement OTA diterima, booking website & walk-in
+ *    lunas, biaya villa ditransfer). Tanpa saldo tercatat → "tidak tersedia".
  *  - COGS = COGS standar per malam (bukan mutasi riil), OPEX = gaji staf.
  */
 import type { DataCfo, L1Laporan, Sumber } from './tipe';
-import { angka, bulat, jumlah, tambahHari } from './util';
+import { angka, bulat, jumlah, selisihHari, tambahHari, teks } from './util';
 
 export interface BulanL1 {
   bulan: string; // YYYY-MM
@@ -58,16 +61,58 @@ export interface LaporanL1 {
     keluarBagiHasil: number;
     bersih: number;
   }[];
+  kas: KasL1 | null;
   neraca: {
     piutangOta: number | null;
     piutangOtaJatuhTempo7Hari: number | null;
-    kas: null;
+    kas: number | null;
     pajakHotelTerutang: number;
     pengajuanBiayaBelumDibayar: number | null;
     kewajibanBagiHasilBerjalan: number;
     catatan: string[];
   };
   sumber: Sumber[];
+}
+
+export interface KasL1 {
+  rekening: { rekening: string; saldo: number; perTanggal: string; dicatatOleh: string }[];
+  saldoTercatat: number;
+  perTanggal: string; // tanggal saldo terbaru
+  umurHari: number;
+  masukSesudah: number;
+  keluarSesudah: number;
+  mutasiSesudah: { tanggal: string; nominal: number; jenis: string; ket: string }[];
+  kasBerjalan: number;
+}
+
+/** Kas villa = saldo tercatat + mutasi sesudah tanggal saldo (deterministik). */
+export function kasLoonars1(data: DataCfo, hariIni: string): KasL1 | null {
+  const saldo = (data.saldo_rekening ?? []).filter((s) => s.lini === 'L1');
+  if (!saldo.length) return null;
+  const perTanggal = saldo.map((s) => s.per_tanggal.slice(0, 10)).sort().at(-1)!;
+  const mutasi = data.snapshot
+    .filter((s) => s.jenis === 'villa_kas_masuk' || s.jenis === 'villa_kas_keluar')
+    .map((s) => ({
+      tanggal: teks(s.data.tanggal).slice(0, 10),
+      nominal: (s.jenis === 'villa_kas_masuk' ? 1 : -1) * Math.abs(angka(s.data.nominal as number)),
+      jenis: teks(s.data.jenis) || s.jenis,
+      ket: teks(s.data.ket),
+    }))
+    .filter((m) => m.tanggal > perTanggal && m.tanggal <= hariIni)
+    .sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  const saldoTercatat = jumlah(saldo, (s) => s.saldo);
+  const masukSesudah = jumlah(mutasi.filter((m) => m.nominal > 0), (m) => m.nominal);
+  const keluarSesudah = -jumlah(mutasi.filter((m) => m.nominal < 0), (m) => m.nominal);
+  return {
+    rekening: saldo.map((s) => ({ rekening: s.rekening, saldo: angka(s.saldo), perTanggal: s.per_tanggal.slice(0, 10), dicatatOleh: s.dicatat_oleh })),
+    saldoTercatat: bulat(saldoTercatat),
+    perTanggal,
+    umurHari: selisihHari(perTanggal, hariIni),
+    masukSesudah: bulat(masukSesudah),
+    keluarSesudah: bulat(keluarSesudah),
+    mutasiSesudah: mutasi,
+    kasBerjalan: bulat(saldoTercatat + masukSesudah - keluarSesudah),
+  };
 }
 
 function susunBulan(l: L1Laporan): BulanL1 {
@@ -158,8 +203,11 @@ export function laporanLoonars1(data: DataCfo, hariIni: string): LaporanL1 {
   const pengajuanVilla = data.snapshot.filter((s) => s.jenis === 'pengajuan_biaya_villa');
   const pajakTerutang = jumlah(data.l1_pajak, (p) => angka(p.pajak_terutang) - angka(p.jumlah_disetor));
 
+  const kas = kasLoonars1(data, hariIni);
   const catatan: string[] = [
-    'Saldo kas/bank villa belum tersambung ke MKH Property — kas Loonars 1 ditampilkan "tidak tersedia", bukan nol.',
+    kas
+      ? `Kas villa = saldo tercatat ${kas.perTanggal} + mutasi sesudahnya. Gaji staf & bagi hasil investor belum tercatat sebagai mutasi di sistem villa — catat saldo baru setelah membayarnya.`
+      : 'Saldo rekening villa belum dicatat — kas Loonars 1 ditampilkan "tidak tersedia", bukan nol. Catat di halaman Loonars 1.',
     'Depresiasi, bunga, dan PPh belum tercatat di sumber, sehingga Net Profit = EBITDA.',
   ];
   if (!ota.length) catatan.push('Piutang settlement OTA belum dikirim dari database villa (snapshot ota_settlement kosong).');
@@ -170,6 +218,7 @@ export function laporanLoonars1(data: DataCfo, hariIni: string): LaporanL1 {
     terakhirFinal,
     ytd,
     arusKasEstimasi,
+    kas,
     neraca: {
       piutangOta: ota.length ? bulat(jumlah(otaTerbuka, (s) => s.data.nominal as number)) : null,
       piutangOtaJatuhTempo7Hari: ota.length
@@ -180,7 +229,7 @@ export function laporanLoonars1(data: DataCfo, hariIni: string): LaporanL1 {
             ),
           )
         : null,
-      kas: null,
+      kas: kas ? kas.kasBerjalan : null,
       pajakHotelTerutang: bulat(Math.max(0, pajakTerutang)),
       pengajuanBiayaBelumDibayar: pengajuanVilla.length
         ? bulat(

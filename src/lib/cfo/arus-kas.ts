@@ -41,9 +41,9 @@ export const ASUMSI = [
   'Laju belanja konstruksi = rata-rata kas keluar konstruksi 28 hari terakhir, berhenti saat sisa budget unit yang sedang dibangun habis.',
   'Sisa sewa tanah dibayar rata per bulan (tanggal 1) sampai jatuh tempo.',
   'Pajak hotel terutang disetor tanggal 15 bulan berikutnya; fee marketing terutang dibayar dalam 30 hari.',
-  'Kas Loonars 1 (rekening villa) belum tersambung → tidak ikut saldo awal.',
+  'Kas Loonars 1 = saldo rekening villa terakhir yang dicatat + mutasi villa sesudahnya; bila belum dicatat, tidak ikut saldo awal.',
   'Kewajiban grup MKH di luar Loonars (utang bank proyek lain, refund customer) tidak masuk forecast kas Loonars — lihat Debt & Liability Center.',
-  'Saldo awal = rekening Loonars 2 bersaldo positif + kas/bank buku besar proyek LL.',
+  'Saldo awal = rekening Loonars 2 bersaldo positif + kas/bank buku besar proyek LL + kas villa (bila tercatat).',
 ];
 
 export interface Peristiwa {

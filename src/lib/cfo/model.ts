@@ -52,10 +52,12 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
       id: 'l1_villa',
       label: 'Kas & bank villa (Loonars 1)',
       lini: 'L1',
-      nilai: null,
-      dipakaiDalamTotal: false,
-      catatan: 'Belum tersambung: mutasi/saldo rekening villa tidak dikirim ke MK Connect maupun MKH Property.',
-      sumber: { tabel: 'tidak tersedia' },
+      nilai: l1.kas ? l1.kas.kasBerjalan : null,
+      dipakaiDalamTotal: l1.kas !== null,
+      catatan: l1.kas
+        ? `Saldo tercatat ${l1.kas.perTanggal} (${l1.kas.umurHari} hari lalu) + mutasi villa sesudahnya (masuk ${l1.kas.masukSesudah.toLocaleString('id-ID')}, keluar ${l1.kas.keluarSesudah.toLocaleString('id-ID')}).`
+        : 'Saldo rekening villa belum dicatat di MKH Property (halaman Loonars 1).',
+      sumber: { tabel: 'cfo_saldo_rekening + snapshot villa_kas_masuk/keluar' },
     },
   ];
   const kasTotal = bulat(jumlah(kas.filter((k) => k.dipakaiDalamTotal), (k) => k.nilai));

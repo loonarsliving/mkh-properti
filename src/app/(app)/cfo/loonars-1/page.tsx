@@ -1,9 +1,70 @@
 'use client';
 
+import { useState } from 'react';
 import { useJudul } from '@/components/shell/JudulProvider';
+import { InputRupiah } from '@/components/ui/Form';
 import { Panel } from '@/components/ui/Umum';
+import { useCfo } from '@/components/cfo/CfoProvider';
 import { Catatan, DenganModel, DaftarSumber, Kpi, TabelAngka, Uang } from '@/components/cfo/Ui';
-import { labelBulan, persen, rp } from '@/lib/cfo/util';
+import type { KasL1 } from '@/lib/cfo/loonars1';
+import { hariIniJakarta, labelBulan, labelTanggal, persen, rp } from '@/lib/cfo/util';
+import { sbRpc } from '@/lib/supabase';
+
+/** Kas villa: catat saldo rekening (dari mutasi bank) + kas berjalan dari mutasi villa. */
+function PanelKasVilla({ kas }: { kas: KasL1 | null }) {
+  const { muatUlang } = useCfo();
+  const [rekening, setRekening] = useState(kas?.rekening[0]?.rekening ?? 'Rekening operasional villa');
+  const [saldo, setSaldo] = useState(0);
+  const [tanggal, setTanggal] = useState(hariIniJakarta());
+  const [catatan, setCatatan] = useState('');
+  const [pesan, setPesan] = useState<string | null>(null);
+  const [sibuk, setSibuk] = useState(false);
+
+  async function simpan() {
+    setSibuk(true);
+    setPesan(null);
+    try {
+      await sbRpc<number>('cfo_saldo_catat', { p_lini: 'L1', p_rekening: rekening.trim(), p_saldo: Math.round(saldo), p_per_tanggal: tanggal, p_catatan: catatan || null });
+      setPesan('Saldo tercatat.');
+      setSaldo(0);
+      setCatatan('');
+      muatUlang();
+    } catch (e) {
+      setPesan(`Gagal: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSibuk(false);
+    }
+  }
+
+  return (
+    <Panel judul="Kas & bank villa" ikon="bank">
+      {kas ? (
+        <>
+          <TabelAngka
+            baris={[
+              ...kas.rekening.map((r) => ({ label: `Saldo ${r.rekening} per ${labelTanggal(r.perTanggal)}`, nilai: r.saldo, catatan: `dicatat ${r.dicatatOleh}` })),
+              { label: `Masuk sesudah ${labelTanggal(kas.perTanggal)} (OTA cair, website, walk-in)`, nilai: kas.masukSesudah, indent: true },
+              { label: 'Keluar sesudahnya (biaya villa ditransfer)', nilai: -kas.keluarSesudah, indent: true },
+              { label: 'Kas villa berjalan (estimasi)', nilai: kas.kasBerjalan, tebal: true },
+            ]}
+          />
+          <Catatan>Saldo dicatat {kas.umurHari} hari lalu. Gaji staf dan bagi hasil investor tidak tercatat sebagai mutasi di sistem villa — catat saldo baru setelah membayarnya atau minimal seminggu sekali.</Catatan>
+        </>
+      ) : (
+        <Catatan>Belum ada saldo rekening villa tercatat. Sistem villa tidak bisa membaca bank, jadi saldo diambil dari mutasi bank lalu dicatat di sini (dengan tanggal saldonya).</Catatan>
+      )}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label className="text-[12px]">Rekening<input className="input mt-1 w-full" value={rekening} onChange={(e) => setRekening(e.target.value)} maxLength={80} /></label>
+        <label className="text-[12px]">Saldo per tanggal<input type="date" className="input mt-1 w-full" value={tanggal} max={hariIniJakarta()} onChange={(e) => setTanggal(e.target.value)} /></label>
+        <label className="text-[12px]">Saldo (Rp)<InputRupiah id="cfo-saldo-villa" nilai={saldo} onUbah={setSaldo} /></label>
+        <label className="text-[12px]">Catatan<input className="input mt-1 w-full" value={catatan} onChange={(e) => setCatatan(e.target.value)} maxLength={300} placeholder="mis. dari mutasi BTN" /></label>
+      </div>
+      <button className="btn-amber mt-2" disabled={sibuk || rekening.trim().length < 2 || !tanggal} onClick={() => void simpan()}>Catat saldo</button>
+      {pesan && <span className="ml-2 text-[12px]">{pesan}</span>}
+      <div className="mt-1"><Catatan>Tercatat permanen (koreksi = catat baris baru) dan masuk jejak audit.</Catatan></div>
+    </Panel>
+  );
+}
 
 /** 2. Loonars 1 — Hospitality Financial Report. */
 export default function HalamanCfoL1() {
@@ -23,6 +84,8 @@ export default function HalamanCfoL1() {
               <Kpi label="Bagian MKH bersih" nilai={t.bagianMkhBersih} ikon="dompet" nada={t.bagianMkhBersih >= 0 ? 'emerald' : 'rose'} catatan="Pengelola 30% − top-up jaminan investor" />
               <Kpi label="YTD revenue" nilai={l1.ytd?.revenue ?? 0} ikon="kalender" nada="violet" catatan={`YTD EBITDA ${rp(l1.ytd?.ebitda ?? 0)}`} />
             </div>
+
+            <PanelKasVilla kas={l1.kas} />
 
             <Panel judul="Laba rugi per bulan" ikon="grafik" padat>
               <div className="overflow-x-auto">
@@ -79,7 +142,7 @@ export default function HalamanCfoL1() {
               <Panel judul="Neraca (parsial)" ikon="kotak">
                 <TabelAngka
                   baris={[
-                    { label: 'Kas & bank villa', nilai: l1.neraca.kas, catatan: 'Belum tersambung' },
+                    { label: 'Kas & bank villa', nilai: l1.neraca.kas, catatan: l1.kas ? `saldo ${l1.kas.perTanggal} + mutasi sesudahnya` : 'Saldo belum dicatat' },
                     { label: 'Piutang settlement OTA', nilai: l1.neraca.piutangOta },
                     { label: '  jatuh tempo ≤7 hari', nilai: l1.neraca.piutangOtaJatuhTempo7Hari, indent: true },
                     { label: 'Kewajiban bagi hasil investor bulan berjalan', nilai: l1.neraca.kewajibanBagiHasilBerjalan },
