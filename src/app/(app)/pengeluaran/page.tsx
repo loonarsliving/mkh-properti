@@ -54,7 +54,7 @@ function IsiPengeluaran() {
   // CFO bisa mengajukan atas nama proyek mana pun; admin proyek terkunci
   // pada proyek yang di-assign ke akunnya.
   const proyekTerkunci = sesi.peran === 'admin-proyek' ? sesi.proyekId : null;
-  const [proyek, setProyek] = useState(proyekTerkunci ?? 'AFP');
+  const [proyek, setProyek] = useState(proyekTerkunci ?? 'LL');
   const info = getProyek(proyek);
 
   useJudul({

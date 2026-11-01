@@ -16,6 +16,7 @@
 import { BOBOT_RISIKO, type JenisKewajiban } from './kewajiban';
 import type { ModelCfo } from './model';
 import type { Num, Sumber, Tingkat } from './tipe';
+import { proyekDikunci, TANGGAL_KUNCI } from './lingkup';
 import { angka, bulat, jumlah, labelBulan, labelTanggal, median, persen, rp, rpRingkas, selisihHari, tambahBulan, tambahHari } from './util';
 
 // ── Tipe data dari RPC cfo_ambil_kerja (migrasi 0058) ───────────────────────
@@ -225,7 +226,7 @@ export function reviuPengajuanL2(m: ModelCfo, k: DataKerja): ReviuL2[] {
 
 // ── 1b. Reviu antrean pengajuan MKH (semua proyek) ──────────────────────────
 
-export type PutusanMkh = 'PROSES' | 'CEK_DOBEL' | 'NOMINAL_JANGGAL' | 'BASI';
+export type PutusanMkh = 'PROSES' | 'CEK_DOBEL' | 'NOMINAL_JANGGAL' | 'BASI' | 'DIKUNCI';
 
 export interface ReviuMkh {
   id: number;
@@ -258,6 +259,14 @@ export function reviuPengajuanMkh(k: DataKerja, hariIni: string): ReviuMkh[] {
       )
       .map((q) => q.id);
     let putusan: PutusanMkh = 'PROSES';
+    if (proyekDikunci(p.proyek)) {
+      return {
+        id: p.id, proyek: p.proyek ?? '-', tipe: p.tipe, nominal: bulat(p.nominal), ringkas: p.keterangan.slice(0, 90), umurHari,
+        putusan: 'DIKUNCI' as PutusanMkh,
+        alasan: [`Proyek ${p.proyek} dikunci sejak ${labelTanggal(TANGGAL_KUNCI)} (keputusan owner). Pengajuan ini tidak bisa disetujui lagi — tolak di halaman Verifikasi dengan keterangan "proyek dikunci".`],
+        pasangan: [],
+      };
+    }
     if (pasangan.length) {
       putusan = 'CEK_DOBEL';
       alasan.push(
@@ -438,6 +447,16 @@ export function susunTindakan(m: ModelCfo, k: DataKerja, reviuL2: ReviuL2[], rev
       sumber: [{ tabel: 'loonars2_material_requests', ket: `#${r.ids.slice(0, 8).join(', #')}${r.ids.length > 8 ? ', …' : ''}` }],
     });
   }
+  const terkunci = reviuMkh.filter((r) => r.putusan === 'DIKUNCI');
+  if (terkunci.length) {
+    const perProyek = [...new Set(terkunci.map((r) => r.proyek))].sort();
+    add({
+      kunci: 'mkh_pengajuan_proyek_dikunci', tingkat: 'sedang', lini: 'Grup', penanggung: 'verifikator', nilai: bulat(jumlah(terkunci, (r) => r.nominal)),
+      judul: `Tutup ${terkunci.length} pengajuan dari proyek yang dikunci (${perProyek.join(', ')}) — ${rp(jumlah(terkunci, (r) => r.nominal))}`,
+      langkah: `Sejak ${labelTanggal(TANGGAL_KUNCI)} hanya Loonars 1 & Loonars 2 yang aktif; pengajuan ini tidak bisa disetujui. Tolak di halaman Verifikasi dengan keterangan "proyek dikunci". Bila ada yang ternyata SUDAH dibayar di luar sistem, laporkan ke owner dulu — jangan ditolak diam-diam.`,
+      sumber: [{ tabel: 'pengajuan', ket: `#${terkunci.slice(0, 10).map((r) => r.id).join(', #')}${terkunci.length > 10 ? ', …' : ''}` }],
+    });
+  }
   const dobelMkh = reviuMkh.filter((r) => r.putusan === 'CEK_DOBEL');
   if (dobelMkh.length) {
     add({
@@ -447,7 +466,7 @@ export function susunTindakan(m: ModelCfo, k: DataKerja, reviuL2: ReviuL2[], rev
       sumber: [{ tabel: 'pengajuan', ket: 'status pending' }],
     });
   }
-  const basi = reviuMkh.filter((r) => r.umurHari > 30);
+  const basi = reviuMkh.filter((r) => r.umurHari > 30 && r.putusan !== 'DIKUNCI');
   if (basi.length) {
     add({
       kunci: 'mkh_antrean_basi', tingkat: 'sedang', lini: 'Grup', penanggung: 'verifikator', nilai: bulat(jumlah(basi, (r) => r.nominal)),

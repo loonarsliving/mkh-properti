@@ -8,6 +8,7 @@ import { prioritaskan, ringkasKewajiban, type Kewajiban } from './kewajiban';
 import { deteksiAbnormal, rekonsiliasi, statusSinkron, susunPeringatan } from './kontrol';
 import { laporanLoonars1 } from './loonars1';
 import { laporanLoonars2 } from './loonars2';
+import { proyekDikunci, TANGGAL_KUNCI } from './lingkup';
 import type { DataCfo, Sumber } from './tipe';
 import { angka, bulat, hariDalamBulan, jumlah, tambahHari, teks } from './util';
 
@@ -143,7 +144,20 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
       dasar: 'Pengajuan biaya villa belum ditransfer', sumber: { tabel: 'snapshot:pengajuan_biaya_villa', ket: s.id },
     });
   }
+  // Kewajiban milik proyek yang dikunci (keputusan owner 2026-11-01): tidak masuk
+  // laporan, prioritas bayar, maupun forecast — tetapi tetap dicatat di sini agar
+  // tidak hilang dari pandangan (kewajibannya secara hukum tetap ada).
+  const diLuarLingkup: Kewajiban[] = [];
   for (const s of data.snapshot.filter((x) => x.jenis === 'transfer_tertunda')) {
+    if (proyekDikunci(teks(s.data.proyek))) {
+      diLuarLingkup.push({
+        id: `transfer:${s.id}`, lini: 'Grup', jenis: 'transfer_tertunda',
+        pihak: `${teks(s.data.pihak) || 'Transfer'} (${teks(s.data.proyek)}/${teks(s.data.tipe)})`, nominal: angka(s.data.nominal as number),
+        jatuhTempo: null, jatuhTempoAsumsi: false, dasar: `Proyek dikunci sejak ${TANGGAL_KUNCI}`,
+        sumber: { tabel: 'snapshot:transfer_tertunda', ket: s.id },
+      });
+      continue;
+    }
     kw.push({
       id: `transfer:${s.id}`, lini: teks(s.data.proyek) === 'LL' ? 'L2' : 'Grup', jenis: 'transfer_tertunda',
       pihak: `${teks(s.data.pihak) || 'Transfer'} (${teks(s.data.proyek)}/${teks(s.data.tipe)})`, nominal: angka(s.data.nominal as number),
@@ -164,7 +178,7 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
   for (const u of data.utang_bank) {
     const sisa = angka(u.pokok) - angka(u.terbayar);
     if (sisa > 0) {
-      kw.push({
+      (proyekDikunci(u.proyek) ? diLuarLingkup : kw).push({
         id: `bank:${u.id}`, lini: 'Grup', jenis: 'utang_bank', pihak: `${u.bank} — ${u.jenis} (${u.proyek})`, nominal: bulat(sisa),
         jatuhTempo: u.jt_tempo, jatuhTempoAsumsi: false, dasar: 'Akad kredit', sumber: { tabel: 'utang_bank', ket: `#${u.id}` },
       });
@@ -285,6 +299,8 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
     kasTotal,
     kewajiban,
     ringkasKewajiban: ringkasKw,
+    /** Kewajiban proyek yang dikunci — di luar laporan L1/L2 (lihat lingkup.ts). */
+    kewajibanDiLuarLingkup: { daftar: diLuarLingkup, total: bulat(jumlah(diLuarLingkup, (k) => k.nominal)), sejak: TANGGAL_KUNCI },
     piutang,
     arusKas: { input: inputArusKas, skenario, asumsi: ASUMSI },
     modalKerja,

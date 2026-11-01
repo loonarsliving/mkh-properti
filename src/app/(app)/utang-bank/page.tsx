@@ -32,7 +32,7 @@ function IsiUtangBank() {
   useJudul({ judul: 'Utang Bank', deskripsi: 'Pokok pinjaman, pembayaran, dan pemotongan otomatis' });
 
   // Form tambah utang
-  const [proyek, setProyek] = useState(filterAktif !== 'ALL' ? filterAktif : 'AFP');
+  const [proyek, setProyek] = useState(filterAktif !== 'ALL' ? filterAktif : 'LL');
   const [jenis, setJenis] = useState(JENIS_UTANG[0]);
   const [bank, setBank] = useState('');
   const [noAkad, setNoAkad] = useState('');

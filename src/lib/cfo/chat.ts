@@ -37,7 +37,11 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
   add('Total kewajiban (semua lini + grup)', m.ringkasKewajiban.total, 'kewajiban');
   add('Kewajiban Loonars 1', m.ringkasKewajiban.L1, 'kewajiban');
   add('Kewajiban Loonars 2', m.ringkasKewajiban.L2, 'kewajiban');
-  add('Kewajiban grup MKH di luar Loonars', m.ringkasKewajiban.Grup, 'kewajiban');
+  add('Kewajiban grup MKH di luar Loonars (refund customer)', m.ringkasKewajiban.Grup, 'kewajiban');
+  add(
+    'Kewajiban proyek yang dikunci (arsip, di luar laporan)', m.kewajibanDiLuarLingkup.total, 'kewajiban (proyek dikunci)',
+    `${m.kewajibanDiLuarLingkup.total.toLocaleString('id-ID')} — sejak ${m.kewajibanDiLuarLingkup.sejak} laporan hanya Loonars 1 (hospitality) & Loonars 2 (penjualan villa + pembangunan, termasuk Loonars Coffee); AFP, IH, GCI, GCR, KDI dikunci`,
+  );
   add('Kewajiban jatuh tempo ≤7 hari', m.ringkasKewajiban.jatuhTempo7Hari, 'kewajiban');
   add('Kewajiban lewat jatuh tempo', m.ringkasKewajiban.lewatJatuhTempo, 'kewajiban');
   add('Total piutang', m.piutang.total, 'loonars2_v_unit + snapshot ota_settlement');

@@ -112,7 +112,8 @@ describe('model konsolidasi & kontrol', () => {
     const ids = m.peringatan.map((p) => p.id);
     expect(ids).toContain('l2_dana_talangan');
     expect(ids.some((i) => i.startsWith('l2_bangun_tanpa_pembeli'))).toBe(true);
-    expect(ids).toContain('utang_bank:1');
+    // utang bank fixture milik AFP (dikunci 1 Nov 2026) → tidak diperingatkan
+    expect(ids).not.toContain('utang_bank:1');
     expect(ids).toContain('l1_jaminan_rugi:2026-11');
     // urutan: kritis dulu
     const tingkat = m.peringatan.map((p) => p.tingkat);
@@ -145,7 +146,22 @@ describe('model konsolidasi & kontrol', () => {
 
   it('kewajiban grup (utang bank, refund) tidak ikut forecast kas Loonars', () => {
     expect(m.arusKas.input.peristiwa.some((p) => p.jenis === 'utang_bank')).toBe(false);
-    expect(m.kewajiban.some((k) => k.jenis === 'utang_bank')).toBe(true);
+  });
+
+  it('proyek dikunci (AFP): utang banknya keluar dari laporan tetapi tetap tercatat di arsip', () => {
+    expect(m.kewajiban.some((k) => k.jenis === 'utang_bank')).toBe(false);
+    expect(m.kewajibanDiLuarLingkup.daftar.map((k) => k.id)).toEqual(['bank:1']);
+    expect(m.kewajibanDiLuarLingkup.total).toBe(1_490_000_000);
+    expect(m.kewajibanDiLuarLingkup.sejak).toBe('2026-11-01');
+  });
+
+  it('utang bank proyek aktif tetap dilaporkan & diperingatkan', () => {
+    const d = dataProduksi();
+    d.utang_bank = d.utang_bank.map((u) => ({ ...u, proyek: 'LL' }));
+    const mm = susunModelCfo(d, HARI);
+    expect(mm.kewajiban.some((k) => k.id === 'bank:1')).toBe(true);
+    expect(mm.peringatan.some((p) => p.id === 'utang_bank:1')).toBe(true);
+    expect(mm.kewajibanDiLuarLingkup.daftar).toEqual([]);
   });
 });
 

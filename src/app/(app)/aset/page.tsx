@@ -29,7 +29,7 @@ function IsiAset() {
 
   useJudul({ judul: 'Aset & Unit Properti', deskripsi: 'Master data unit yang dijual' });
 
-  const [proyek, setProyek] = useState(filterAktif !== 'ALL' ? filterAktif : 'AFP');
+  const [proyek, setProyek] = useState(filterAktif !== 'ALL' ? filterAktif : 'LL');
   const [tipe, setTipe] = useState(TIPE_PROPERTI[0]);
   const [blok, setBlok] = useState('');
   const [luas, setLuas] = useState('');

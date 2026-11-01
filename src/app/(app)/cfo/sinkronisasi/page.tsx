@@ -63,7 +63,7 @@ export default function HalamanCfoSinkron() {
                     <td className="px-3 py-1.5 text-right font-mono">{r.kiri.label}<br /><Uang n={r.kiri.nilai} tidakAda="n/a" /></td>
                     <td className="px-3 py-1.5 text-right font-mono">{r.kanan.label}<br /><Uang n={r.kanan.nilai} tidakAda="n/a" /></td>
                     <td className="px-3 py-1.5 text-right font-mono"><Uang n={r.selisih} tidakAda="—" /></td>
-                    <td className="px-3 py-1.5"><Badge nada={r.status === 'cocok' ? 'green' : r.status === 'selisih' ? 'red' : 'slate'} anak={r.status.replace(/_/g, ' ')} /></td>
+                    <td className="px-3 py-1.5"><Badge nada={r.status === 'cocok' ? 'green' : r.status === 'selisih' ? 'red' : r.status === 'dikonfirmasi' ? 'blue' : 'slate'} anak={r.status.replace(/_/g, ' ')} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -42,7 +42,7 @@ export const ASUMSI = [
   'Sisa sewa tanah dibayar rata per bulan (tanggal 1) sampai jatuh tempo.',
   'Pajak hotel terutang disetor tanggal 15 bulan berikutnya; fee marketing terutang dibayar dalam 30 hari.',
   'Kas Loonars 1 = saldo rekening villa terakhir yang dicatat + mutasi villa sesudahnya; bila belum dicatat, tidak ikut saldo awal.',
-  'Kewajiban grup MKH di luar Loonars (utang bank proyek lain, refund customer) tidak masuk forecast kas Loonars — lihat Debt & Liability Center.',
+  'Kewajiban grup MKH di luar Loonars (refund customer) tidak masuk forecast kas Loonars — lihat Debt & Liability Center. Proyek yang dikunci sejak 1 Nov 2026 (AFP, IH, GCI, GCR, KDI) tidak dilaporkan.',
   'Saldo awal = rekening Loonars 2 bersaldo positif + kas/bank buku besar proyek LL + kas villa (bila tercatat).',
 ];
 

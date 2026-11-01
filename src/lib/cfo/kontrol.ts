@@ -9,6 +9,7 @@ import type { HasilSkenario, NamaSkenario } from './arus-kas';
 import type { LaporanL1 } from './loonars1';
 import type { LaporanL2 } from './loonars2';
 import type { DataCfo, Peringatan } from './tipe';
+import { KONFIRMASI_OWNER, proyekDikunci } from './lingkup';
 import { angka, jamSejak, jumlah, labelTanggal, median, persen, rp, selisihHari, teks } from './util';
 
 // ── Rekonsiliasi ────────────────────────────────────────────────────────────
@@ -16,7 +17,8 @@ import { angka, jamSejak, jumlah, labelTanggal, median, persen, rp, selisihHari,
 export interface CekRekonsiliasi {
   id: string;
   judul: string;
-  status: 'cocok' | 'selisih' | 'tidak_bisa_dicek';
+  /** 'dikonfirmasi' = ada selisih, tetapi sudah dijelaskan owner (KONFIRMASI_OWNER). */
+  status: 'cocok' | 'selisih' | 'tidak_bisa_dicek' | 'dikonfirmasi';
   kiri: { label: string; nilai: number | null };
   kanan: { label: string; nilai: number | null };
   selisih: number | null;
@@ -36,7 +38,10 @@ function cek(
     return { id, judul, status: 'tidak_bisa_dicek', kiri, kanan, selisih: null, catatan };
   }
   const selisih = kiri.nilai - kanan.nilai;
-  return { id, judul, status: Math.abs(selisih) <= TOLERANSI ? 'cocok' : 'selisih', kiri, kanan, selisih, catatan };
+  if (Math.abs(selisih) <= TOLERANSI) return { id, judul, status: 'cocok', kiri, kanan, selisih, catatan };
+  const konf = KONFIRMASI_OWNER[id];
+  if (konf) return { id, judul, status: 'dikonfirmasi', kiri, kanan, selisih, catatan: `${konf.catatan} (konfirmasi owner ${konf.tanggal})` };
+  return { id, judul, status: 'selisih', kiri, kanan, selisih, catatan };
 }
 
 export function rekonsiliasi(data: DataCfo, l1: LaporanL1, l2: LaporanL2): CekRekonsiliasi[] {
@@ -138,9 +143,9 @@ export function rekonsiliasi(data: DataCfo, l1: LaporanL1, l2: LaporanL2): CekRe
     );
   }
 
-  // 3. Buku besar: debet = kredit per proyek.
+  // 3. Buku besar: debet = kredit per proyek (proyek yang dikunci = arsip, tidak dicek lagi).
   const perProyek = new Map<string, { d: number; k: number }>();
-  for (const j of data.jurnal_bulanan) {
+  for (const j of data.jurnal_bulanan.filter((x) => !proyekDikunci(x.proyek))) {
     const key = j.proyek ?? '(tanpa proyek)';
     const v = perProyek.get(key) ?? { d: 0, k: 0 };
     v.d += angka(j.d);
@@ -494,8 +499,8 @@ export function susunPeringatan(c: KonteksPeringatan): Peringatan[] {
     });
   }
 
-  // Grup: utang bank
-  for (const u of c.data.utang_bank) {
+  // Grup: utang bank (proyek yang dikunci tidak dilaporkan lagi — lihat lingkup.ts)
+  for (const u of c.data.utang_bank.filter((x) => !proyekDikunci(x.proyek))) {
     const sisa = angka(u.pokok) - angka(u.terbayar);
     if (sisa > 0 && u.jt_tempo) {
       const hari = selisihHari(c.hariIni, u.jt_tempo);

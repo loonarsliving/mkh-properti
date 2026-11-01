@@ -3,6 +3,40 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-01 — Kunci proyek selain Loonars 1 & Loonars 2 (migrasi 0060)
+
+Keputusan owner 2026-11-01: hanya **Loonars 1** (hospitality villa Yogyakarta) dan
+**Loonars 2** (Loonars Living — penjualan villa + pengeluaran pembangunan;
+Loonars Coffee/LC memakai keuangan Loonars 2) yang aktif dan dilaporkan.
+
+- **Dikunci per 2026-11-01:** AFP, IH, GCI, GCR, KDI. Tabel `proyek_kunci`
+  (RLS, baca staf). Trigger `_tolak_proyek_dikunci` pada `jurnal`, `pengajuan`,
+  `aset`, `utang_bank`, `bayar_tukang`, `tukang_borongan` menolak
+  insert/update/delete baris proyek dikunci (semua jalur termasuk sinkronisasi
+  MK Connect & service role; errcode 42501). Pengajuan lama yang pending
+  **boleh ditolak**, tidak bisa disetujui/dihapus. Tidak ada data yang dihapus;
+  laporan lama tetap bisa dibuka (filter proyek: grup "Arsip").
+- **Tidak dikunci:** LL, LC, HO (HO dipakai sinkronisasi HR MK Connect).
+- `branches` (portal lama): selain `yogyakarta` / `yogya-loonars1` → `is_active=false`.
+- **MK Connect tidak diubah** (cabang & karyawan Makassar/Jabodetabek/Kendari
+  di MK Connect masih aktif — di luar lingkup perubahan ini). Event
+  `construction_expense_submitted` tanpa kode proyek default ke KDI → kini
+  gagal (tercatat `failed` di `sync_log` MKH) — disengaja.
+- **AI CFO** (`src/lib/cfo/lingkup.ts`): utang bank & transfer tertunda milik
+  proyek dikunci keluar dari kewajiban/peringatan/forecast → `kewajibanDiLuarLingkup`
+  (panel arsip di /cfo/kewajiban). **Refund customer tetap dilaporkan** (permintaan
+  owner). Pengajuan MKH proyek dikunci → putusan `DIKUNCI` + tindakan
+  `mkh_pengajuan_proyek_dikunci` (tolak di Verifikasi). Cek jurnal seimbang
+  tidak lagi menilai proyek dikunci.
+- **Loonars Coffee:** owner mengonfirmasi kontraktor Rp 75 jt sudah dibayar →
+  rekonsiliasi `proyek_tenaga:LC` berstatus `dikonfirmasi` (tetap tampil, tanpa
+  peringatan/tindakan; `KONFIRMASI_OWNER`). Selisih biaya material & utang toko
+  LC (jurnal vs MK Connect) masih terbuka — belum dijelaskan owner. Tidak ada
+  jurnal pembayaran 75 jt yang dibuat (rekening sumber tidak diketahui; MK
+  Connect sudah mencatatnya sebagai realisasi `contractor_payment`).
+- Membuka kunci = migrasi baru yang menghapus baris dari `proyek_kunci`
+  (persetujuan owner).
+
 ## 2026-11-01 — AI CFO: Loonars Coffee masuk laporan Loonars 2 (migrasi 0059)
 
 Koreksi owner: "Loonars Coffee menggunakan keuangan dari Loonars 2" — sebelumnya

@@ -29,7 +29,7 @@ function IsiKasKeluar() {
 
   useJudul({ judul: 'Kas Keluar', deskripsi: 'Pengeluaran material, distributor & operasional' });
 
-  const proyekAwal = filterProyekAktif !== 'ALL' ? filterProyekAktif : 'AFP';
+  const proyekAwal = filterProyekAktif !== 'ALL' ? filterProyekAktif : 'LL';
   const [tgl, setTgl] = useState(today());
   const [no, setNo] = useState('');
   const [proyek, setProyek] = useState(proyekAwal);

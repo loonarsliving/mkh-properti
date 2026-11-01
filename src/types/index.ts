@@ -30,6 +30,8 @@ export interface Proyek {
   rek: string;
   bank: string;
   warna: string;
+  /** Tanggal proyek dikunci (arsip, hanya baca). Kosong = aktif. */
+  dikunci?: string;
 }
 
 export interface Branch {

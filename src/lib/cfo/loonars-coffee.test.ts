@@ -70,7 +70,12 @@ describe('Loonars Coffee dibiayai Loonars 2', () => {
     expect(r['proyek_utang:LC'].selisih).toBe(6_657_850 - 121_280_950);
     const kerja = susunKerjaCfo(m, KERJA_KOSONG);
     expect(kerja.tindakan.some((t) => t.kunci === 'l2_proyek_over:LC')).toBe(true);
-    expect(kerja.tindakan.some((t) => t.kunci === 'rekon:proyek_tenaga:LC')).toBe(true);
+    // Owner 2026-11-01: kontraktor Rp 75 jt sudah dibayar → selisih tetap tampil, status dikonfirmasi, tanpa tindakan.
+    expect(r['proyek_tenaga:LC'].status).toBe('dikonfirmasi');
+    expect(r['proyek_tenaga:LC'].catatan).toMatch(/75\.000\.000 sudah dibayar/);
+    expect(r['proyek_biaya:LC'].status).toBe('selisih');
+    expect(m.peringatan.some((p) => p.id === 'rekon:proyek_tenaga:LC')).toBe(false);
+    expect(kerja.tindakan.some((t) => t.kunci === 'rekon:proyek_tenaga:LC')).toBe(false);
   });
 
   it('briefing & chat menyebut Loonars Coffee', () => {

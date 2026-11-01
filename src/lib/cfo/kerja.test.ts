@@ -57,11 +57,13 @@ function kerjaProduksi(): DataKerja {
       p(64, { kelompok: 'M-34', unit_id: 6, nominal: 110_000_000, deskripsi: 'Atap & rangka', dibuat_pada: '2026-10-31T03:00:00Z' }),
     ],
     mkh_pengajuan: [
-      { id: 5, proyek: 'GCI', tipe: 'bahan', nominal_teks: '1000000', supplier: null, keterangan: 'Beban Lain-lain - heksanto Ricky Sulaiman No Rek BNI : ••••', dibuat_pada: '2026-06-18T00:00:00Z' },
-      { id: 6, proyek: 'GCI', tipe: 'bahan', nominal_teks: '1000000', supplier: null, keterangan: 'Beban Lain-lain - Heksanto Ricky Sulaiman No Rek Bni : ••••', dibuat_pada: '2026-06-18T00:00:00Z' },
-      { id: 110, proyek: 'GCI', tipe: 'bahan', nominal_teks: '260.85', supplier: null, keterangan: 'Beban Lain-lain - id pelanggan indihome', dibuat_pada: '2026-10-25T00:00:00Z' },
+      { id: 5, proyek: 'HO', tipe: 'bahan', nominal_teks: '1000000', supplier: null, keterangan: 'Beban Lain-lain - heksanto Ricky Sulaiman No Rek BNI : ••••', dibuat_pada: '2026-06-18T00:00:00Z' },
+      { id: 6, proyek: 'HO', tipe: 'bahan', nominal_teks: '1000000', supplier: null, keterangan: 'Beban Lain-lain - Heksanto Ricky Sulaiman No Rek Bni : ••••', dibuat_pada: '2026-06-18T00:00:00Z' },
+      { id: 110, proyek: 'HO', tipe: 'bahan', nominal_teks: '260.85', supplier: null, keterangan: 'Beban Lain-lain - id pelanggan indihome', dibuat_pada: '2026-10-25T00:00:00Z' },
       { id: 142, proyek: 'LL', tipe: 'komisi', nominal_teks: '23920000', supplier: null, keterangan: 'Fee marketing — Unit C3 — B', dibuat_pada: '2026-10-20T00:00:00Z' },
       { id: 173, proyek: 'LL', tipe: 'komisi', nominal_teks: '23920000', supplier: null, keterangan: 'Fee marketing — Unit C3 — S', dibuat_pada: '2026-10-21T00:00:00Z' },
+      { id: 301, proyek: 'GCI', tipe: 'bahan', nominal_teks: '2500000', supplier: null, keterangan: 'Semen 50 sak', dibuat_pada: '2026-07-01T00:00:00Z' },
+      { id: 302, proyek: 'AFP', tipe: 'bahan', nominal_teks: '1500000', supplier: null, keterangan: 'Pasir', dibuat_pada: '2026-07-02T00:00:00Z' },
       { id: 197, proyek: 'LL', tipe: 'bahan', nominal_teks: '3360000', supplier: null, keterangan: '•••• Bank jago A/N Yudha', dibuat_pada: '2026-10-28T00:00:00Z' },
     ],
   };
@@ -119,6 +121,12 @@ describe('reviu antrean pengajuan MKH', () => {
     expect(r[5].alasan.join(' ')).toMatch(/Menunggu 136 hari/);
     expect(r[197].putusan).toBe('PROSES');
   });
+
+  it('pengajuan proyek yang dikunci (1 Nov 2026) → DIKUNCI, bukan basi', () => {
+    expect(r[301].putusan).toBe('DIKUNCI');
+    expect(r[302].putusan).toBe('DIKUNCI');
+    expect(r[301].alasan[0]).toMatch(/GCI dikunci sejak 1 Nov 2026/);
+  });
 });
 
 describe('daftar tindakan CFO', () => {
@@ -132,7 +140,10 @@ describe('daftar tindakan CFO', () => {
     expect(kunci).toContain('l2_jatuh_tempo_kosong:AVARA-06-BANYU-06');
     expect(kunci).toContain('l2_putuskan:M-30');
     expect(kunci).toContain('l1_catat_saldo_villa');
-    expect(kunci).toContain('utang_bank:1');
+    // utang bank AFP: proyek dikunci → di luar lingkup, tidak jadi tindakan
+    expect(kunci).not.toContain('utang_bank:1');
+    expect(kunci).toContain('mkh_pengajuan_proyek_dikunci');
+    expect(kerja.tindakan.find((t) => t.kunci === 'mkh_pengajuan_proyek_dikunci')!.nilai).toBe(4_000_000);
     expect(kunci.some((k) => k.startsWith('mkh_cek_dobel:'))).toBe(true);
     expect(kunci).toContain('mkh_antrean_basi');
   });

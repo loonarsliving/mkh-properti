@@ -41,12 +41,15 @@ export function PilihProyek({
   /** Opsi di luar daftar proyek (mis. peran khusus pada halaman pengguna). */
   tambahan?: { id: string; nama: string }[];
 }) {
-  const daftar = hanya ? PROYEK.filter((p) => hanya.includes(p.id)) : PROYEK;
+  // Proyek yang dikunci tidak ditawarkan untuk transaksi baru (kecuali nilai yang sudah terpilih).
+  const dasar = PROYEK.filter((p) => !p.dikunci || p.id === nilai);
+  const daftar = hanya ? dasar.filter((p) => hanya.includes(p.id)) : dasar;
   return (
     <select id={id} className="input" value={nilai} onChange={(e) => onUbah(e.target.value)}>
       {daftar.map((p) => (
         <option key={p.id} value={p.id}>
           {p.nama}
+          {p.dikunci ? ' (dikunci)' : ''}
         </option>
       ))}
       {(tambahan ?? []).map((p) => (
