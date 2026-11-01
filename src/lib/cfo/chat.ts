@@ -10,7 +10,7 @@
 import { evaluasiKeputusan, type HasilEvaluasi } from './penantang';
 import { kodeWa, type KerjaCfo } from './kerja';
 import type { ModelCfo } from './model';
-import { labelBulan, labelTanggal, persen, rp } from './util';
+import { bulat, labelBulan, labelTanggal, persen, rp } from './util';
 
 export interface Fakta {
   id: string; // F1, F2, …
@@ -66,6 +66,13 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
     add(`${tag}: bagian MKH bersih (pengelola − top-up)`, b.bagianMkhBersih, 'laporan_villa_bulanan');
   }
   const l2 = m.l2;
+  const namaProyekLain = l2.proyek.map((p) => p.nama).join(', ') || 'proyek lain';
+  add('Loonars 2: TOTAL pengeluaran pembangunan (villa Loonars Living + ' + namaProyekLain + ')', l2.belanjaKonstruksiGabungan,
+    'loonars2_disbursements + snapshot:proyek_konstruksi',
+    `${rp(l2.belanjaKonstruksiGabungan)} = villa Loonars Living ${rp(l2.biayaKonstruksiKas)} (kas keluar konstruksi, termasuk cicilan utang toko) + ${namaProyekLain} ${rp(l2.biayaProyekLain)} (realisasi MK Connect)`);
+  add('Loonars 2: TOTAL sisa utang toko (villa Loonars Living + ' + namaProyekLain + ')', bulat(l2.utangToko + l2.utangProyekLain),
+    'loonars2_v_toko + snapshot:proyek_konstruksi',
+    `${rp(l2.utangToko + l2.utangProyekLain)} = villa ${rp(l2.utangToko)} + ${namaProyekLain} ${rp(l2.utangProyekLain)}`);
   add('Loonars 2: unit terjual', l2.unitTerjual, 'loonars2_v_unit', `${l2.unitTerjual} dari ${l2.jumlahUnit} unit`);
   add('Loonars 2: nilai kontrak penjualan', l2.nilaiKontrak, 'loonars2_v_unit');
   add('Loonars 2: cash-in investor tercatat', l2.cashInInvestor, 'loonars2_receipts');
@@ -181,6 +188,13 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
     };
   };
 
+  if (/pengeluaran|belanja|biaya|spending|keluar/.test(q) && !/villa|loonars ?1|hotel/.test(q)) {
+    return ambil(
+      (f) => f.label.startsWith('Loonars 2: TOTAL') || f.label === 'Loonars 2: belanja konstruksi (kas)' || f.label.includes(': realisasi') || f.label.includes('selisih budget') || f.label.includes('utang toko belum lunas') || f.label === 'Loonars 2: utang toko bangunan',
+      'Pengeluaran Loonars 2 (villa Loonars Living + Loonars Coffee, digabung):',
+      'pengeluaran_l2',
+    );
+  }
   if (/rencana bayar|bayar minggu ini|apa yang (harus )?dibayar/.test(q)) {
     return ambil((f) => f.label.startsWith('Rencana bayar'), 'Rencana pembayaran minggu ini (sesuai kas di atas kas minimum):', 'rencana_bayar');
   }
