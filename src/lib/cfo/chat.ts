@@ -8,6 +8,7 @@
  * yang dipakai. Jadi AI tidak pernah bisa mengarang angka.
  */
 import { evaluasiKeputusan, type HasilEvaluasi } from './penantang';
+import { kodeWa, type KerjaCfo } from './kerja';
 import type { ModelCfo } from './model';
 import { labelBulan, labelTanggal, persen, rp } from './util';
 
@@ -19,7 +20,7 @@ export interface Fakta {
   sumber: string;
 }
 
-export function faktaCfo(m: ModelCfo): Fakta[] {
+export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
   const f: Fakta[] = [];
   const add = (label: string, nilai: number | null, sumber: string, teks?: string) =>
     f.push({ id: `F${f.length + 1}`, label, nilai, teks: teks ?? (nilai === null ? 'tidak tersedia' : rp(nilai)), sumber });
@@ -77,6 +78,28 @@ export function faktaCfo(m: ModelCfo): Fakta[] {
     l2.unit.filter((u) => u.dibangunTanpaPembeli).map((u) => u.kode).join(', ') || 'tidak ada');
   for (const k of m.kewajiban.slice(0, 5)) add(`Prioritas bayar #${k.urutan}: ${k.pihak}`, k.nominal, k.sumber.tabel, `${rp(k.nominal)} — ${k.alasanPrioritas}`);
   for (const p of m.peringatan.slice(0, 8)) add(`Peringatan ${p.tingkat}: ${p.judul}`, p.nilai ?? null, p.sumber.map((s) => s.tabel).join(', '), p.isi);
+  if (kerja) {
+    const rv = kerja.ringkasReviu;
+    add('Reviu pengajuan Loonars 2: jumlah kelompok menunggu', rv.l2Kelompok, 'loonars2_material_requests',
+      `${rv.l2Kelompok} kelompok (${rp(rv.l2Total)}): setujui ${rv.l2Setujui}, tahan ${rv.l2Tahan}, cek dobel ${rv.l2Dobel}`);
+    for (const r of kerja.reviuL2.slice(0, 8)) {
+      add(`Reviu pengajuan ${kodeWa(r.kelompok)} (${r.kategori})`, r.total, 'loonars2_material_requests', `${rp(r.total)} → ${r.putusan.replace('_', ' ')}: ${r.alasan.join(' ')}`);
+    }
+    add('Reviu pengajuan MKH: menunggu', rv.mkhJumlah, 'pengajuan', `${rv.mkhJumlah} pengajuan (${rp(rv.mkhTotal)}), ${rv.mkhDobel} tampak ganda, ${rv.mkhBasi} menunggu > 30 hari`);
+    for (const r of kerja.reviuMkh.filter((x) => x.putusan !== 'PROSES').slice(0, 6)) {
+      add(`Reviu pengajuan MKH #${r.id} (${r.proyek})`, r.nominal, 'pengajuan', `${rp(r.nominal)} → ${r.putusan.replace('_', ' ')}: ${r.alasan.join(' ')}`);
+    }
+    const rb = kerja.rencana;
+    add('Rencana bayar minggu ini: dana di atas kas minimum', rb.danaTersedia, 'kas − kas minimum');
+    add('Rencana bayar minggu ini: total dibayar', rb.totalBayar, 'rencana', rb.bayar.map((b) => `${b.pihak} ${rp(b.nominal)}`).join('; ') || 'tidak ada');
+    add('Rencana bayar minggu ini: total ditunda', rb.totalTunda, 'rencana', rb.tunda.slice(0, 5).map((b) => `${b.pihak} ${rp(b.nominal)} (${b.alasan})`).join('; ') || 'tidak ada');
+    const daftar = kerja.terbukaDb.length ? kerja.terbukaDb : kerja.tindakan;
+    add('Tindakan CFO terbuka', daftar.length, 'cfo_tindakan', `${daftar.length} tindakan, ${kerja.lewatTenggat.length} lewat tenggat`);
+    for (const t of daftar.slice(0, 8)) {
+      add(`Tindakan: ${t.judul}`, t.nilai === null || t.nilai === undefined ? null : Number(t.nilai), 'cfo_tindakan',
+        `${t.langkah} (penanggung: ${t.penanggung}${t.tenggat ? `, tenggat ${labelTanggal(t.tenggat)}` : ''})`);
+    }
+  }
   for (const r of m.rekonsiliasi.filter((x) => x.status !== 'cocok').slice(0, 5)) {
     add(`Rekonsiliasi ${r.status}: ${r.judul}`, r.selisih, 'rekonsiliasi', `${r.kiri.label}: ${r.kiri.nilai === null ? 'n/a' : rp(r.kiri.nilai)}; ${r.kanan.label}: ${r.kanan.nilai === null ? 'n/a' : rp(r.kanan.nilai)}`);
   }
@@ -145,6 +168,15 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
     };
   };
 
+  if (/rencana bayar|bayar minggu ini|apa yang (harus )?dibayar/.test(q)) {
+    return ambil((f) => f.label.startsWith('Rencana bayar'), 'Rencana pembayaran minggu ini (sesuai kas di atas kas minimum):', 'rencana_bayar');
+  }
+  if (/pengajuan|reviu|review|approve|disetujui|ditolak|antrean/.test(q)) {
+    return ambil((f) => f.label.startsWith('Reviu'), 'Reviu pengajuan oleh AI CFO (keputusan tetap di Anda):', 'reviu');
+  }
+  if (/tindakan|tugas|to.?do|harus (saya )?(lakukan|kerjakan)|kerjakan|langkah/.test(q)) {
+    return ambil((f) => f.label.startsWith('Tindakan'), 'Tindakan CFO yang perlu dikerjakan:', 'tindakan');
+  }
   if (/defisit|forecast|proyeksi|arus kas|cash ?flow|13 minggu|runway|kebutuhan dana|pendanaan/.test(q)) {
     return ambil((f) => f.label.startsWith('Forecast') || f.label.startsWith('Kas tercatat') || f.label.startsWith('Kas minimum'), 'Proyeksi arus kas (182 hari, 3 skenario):', 'forecast');
   }

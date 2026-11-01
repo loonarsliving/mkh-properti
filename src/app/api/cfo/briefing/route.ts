@@ -1,23 +1,29 @@
 import { rpc, GalatAkses } from '@/lib/laporan-investor/server';
-import { teksBriefingHarian, teksBriefingMingguan, teksPeringatanKritis } from '@/lib/cfo/briefing';
+import { teksBriefingHarian, teksBriefingMingguan, teksPeringatanKritis, teksTutupBuku } from '@/lib/cfo/briefing';
+import { komentarVarians, laporanSebelum, ringkasBulan, siapTutupBuku } from '@/lib/cfo/kerja';
 import { ambilModel, type KredensialCfo } from '@/lib/cfo/server';
 
 /**
- * POST /api/cfo/briefing — menyusun briefing WhatsApp owner dari angka
- * deterministik lalu mengantrekannya lewat antrean WA yang sudah ada
- * (RPC cfo_briefing_antre → loonars2_outbox → MK Connect → Whacenter).
+ * POST /api/cfo/briefing — pekerjaan terjadwal AI CFO.
  *
- * Dua pemanggil:
- *  1. pg_cron MKH Property (cfo_briefing_bangunkan, migrasi 0057):
- *     header x-sync-secret, body { jenis: 'harian' | 'mingguan' | 'peringatan' }.
- *  2. CFO dari halaman Laporan: Authorization: Bearer <token>,
- *     body { jenis: 'harian' | 'mingguan', kirim?: boolean } →
- *     kirim=false hanya pratinjau; kirim=true mengantre (jenis 'manual').
+ * Pemanggil:
+ *  1. pg_cron MKH Property (cfo_briefing_bangunkan, migrasi 0057/0058):
+ *     header x-sync-secret, body { jenis }:
+ *       'harian' | 'mingguan' | 'peringatan' → susun & antrekan WA owner
+ *       'tindakan'   → sinkronkan daftar tindakan CFO (tanpa WA)
+ *       'tutup_buku' → bila bulan lalu siap ditutup: bekukan ringkasan bulan,
+ *                      komentar varians, kirim laporan WA
+ *  2. CFO dari web: Authorization: Bearer <token>, body { jenis, kirim? } →
+ *     pratinjau / kirim manual; 'tindakan' & 'tutup_buku' juga boleh dijalankan
+ *     CFO (mis. tombol "Perbarui tindakan" / "Tutup buku sekarang").
  *
- * Kunci antre unik per jenis+tanggal → aman bila cron/route dipanggil ulang.
+ * Semua angka dari mesin deterministik; tidak ada aksi uang.
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+const JENIS = ['harian', 'mingguan', 'peringatan', 'tindakan', 'tutup_buku'] as const;
+type Jenis = (typeof JENIS)[number];
 
 export async function POST(req: Request): Promise<Response> {
   const rahasia = req.headers.get('x-sync-secret') ?? '';
@@ -30,16 +36,39 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     /* body kosong boleh */
   }
-  const jenis = body.jenis;
-  if (jenis !== 'harian' && jenis !== 'mingguan' && jenis !== 'peringatan') {
-    return Response.json({ error: 'jenis harus harian | mingguan | peringatan' }, { status: 400 });
+  const jenis = body.jenis as Jenis;
+  if (!JENIS.includes(jenis)) {
+    return Response.json({ error: `jenis harus ${JENIS.join(' | ')}` }, { status: 400 });
   }
 
   const k: KredensialCfo = token ? { jenis: 'cfo', token } : { jenis: 'wa', rahasia, nomor: '' };
   const url = (process.env.NEXT_PUBLIC_APP_URL || 'https://finance.haluoleo.id').replace(/\/$/, '');
 
   try {
-    const { model } = await ambilModel(k);
+    const { model, kerja, dataKerja } = await ambilModel(k);
+
+    if (jenis === 'tindakan') {
+      const hasil = await rpc<Record<string, unknown>>(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan });
+      return Response.json({ ...hasil, jumlah: kerja.tindakan.length });
+    }
+
+    if (jenis === 'tutup_buku') {
+      const periode = siapTutupBuku(model, dataKerja);
+      if (!periode) return Response.json({ status: 'belum_waktunya' });
+      // Tindakan disinkronkan dulu agar prioritas di laporan sesuai keadaan terbaru.
+      await rpc(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan });
+      const ringkas = ringkasBulan(model, periode);
+      const komentar = komentarVarians(ringkas, laporanSebelum(dataKerja, periode), kerja.tindakan);
+      const hasil = await rpc<{ status: string }>(k, 'cfo_tutup_buku', { p_periode: `${periode}-01`, p_data: ringkas, p_komentar: komentar });
+      if (hasil.status !== 'ok') return Response.json({ ...hasil, periode });
+      const wa = await rpc<{ status: string; antre: number }>(k, 'cfo_briefing_antre', {
+        p_jenis: 'tutup_buku',
+        p_pesan: teksTutupBuku(ringkas, komentar, url),
+        p_kunci: `tutup_buku:${periode}`,
+      });
+      return Response.json({ status: 'ok', periode, wa });
+    }
+
     let teks: string;
     let kunci: string;
     if (jenis === 'peringatan') {
@@ -48,7 +77,11 @@ export async function POST(req: Request): Promise<Response> {
       teks = p.teks;
       kunci = p.kunci;
     } else {
-      teks = jenis === 'harian' ? teksBriefingHarian(model, url) : teksBriefingMingguan(model, url);
+      // Sinkron tindakan sebelum briefing agar daftar di WA = daftar di dashboard.
+      if (jenis === 'harian' && k.jenis === 'wa') {
+        await rpc(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan }).catch((e: unknown) => console.error('sinkron tindakan', e));
+      }
+      teks = jenis === 'harian' ? teksBriefingHarian(model, url, kerja) : teksBriefingMingguan(model, url, kerja);
       kunci = `${jenis}:${model.hariIni}`;
     }
 
@@ -65,6 +98,6 @@ export async function POST(req: Request): Promise<Response> {
   } catch (e) {
     if (e instanceof GalatAkses) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('cfo/briefing', e);
-    return Response.json({ error: 'Gagal menyusun briefing' }, { status: 500 });
+    return Response.json({ error: 'Gagal menjalankan pekerjaan CFO' }, { status: 500 });
   }
 }

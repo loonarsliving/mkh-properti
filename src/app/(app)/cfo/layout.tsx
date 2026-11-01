@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/Icon';
  */
 const MENU_CFO = [
   { href: '/cfo', label: 'Owner Overview' },
+  { href: '/cfo/kerja', label: 'Meja Kerja CFO' },
   { href: '/cfo/loonars-1', label: 'Loonars 1 Hospitality' },
   { href: '/cfo/loonars-2', label: 'Loonars 2 Developer' },
   { href: '/cfo/arus-kas', label: 'Cash Flow Forecast' },

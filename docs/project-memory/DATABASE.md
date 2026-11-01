@@ -175,3 +175,9 @@ memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.
 - RPC: `cfo_sumber_terima(p_jenis, p_baris, p_lengkap)` (pengirim ditentukan rahasia Vault yang cocok: `mk_sync_shared_secret` → sumber `svcmyb`, `villa_sync_shared_secret` → `villa_api`; jenis di-whitelist), `cfo_ambil_data(p_peminta_wa)` (hanya baca; CFO / x-sync-secret + nomor / sistem), `cfo_catat`, `cfo_briefing_antre` (→ `loonars2_outbox`, penerima `loonars2_wa_users` peran owner, kunci unik), `cfo_briefing_bangunkan` (internal, pg_cron). Helper `_cfo_akses`, `_cfo_tolak_ubah_audit`, `_cfo_audit_pengaturan`.
 - Cron: `cfo-briefing-harian` (7 23 * * *), `cfo-briefing-mingguan` (17 23 * * 0), `cfo-cek-peringatan` (37 */6 * * *).
 - Tanpa perubahan tabel lama, tanpa DROP/DELETE.
+
+## 2026-11-01 — migrasi 0058 (AI CFO meja kerja) — BELUM DITERAPKAN
+- `cfo_tindakan` (kunci unik, status terbuka/selesai/diabaikan, tenggat, penanggung; RLS CFO baca), `cfo_laporan_bulanan` (PK periode tgl 1, append-only via `_cfo_tolak_ubah_audit`).
+- RPC `cfo_tindakan_sinkron(p_daftar)` (sistem/CFO), `cfo_tindakan_ubah(p_id, p_status, p_alasan)` (CFO; alasan wajib untuk diabaikan), `cfo_tutup_buku(p_periode, p_data, p_komentar)` (sekali per periode), `cfo_ambil_kerja(p_peminta_wa)` (hanya baca, data disamarkan).
+- `cfo_briefing_bangunkan` menerima `tindakan`, `tutup_buku`; `cfo_briefing_antre` menerima `tutup_buku`.
+- Cron `cfo-tindakan-sinkron`, `cfo-tutup-buku`.
