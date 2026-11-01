@@ -20,6 +20,7 @@ const MENU_CFO = [
   { href: '/cfo/anggaran', label: 'Budget & Expense' },
   { href: '/cfo/peringatan', label: 'Alerts & CEO Challenger' },
   { href: '/cfo/chat', label: 'AI CFO Chat' },
+  { href: '/cfo/holding', label: 'Laporan Holding (SAK EMKM)' },
   { href: '/cfo/laporan', label: 'Financial Reports' },
   { href: '/cfo/sinkronisasi', label: 'Integration & Sync' },
 ];

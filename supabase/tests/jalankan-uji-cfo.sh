@@ -19,3 +19,5 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0059_ai_cfo_proyek_ko
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_proyek.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0060_kunci_proyek_non_loonars.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_kunci.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0061_ai_cfo_gaji_holding.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_gaji.sql

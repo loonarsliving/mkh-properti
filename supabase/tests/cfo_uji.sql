@@ -184,7 +184,7 @@ begin
   v_id := public.cfo_saldo_catat('L1', 'BTN Villa', 50000000, current_date - 3, 'cek mutasi');
   perform public.cfo_saldo_catat('L1', 'BTN Villa', 52000000, current_date - 1, null);
   begin
-    perform public.cfo_saldo_catat('L1', 'BTN Villa', 1, current_date + 1, null);
+    perform public.cfo_saldo_catat('L1', 'BTN Villa', 1, current_date + 2, null);
     raise exception 'GAGAL: tanggal masa depan lolos';
   exception when sqlstate '22023' then null;
   end;

@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-02 — Laporan Holding SAK EMKM (migrasi 0061)
+- `/cfo/holding`: laba rugi & posisi keuangan gabungan Loonars 1 + Loonars 2 + beban holding (gaji tim dari MK Connect), CaLK; tahun buku resmi 2027. Lihat CURRENT_STATE.md.
+
 ## 2026-11-01 — Kunci proyek non-Loonars (migrasi 0060)
 - AFP, IH, GCI, GCR, KDI dikunci hanya-baca (trigger DB, tabel `proyek_kunci`); laporan AI CFO hanya Loonars 1 & Loonars 2 (refund tetap); kontraktor Loonars Coffee 75 jt dikonfirmasi owner. Lihat CURRENT_STATE.md.
 

@@ -159,7 +159,9 @@ export type JenisSnapshot =
   | 'ota_settlement'
   | 'pengajuan_biaya_villa'
   | 'villa_kas_masuk'
-  | 'villa_kas_keluar';
+  | 'villa_kas_keluar'
+  | 'proyek_konstruksi'
+  | 'gaji_karyawan';
 
 export interface Snapshot {
   sumber: string;

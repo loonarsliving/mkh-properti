@@ -7,6 +7,7 @@
  * di daftar fakta; bila tidak, jawaban AI ditolak dan jawaban deterministik
  * yang dipakai. Jadi AI tidak pernah bisa mengarang angka.
  */
+import type { LaporanHolding } from './holding';
 import { evaluasiKeputusan, type HasilEvaluasi } from './penantang';
 import { kodeWa, type KerjaCfo } from './kerja';
 import type { ModelCfo } from './model';
@@ -20,7 +21,7 @@ export interface Fakta {
   sumber: string;
 }
 
-export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
+export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo, holding?: LaporanHolding): Fakta[] {
   const f: Fakta[] = [];
   const add = (label: string, nilai: number | null, sumber: string, teks?: string) =>
     f.push({ id: `F${f.length + 1}`, label, nilai, teks: teks ?? (nilai === null ? 'tidak tersedia' : rp(nilai)), sumber });
@@ -66,6 +67,23 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo): Fakta[] {
     add(`${tag}: bagian MKH bersih (pengelola − top-up)`, b.bagianMkhBersih, 'laporan_villa_bulanan');
   }
   const l2 = m.l2;
+  if (holding) {
+    const h = holding;
+    const tag = `Holding ${h.entitas} ${h.tahun}${h.resmi ? '' : ' (persiapan)'}`;
+    add(`${tag}: laba (rugi) bersih konsolidasi`, h.labaBersih.konsolidasi, 'laporan holding SAK EMKM');
+    add(`${tag}: laba (rugi) Loonars 1`, h.labaBersih.L1, 'laporan holding SAK EMKM');
+    add(`${tag}: laba (rugi) Loonars 2`, h.labaBersih.L2, 'laporan holding SAK EMKM');
+    add(`${tag}: beban holding (gaji tim bersama)`, h.labaBersih.holding, 'snapshot:gaji_karyawan');
+    for (const c of h.gaji.perCabang) {
+      add(`${tag}: gaji cabang ${c.cabang} (sudah ditransfer)`, c.dibayar, 'snapshot:gaji_karyawan');
+      if (c.terutang) add(`${tag}: gaji cabang ${c.cabang} belum ditransfer (utang)`, c.terutang, 'snapshot:gaji_karyawan');
+    }
+    add(`${tag}: total aset konsolidasi (per ${h.posisi.perTanggal})`, h.posisi.totalAset.konsolidasi, 'laporan holding SAK EMKM');
+    add(`${tag}: total liabilitas konsolidasi`, h.posisi.totalLiabilitas.konsolidasi, 'laporan holding SAK EMKM');
+    add(`${tag}: ekuitas konsolidasi`, h.posisi.ekuitas.konsolidasi, 'laporan holding SAK EMKM');
+    add(`${tag}: kebijakan`, null, 'keputusan owner 2026-11-02',
+      'Pendapatan villa kotor penuh; bagi hasil & top-up investor = beban; gaji tim bersama (Jogja, Head Office, dll.) = beban holding, bukan Loonars 1/2; gaji staf villa ada di OPEX Loonars 1; tahun buku resmi pertama 2027.');
+  }
   const namaProyekLain = l2.proyek.map((p) => p.nama).join(', ') || 'proyek lain';
   add('Loonars 2: TOTAL pengeluaran pembangunan (villa Loonars Living + ' + namaProyekLain + ')', l2.belanjaKonstruksiGabungan,
     'loonars2_disbursements + snapshot:proyek_konstruksi',
@@ -188,6 +206,10 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
     };
   };
 
+  if (/holding|konsolidasi|sak ?emkm|laba rugi|neraca|posisi keuangan|laporan tahunan|gaji|payroll/.test(q)) {
+    const h = fakta.filter((f) => f.label.startsWith('Holding'));
+    if (h.length) return ambil((f) => f.label.startsWith('Holding'), 'Laporan holding (Loonars 1 + Loonars 2 + biaya holding):', 'holding');
+  }
   if (/pengeluaran|belanja|biaya|spending|keluar/.test(q) && !/villa|loonars ?1|hotel/.test(q)) {
     return ambil(
       (f) => f.label.startsWith('Loonars 2: TOTAL') || f.label === 'Loonars 2: belanja konstruksi (kas)' || f.label.includes(': realisasi') || f.label.includes('selisih budget') || f.label.includes('utang toko belum lunas') || f.label === 'Loonars 2: utang toko bangunan',

@@ -2,6 +2,7 @@ import { rpc, GalatAkses } from '@/lib/laporan-investor/server';
 import { teksBriefingHarian, teksBriefingMingguan, teksPeringatanKritis, teksTutupBuku } from '@/lib/cfo/briefing';
 import { komentarVarians, laporanSebelum, ringkasBulan, siapTutupBuku } from '@/lib/cfo/kerja';
 import { ambilModel, type KredensialCfo } from '@/lib/cfo/server';
+import { holdingUntukArsip } from '@/lib/cfo/holding';
 
 /**
  * POST /api/cfo/briefing — pekerjaan terjadwal AI CFO.
@@ -45,7 +46,7 @@ export async function POST(req: Request): Promise<Response> {
   const url = (process.env.NEXT_PUBLIC_APP_URL || 'https://finance.haluoleo.id').replace(/\/$/, '');
 
   try {
-    const { model, kerja, dataKerja } = await ambilModel(k);
+    const { data, model, kerja, dataKerja } = await ambilModel(k);
 
     if (jenis === 'tindakan') {
       const hasil = await rpc<Record<string, unknown>>(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan });
@@ -59,7 +60,7 @@ export async function POST(req: Request): Promise<Response> {
       await rpc(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan });
       const ringkas = ringkasBulan(model, periode);
       const komentar = komentarVarians(ringkas, laporanSebelum(dataKerja, periode), kerja.tindakan);
-      const hasil = await rpc<{ status: string }>(k, 'cfo_tutup_buku', { p_periode: `${periode}-01`, p_data: ringkas, p_komentar: komentar });
+      const hasil = await rpc<{ status: string }>(k, 'cfo_tutup_buku', { p_periode: `${periode}-01`, p_data: { ...ringkas, holding: holdingUntukArsip(model, data, periode) }, p_komentar: komentar });
       if (hasil.status !== 'ok') return Response.json({ ...hasil, periode });
       const wa = await rpc<{ status: string; antre: number }>(k, 'cfo_briefing_antre', {
         p_jenis: 'tutup_buku',

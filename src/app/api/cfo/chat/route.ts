@@ -35,8 +35,8 @@ export async function POST(req: Request): Promise<Response> {
 
   const k = { jenis: 'cfo' as const, token };
   try {
-    const { model, kerja } = await ambilModel(k);
-    const hasil = await tanyaCfo(model, pertanyaan, riwayat, k, kerja);
+    const { model, kerja, holding } = await ambilModel(k);
+    const hasil = await tanyaCfo(model, pertanyaan, riwayat, k, kerja, holding);
     await catat(k, 'tanya_cfo', { pertanyaan, mode: hasil.mode, ...ringkasUntukLog(hasil.dasar) });
     const { dasar: _dasar, ...keluar } = hasil;
     void _dasar;

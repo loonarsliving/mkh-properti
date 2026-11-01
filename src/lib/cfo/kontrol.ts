@@ -270,7 +270,7 @@ export function statusSinkron(data: DataCfo, sekarang: Date): StatusSinkron[] {
     { id: 'jurnal_mk_connect', nama: 'Jurnal dari MK Connect', asal: 'MK Connect → sync_inbound → jurnal', terakhir: k.jurnal_mk_connect ?? null, batasJam: 24 * 7, catatan: 'Biaya konstruksi, gaji, komisi lintas cabang' },
     { id: 'l2_pengeluaran', nama: 'Pengeluaran Loonars 2 (rekening C)', asal: 'WA pelaksana/owner → loonars2_disbursements', terakhir: k.l2_pengeluaran ?? null, batasJam: 24 * 7, catatan: 'Data asli modul Loonars 2 di database ini' },
     { id: 'l2_penerimaan', nama: 'Penerimaan investor Loonars 2 (rekening A)', asal: 'WA owner → loonars2_receipts', terakhir: k.l2_penerimaan ?? null, batasJam: 24 * 30, catatan: 'Kosong = belum ada pembayaran investor yang dicatat' },
-    ...(['investor_penjualan', 'refund_customer', 'transfer_tertunda', 'ota_settlement', 'pengajuan_biaya_villa', 'villa_kas_masuk', 'villa_kas_keluar'] as const).map((j) => ({
+    ...(['investor_penjualan', 'refund_customer', 'transfer_tertunda', 'ota_settlement', 'pengajuan_biaya_villa', 'villa_kas_masuk', 'villa_kas_keluar', 'proyek_konstruksi', 'gaji_karyawan'] as const).map((j) => ({
       id: `snapshot_${j}`,
       nama: {
         investor_penjualan: 'Penjualan unit ke investor (siteplan)',
@@ -280,6 +280,8 @@ export function statusSinkron(data: DataCfo, sekarang: Date): StatusSinkron[] {
         pengajuan_biaya_villa: 'Pengajuan biaya villa',
         villa_kas_masuk: 'Mutasi kas masuk villa (OTA cair, website, walk-in)',
         villa_kas_keluar: 'Mutasi kas keluar villa (biaya ditransfer)',
+        proyek_konstruksi: 'Proyek konstruksi Loonars (Loonars Coffee)',
+        gaji_karyawan: 'Slip gaji karyawan (beban holding)',
       }[j],
       asal: 'Database MK Connect + villa → cfo_sumber_terima (pg_cron 30 menit)',
       terakhir: log(j)?.diterima_pada ?? null,
