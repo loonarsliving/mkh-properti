@@ -34,6 +34,7 @@ export const NAVIGASI: GrupNav[] = [
     item: [
       { label: 'Owner Financial Overview', href: '/cfo', ikon: 'grafik', peran: CFO },
       { label: 'Meja Kerja CFO', href: '/cfo/kerja', ikon: 'ceklis', peran: CFO },
+      { label: 'Laporan Holding (SAK EMKM)', href: '/cfo/holding', ikon: 'buku', peran: CFO },
       { label: 'Cash Flow Forecast', href: '/cfo/arus-kas', ikon: 'kalender', peran: CFO },
       { label: 'Debt & Liability Center', href: '/cfo/kewajiban', ikon: 'kas-keluar', peran: CFO },
       { label: 'Financial Alerts', href: '/cfo/peringatan', ikon: 'peringatan', peran: CFO },

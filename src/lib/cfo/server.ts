@@ -10,6 +10,7 @@
  *   - cron : sama dengan WA tanpa nomor (pg_cron → /api/cfo/briefing).
  * Narasi AI memakai layanan AI MK Connect (lihat narasiMkConnect).
  */
+import { laporanHolding, type LaporanHolding } from './holding';
 import { createHash } from 'node:crypto';
 import { rpc, type Kredensial } from '@/lib/laporan-investor/server';
 import { faktaCfo, jawabDeterministik, promptPengguna, ringkasUntukLog, validasiJawaban, type JawabanCfo } from './chat';
@@ -24,7 +25,7 @@ export function nomorPeminta(k: KredensialCfo): string | null {
   return k.jenis === 'wa' && k.nomor ? k.nomor : null;
 }
 
-export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; model: ModelCfo; kerja: KerjaCfo; dataKerja: DataKerja }> {
+export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; model: ModelCfo; kerja: KerjaCfo; dataKerja: DataKerja; holding: LaporanHolding }> {
   const [data, dataKerja] = await Promise.all([
     rpc<DataCfo>(k, 'cfo_ambil_data', { p_peminta_wa: nomorPeminta(k) }),
     // Data kerja (migrasi 0058). Bila belum tersedia, AI CFO tetap berjalan tanpa reviu/tindakan.
@@ -34,7 +35,7 @@ export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; mod
     }),
   ]);
   const model = susunModelCfo(data, hariIniJakarta());
-  return { data, model, kerja: susunKerjaCfo(model, dataKerja), dataKerja };
+  return { data, model, kerja: susunKerjaCfo(model, dataKerja), dataKerja, holding: laporanHolding(model, data) };
 }
 
 export async function catat(k: KredensialCfo, aksi: string, ringkas: Record<string, unknown>): Promise<void> {
@@ -100,8 +101,9 @@ export async function tanyaCfo(
   riwayat: { peran: 'owner' | 'cfo'; isi: string }[] = [],
   narasi: KredensialCfo | null = null,
   kerja?: KerjaCfo,
+  holding?: LaporanHolding,
 ): Promise<HasilTanya & { dasar: JawabanCfo }> {
-  const fakta = faktaCfo(model, kerja);
+  const fakta = faktaCfo(model, kerja, holding);
   const dasar = jawabDeterministik(pertanyaan, model, fakta);
   const rujukan = (ids: string[]) => fakta.filter((f) => ids.includes(f.id)).map(({ id, label, teks, sumber }) => ({ id, label, teks, sumber }));
 

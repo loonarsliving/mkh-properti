@@ -3,6 +3,35 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-02 — Laporan Holding PT Loonars Mahakarya (SAK EMKM) (migrasi 0061)
+
+Keputusan owner 2026-11-02 (jawaban pertanyaan kebijakan):
+- **Badan hukum:** PT Loonars Mahakarya = nama baru PT Maha Karya Haluoleo.
+- **Holding** = Loonars 1 + Loonars 2 + tingkat holding (biaya bersama).
+- **Pendapatan villa KOTOR penuh;** bagi hasil investor (70%) + top-up jaminan = beban.
+- **Gaji tim bersama** (slip MK Connect; cabang selain `Loonars Private
+  Living` yang sudah ada di OPEX villa) = **beban holding**; slip belum
+  ditransfer = utang gaji.
+- **Tahun buku resmi pertama: 2027;** 2026 = periode persiapan.
+
+Implementasi:
+- `src/lib/cfo/holding.ts` `laporanHolding(model, data, tahun)`: laba rugi per
+  kolom L1/L2/holding/konsolidasi, posisi keuangan (per hari ini), gaji per
+  cabang, rekonsiliasi (laba L1 = bagian MKH bersih; aset L2 = neraca modul),
+  CaLK (kebijakan + keterbatasan).
+- Halaman `/cfo/holding` (cetak). Fakta "Holding …" di chat AI CFO (intent
+  holding/gaji/neraca/laba rugi). Arsip tutup buku menyertakan holding.
+- Migrasi 0061: `cfo_sumber_terima` menerima `gaji_karyawan` dari svcmyb.
+  Pasangan Mkhsistem 0311.
+
+Keterbatasan (tertulis di CaLK):
+- Laba rugi L2 hanya sah untuk 2026 (kumulatif). Untuk 2027 dibutuhkan tanggal
+  serah terima & penjualan per unit.
+- Ekuitas = aset − liabilitas; belum ada buku besar ekuitas atau saldo awal
+  dari akuntan.
+- Penyusutan, bunga, dan PPh belum ada.
+- Status utang bank AFP perlu keputusan akuntan.
+
 ## 2026-11-01 — Kunci proyek selain Loonars 1 & Loonars 2 (migrasi 0060)
 
 Keputusan owner 2026-11-01: hanya **Loonars 1** (hospitality villa Yogyakarta) dan
