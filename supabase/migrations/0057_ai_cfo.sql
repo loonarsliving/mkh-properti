@@ -721,6 +721,13 @@ end;
 $$;
 revoke execute on function public.cfo_briefing_bangunkan(text) from public, anon, authenticated;
 
+-- ----------------------------------------------------------------------------
+-- 10b. Pengerasan (advisor keamanan Supabase)
+-- ----------------------------------------------------------------------------
+alter function public._cfo_tolak_ubah_audit() set search_path = public;
+revoke execute on function public._cfo_tolak_ubah_audit() from public, anon, authenticated;
+revoke execute on function public._cfo_audit_pengaturan() from public, anon, authenticated;
+
 -- Jadwal (UTC). 23:07 UTC = 07:07 WITA / 06:07 WIB.
 do $$
 begin
