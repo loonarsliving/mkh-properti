@@ -14,7 +14,7 @@ import {
   rentang,
   type Periode,
 } from '@/lib/periode';
-import { PROYEK } from '@/lib/master';
+import { PROYEK_AKTIF, PROYEK_ARSIP } from '@/lib/master';
 
 /**
  * Pemilih periode laporan.
@@ -138,11 +138,20 @@ export function FilterPeriode({ tampilkanProyek = true }: { tampilkanProyek?: bo
           onChange={(e) => setProyek(e.target.value)}
         >
           <option value="ALL">Semua Proyek</option>
-          {PROYEK.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.id} — {p.nama}
-            </option>
-          ))}
+          <optgroup label="Aktif">
+            {PROYEK_AKTIF.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.id} — {p.nama}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Arsip — dikunci 1 Nov 2026">
+            {PROYEK_ARSIP.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.id} — {p.nama} (arsip)
+              </option>
+            ))}
+          </optgroup>
         </select>
       ) : null}
     </div>

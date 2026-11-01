@@ -184,3 +184,9 @@ memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.
 
 ## 2026-11-01 — migrasi 0059 (AI CFO proyek konstruksi)
 - `cfo_sumber_terima` dinyatakan ulang: jenis `proyek_konstruksi` ditambahkan ke daftar sumber `svcmyb`. Tanpa tabel/kolom baru.
+
+## 2026-11-01 — migrasi 0060 (kunci proyek non-Loonars)
+- Tabel baru `proyek_kunci(proyek pk, dikunci_sejak, alasan, dikunci_oleh, dibuat_pada)` — RLS aktif, SELECT untuk staf (`mkh_is_staf()`), tanpa izin tulis untuk anon/authenticated. Isi: AFP, IH, GCI, GCR, KDI sejak 2026-11-01.
+- Fungsi trigger `_tolak_proyek_dikunci()` (security definer) + trigger `trg_<tabel>_proyek_dikunci` BEFORE INSERT/UPDATE/DELETE pada `jurnal`, `pengajuan`, `aset`, `utang_bank`, `bayar_tukang`, `tukang_borongan`. Pengajuan proyek dikunci tetap boleh di-UPDATE asal proyek tidak berubah dan status tidak menjadi `approved`.
+- Data: `branches.is_active=false` untuk semua kecuali `yogyakarta`, `yogya-loonars1`; satu baris `cfo_audit_log` aksi `kunci_proyek`.
+- Rollback: drop trigger-trigger tsb, drop fungsi, drop tabel, set `branches.is_active=true` kembali.

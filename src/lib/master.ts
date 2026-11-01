@@ -11,16 +11,20 @@ import type { Akun, Branch, Proyek } from '@/types';
  * seperti laporan-keuangan.html lama).
  */
 
+// Keputusan owner 2026-11-01: hanya Loonars 1 (hospitality Yogyakarta) dan
+// Loonars 2 (Loonars Living + Loonars Coffee) yang aktif. Proyek lain diberi
+// `dikunci`: datanya tetap ada & bisa dibaca, tetapi tidak bisa ditambah/diubah
+// (dijaga trigger database migrasi 0060, tabel proyek_kunci).
 export const PROYEK: Proyek[] = [
-  { id: 'AFP', nama: 'Al Fath Puuwatu', rek: '1901 8811 4444 1', bank: 'BSI', warna: '#f0a500' },
-  { id: 'IH', nama: 'Introvert House', rek: '4420 1881 4099 04', bank: 'BSI', warna: '#00b894' },
+  { id: 'AFP', nama: 'Al Fath Puuwatu', rek: '1901 8811 4444 1', bank: 'BSI', warna: '#f0a500', dikunci: '2026-11-01' },
+  { id: 'IH', nama: 'Introvert House', rek: '4420 1881 4099 04', bank: 'BSI', warna: '#00b894', dikunci: '2026-11-01' },
   { id: 'LL', nama: 'Loonars Living', rek: '7801 8800 0168 1', bank: 'BSI', warna: '#a78bfa' },
-  { id: 'GCI', nama: 'Griya Cariu Indah', rek: '5018 8000 2715', bank: 'BSI', warna: '#38bdf8' },
-  { id: 'GCR', nama: 'Green Cibarusah Residence', rek: '7801880001681', bank: 'BTN', warna: '#ec4899' },
+  { id: 'GCI', nama: 'Griya Cariu Indah', rek: '5018 8000 2715', bank: 'BSI', warna: '#38bdf8', dikunci: '2026-11-01' },
+  { id: 'GCR', nama: 'Green Cibarusah Residence', rek: '7801880001681', bank: 'BTN', warna: '#ec4899', dikunci: '2026-11-01' },
   // KDI sudah lama dipakai sync MK Connect (construction_expense_submitted)
   // tetapi belum terdaftar di sini, sehingga tampil sebagai "-" di laporan.
   // Rekening bank proyek belum diketahui — dibiarkan kosong, bukan ditebak.
-  { id: 'KDI', nama: 'Pembangunan Cabang Kendari', rek: '', bank: '-', warna: '#f59e0b' },
+  { id: 'KDI', nama: 'Pembangunan Cabang Kendari', rek: '', bank: '-', warna: '#f59e0b', dikunci: '2026-11-01' },
   // Kode sendiri untuk Loonars Coffee sejak migrasi 0038 (keputusan owner
   // 2026-10-10); sebelumnya tercampur di LL.
   { id: 'LC', nama: 'Loonars Coffee', rek: '', bank: '-', warna: '#92400e' },
@@ -32,6 +36,11 @@ export const PROYEK: Proyek[] = [
     warna: '#64748b',
   },
 ];
+
+/** Proyek yang masih menerima transaksi baru. */
+export const PROYEK_AKTIF: Proyek[] = PROYEK.filter((p) => !p.dikunci);
+/** Proyek arsip (dikunci) — hanya untuk melihat laporan lama. */
+export const PROYEK_ARSIP: Proyek[] = PROYEK.filter((p) => p.dikunci);
 
 /** Pengelompokan cabang — murni lapisan presentasi dashboard, bukan aturan akuntansi. */
 export const BRANCHES: Branch[] = [

@@ -53,7 +53,7 @@ function IsiAdminProyek() {
   const [tab, setTab] = useState<Tab>('dashboard');
 
   const proyekTerkunci = sesi.peran === 'admin-proyek' ? sesi.proyekId : null;
-  const [proyekId, setProyekId] = useState(proyekTerkunci ?? 'AFP');
+  const [proyekId, setProyekId] = useState(proyekTerkunci ?? 'LL');
   const p = getProyek(proyekId);
   const rekBank = REK_COA[proyekId] ?? '1-1001';
 
@@ -174,6 +174,7 @@ function IsiAdminProyek() {
               {PROYEK.filter((x) => REK_COA[x.id]).map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.nama}
+                  {x.dikunci ? ' (arsip — dikunci)' : ''}
                 </option>
               ))}
             </select>

@@ -34,7 +34,7 @@ function IsiUsers() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [proyek, setProyek] = useState('AFP');
+  const [proyek, setProyek] = useState('LL');
   const [nama, setNama] = useState('');
 
   useEffect(() => setAsal(window.location.origin), []);

@@ -30,7 +30,7 @@ function IsiKasMasuk() {
 
   useJudul({ judul: 'Kas Masuk', deskripsi: 'Pencatatan penerimaan kas & penjualan unit' });
 
-  const proyekAwal = filterProyekAktif !== 'ALL' ? filterProyekAktif : 'AFP';
+  const proyekAwal = filterProyekAktif !== 'ALL' ? filterProyekAktif : 'LL';
   const [tgl, setTgl] = useState(today());
   const [no, setNo] = useState('');
   const [proyek, setProyek] = useState(proyekAwal);

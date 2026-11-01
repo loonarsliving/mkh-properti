@@ -29,3 +29,6 @@ create table if not exists public.ir_unit_bisnis (id bigserial primary key, kode
 create table if not exists public.ir_metrik_bulanan (
   id bigserial primary key, unit_id bigint, periode text, status text, metrik jsonb, diterima_pada timestamptz default now()
 );
+
+-- 0060 memakai mkh_is_staf() (produksi: migrasi 0036).
+create or replace function public.mkh_is_staf() returns boolean language sql stable as $$ select public.mkh_is_cfo() $$;

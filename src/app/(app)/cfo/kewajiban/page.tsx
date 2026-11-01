@@ -94,6 +94,19 @@ function Isi({ m }: { m: ModelCfo }) {
         </table>
         <Catatan>Hanya simulasi angka. Penundaan nyata perlu kesepakatan tertulis dengan pihak terkait; kewajiban tidak dihapus tanpa bukti.</Catatan>
       </Panel>
+      {m.kewajibanDiLuarLingkup.daftar.length > 0 && (
+        <Panel judul="Arsip — kewajiban proyek yang dikunci (di luar laporan)" ikon="kunci">
+          <ul className="space-y-1 text-[12px]">
+            {m.kewajibanDiLuarLingkup.daftar.map((k) => (
+              <li key={k.id} className="flex justify-between gap-3 border-b border-slate-100 py-1">
+                <span>{k.pihak}<span className="text-[10.5px] text-slate-500"> · {k.jenis}{k.jatuhTempo ? ` · jatuh tempo ${labelTanggal(k.jatuhTempo)}` : ''}</span></span>
+                <span className="font-mono"><Uang n={k.nominal} /></span>
+              </li>
+            ))}
+          </ul>
+          <Catatan>Sejak {labelTanggal(m.kewajibanDiLuarLingkup.sejak)} hanya Loonars 1 &amp; Loonars 2 yang dilaporkan. Kewajiban ini tidak masuk total, urutan bayar, maupun forecast — tetapi secara hukum tetap ada dan tidak dihapus.</Catatan>
+        </Panel>
+      )}
     </div>
   );
 }

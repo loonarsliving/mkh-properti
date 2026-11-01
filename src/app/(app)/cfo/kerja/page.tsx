@@ -35,7 +35,7 @@ async function jalankan(jenis: 'tindakan' | 'tutup_buku'): Promise<Record<string
   return j;
 }
 
-const NADA_PUTUSAN = { SETUJUI: 'green', TAHAN: 'amber', CEK_DOBEL: 'red', PROSES: 'slate', BASI: 'amber', NOMINAL_JANGGAL: 'red' } as const;
+const NADA_PUTUSAN = { SETUJUI: 'green', TAHAN: 'amber', CEK_DOBEL: 'red', PROSES: 'slate', BASI: 'amber', NOMINAL_JANGGAL: 'red', DIKUNCI: 'slate' } as const;
 
 function Isi({ m, k }: { m: ModelCfo; k: KerjaCfo }) {
   const { muatUlang } = useCfo();

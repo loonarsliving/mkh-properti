@@ -32,8 +32,8 @@ function IsiPinjam() {
 
   const [tgl, setTgl] = useState(today());
   const [no, setNo] = useState('');
-  const [dari, setDari] = useState('AFP');
-  const [ke, setKe] = useState('IH');
+  const [dari, setDari] = useState('LL');
+  const [ke, setKe] = useState('LC');
   const [nominal, setNominal] = useState(0);
   const [ket, setKet] = useState('');
 
