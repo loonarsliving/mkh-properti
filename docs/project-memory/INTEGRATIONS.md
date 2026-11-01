@@ -184,3 +184,11 @@ MK Connect (Mkhsistem `lib/ai/domains/loonars2-wa.ts`) → POST
 → MK Connect mengambil antrean (`outbox_ambil`), mengirim lewat Whacenter,
 lalu `outbox_selesai`. Tidak memakai `sync_log`/`sync_inbound`, tidak ada
 rahasia baru.
+
+## AI CFO (2026-11-01, belum di-deploy)
+
+- **Masuk dari database MK Connect + villa (svcmyb):** pg_cron `cfo-kirim-snapshot-mkh` (Mkhsistem migrasi 0308, tiap 30 menit) → `net.http_post` ke `/rest/v1/rpc/cfo_sumber_terima` di project ini, header `x-sync-secret` = Vault `mk_sync_shared_secret`, URL & anon key dari `sync_config` svcmyb (jalur sama dengan `sync_dispatch_pending`). Jenis: `investor_penjualan` (LNR2), `refund_customer`, `transfer_tertunda`, `ota_settlement`, `pengajuan_biaya_villa`. Tanpa NIK/telepon/alamat/nomor rekening.
+- **Keluar ke WhatsApp owner:** pg_cron `cfo-briefing-*` → `POST https://finance.haluoleo.id/api/cfo/briefing` (x-sync-secret) → `cfo_briefing_antre` → `loonars2_outbox` → MK Connect `/api/loonars2/outbox` → Whacenter. Tidak ada jalur WA baru.
+- **Tanya lewat WA:** asisten owner MK Connect (`lib/ai/domains/owner-assistant.ts`, tool `ai_cfo`) → `POST /api/cfo/tanya-wa` (x-sync-secret + nomor).
+- **AI:** narasi AI memakai layanan AI MK Connect (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Angka dari `src/lib/cfo/`.
+- **Mutasi kas villa** (Loonars 1): snapshot `villa_kas_masuk` / `villa_kas_keluar` dari pengirim yang sama; dipakai bersama saldo `cfo_saldo_rekening`.

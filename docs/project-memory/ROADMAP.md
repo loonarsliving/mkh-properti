@@ -53,3 +53,10 @@ Berurutan sesuai prioritas, berdasarkan hal yang benar-benar tertinggal:
 5. **Beban pajak penghasilan belum dijurnal.** Saat ini diisi manual di layar
    laporan dan hanya muncul sebagai utang pajak penyajian. Kalau angkanya mulai
    dipakai serius, buat akun COA-nya dan jurnalkan sungguhan.
+
+## AI CFO — langkah berikutnya (2026-11-01)
+1. Owner menyetujui & menerapkan migrasi 0057 (mkh-properti) dan 0308 (Mkhsistem); merge kedua PR.
+2. Catat penjualan BANYU-06 & AVARA-06 di modul Loonars 2 agar rekonsiliasi cocok.
+3. Catat saldo rekening villa secara rutin di `/cfo/loonars-1` (kas Loonars 1).
+4. Sambungkan saldo rekening villa (kas Loonars 1) — saat ini "tidak tersedia".
+5. Pastikan relasi rekening A–D Loonars 2 dengan akun bank jurnal LL.

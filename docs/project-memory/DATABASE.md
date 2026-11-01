@@ -169,3 +169,9 @@ Tabel: `loonars2_toko`, `loonars2_utang_toko` (kode kelompok U-n, per unit),
 kategori material), `loonars2_settings.hari_pengajuan_mingguan`. View baru
 `loonars2_v_toko`; `loonars2_v_unit` kini menambah `utang_disetujui` dan
 memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.
+
+## 2026-11-01 — migrasi 0057 (AI CFO) — BELUM DITERAPKAN
+- Tabel: `cfo_pengaturan` (1 baris: url_aplikasi, kas_minimum, saklar briefing; UPDATE CFO, tercatat audit), `cfo_sumber_snapshot` (PK sumber+jenis+source_id, data jsonb, hash md5, aktif — tidak pernah dihapus), `cfo_sync_log`, `cfo_audit_log` (append-only lewat trigger). Semua RLS, SELECT hanya `mkh_is_cfo()`, anon tanpa akses.
+- RPC: `cfo_sumber_terima(p_jenis, p_baris, p_lengkap)` (pengirim ditentukan rahasia Vault yang cocok: `mk_sync_shared_secret` → sumber `svcmyb`, `villa_sync_shared_secret` → `villa_api`; jenis di-whitelist), `cfo_ambil_data(p_peminta_wa)` (hanya baca; CFO / x-sync-secret + nomor / sistem), `cfo_catat`, `cfo_briefing_antre` (→ `loonars2_outbox`, penerima `loonars2_wa_users` peran owner, kunci unik), `cfo_briefing_bangunkan` (internal, pg_cron). Helper `_cfo_akses`, `_cfo_tolak_ubah_audit`, `_cfo_audit_pengaturan`.
+- Cron: `cfo-briefing-harian` (7 23 * * *), `cfo-briefing-mingguan` (17 23 * * 0), `cfo-cek-peringatan` (37 */6 * * *).
+- Tanpa perubahan tabel lama, tanpa DROP/DELETE.

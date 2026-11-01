@@ -3,6 +3,48 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057) — DIBANGUN, BELUM DI-MERGE, MIGRASI BELUM DITERAPKAN
+
+Branch `claude/ai-cfo-financial-manager`. Audit & desain lengkap:
+`docs/ai-cfo/AUDIT-DAN-DESAIN.md`.
+
+- **Migrasi `0057_ai_cfo.sql` (BELUM diterapkan ke produksi — menunggu
+  persetujuan owner).** Hanya menambah: `cfo_pengaturan`, `cfo_sumber_snapshot`,
+  `cfo_sync_log`, `cfo_audit_log` (append-only), RPC `cfo_sumber_terima`,
+  `cfo_ambil_data` (hanya baca), `cfo_catat`, `cfo_briefing_antre`,
+  `cfo_briefing_bangunkan` + 3 job pg_cron (`cfo-briefing-harian` 23:07 UTC,
+  `cfo-briefing-mingguan` Minggu 23:17 UTC, `cfo-cek-peringatan` tiap 6 jam).
+  Diuji di Postgres 16 lokal (`supabase/tests/jalankan-uji-cfo.sh`, 9 kelompok
+  pemeriksaan + migrasi dijalankan ulang). Query baca `cfo_ambil_data` sudah
+  dicoba read-only terhadap skema produksi (17 unit, 81 agregat jurnal, 41 KB).
+- **Mesin deterministik `src/lib/cfo/`**: laporan Loonars 1 (revenue → EBITDA,
+  ADR/RevPAR, bagi hasil & top-up jaminan), Loonars 2 (nilai kontrak, cash-in =
+  uang muka, piutang kontrak, biaya konstruksi akrual/kas, budget vs aktual,
+  utang toko, dana talangan, neraca, proyeksi laba), konsolidasi, forecast
+  harian/13 minggu/bulanan × optimis/normal/pesimis, kewajiban + prioritas,
+  peringatan, rekonsiliasi, deteksi transaksi abnormal, CEO challenger,
+  briefing WA, fakta chat. 30 tes vitest (`src/lib/cfo/cfo.test.ts`).
+- **Halaman CFO** `/cfo`, `/cfo/loonars-1`, `/cfo/loonars-2`, `/cfo/arus-kas`,
+  `/cfo/kewajiban`, `/cfo/anggaran`, `/cfo/peringatan`, `/cfo/chat`,
+  `/cfo/laporan`, `/cfo/sinkronisasi` (menu sidebar "AI CFO"). Diuji render di
+  Chromium dengan data tiruan berbentuk produksi — tanpa galat runtime.
+- **API**: `POST /api/cfo/chat` (token CFO), `POST /api/cfo/briefing`
+  (x-sync-secret dari pg_cron, atau token CFO untuk pratinjau/kirim manual),
+  `POST /api/cfo/tanya-wa` (x-sync-secret + nomor, dipanggil tool `ai_cfo`
+  asisten WA owner di Mkhsistem). Semua hanya baca + audit log.
+- **AI**: narasi AI memakai layanan AI MK Connect (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Narasi ditolak otomatis bila memuat nominal di luar daftar fakta; jalur WA (`tanya-wa`) hanya deterministik karena asisten WA MK Connect yang merangkai jawaban akhir.
+- **Kas Loonars 1**: tabel `cfo_saldo_rekening` (append-only) — CFO mencatat saldo rekening villa per tanggal di `/cfo/loonars-1`; kas berjalan = saldo + mutasi villa sesudahnya (snapshot `villa_kas_masuk`: settlement RECEIVED + walk-in lunas; `villa_kas_keluar`: biaya villa ditransfer). Peringatan bila belum dicatat atau > 7 hari.
+- **Data MK Connect/villa** (penjualan LNR2, refund, settlement OTA, transfer
+  tertunda, pengajuan biaya villa) masuk lewat Mkhsistem migrasi `0308`
+  (BELUM diterapkan). Sebelum itu halaman Sinkronisasi menampilkan
+  "belum pernah" dan rekonsiliasi siteplan "tidak bisa dicek".
+- 2026-11-01 (disetujui owner): penjualan BANYU-06 & AVARA-06 dicatat di modul
+  Loonars 2 lewat `_loonars2_catat_receipt` (receipt #1–#4, total Rp 425 jt,
+  alokasi C/B menunggu konfirmasi transfer; instruksi WA owner outbox #452–#455).
+  Nomor rekening A–D masih placeholder.
+- Temuan audit lain yang perlu tindakan owner: rekening C −Rp 123,99 jt (talangan);
+  utang bank AFP Rp 1,49 M jatuh tempo 31 Des 2026.
+
 ## 2026-10-21 — Laporan keuangan villa (kiriman harian) + rekap pajak hotel untuk Dispenda (migrasi 0054)
 
 Owner: MKH Property punya laporan keuangan khusus villa yang bisa diminta lewat

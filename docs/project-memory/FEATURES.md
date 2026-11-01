@@ -49,3 +49,6 @@ Tags: DONE (working code path exists and appears complete) / PARTIAL (exists but
 - No mobile app / Capacitor config — see MOBILE_BUILD.md.
 - No `vercel.json` — see DEPLOYMENT.md for what can and cannot be confirmed about hosting.
 - No AI/LLM code — see AI_AND_AGENTS.md.
+
+## AI CFO (2026-11-01) — PARTIAL (dibangun & diuji, belum di-deploy)
+- Owner Financial Overview, Loonars 1 Hospitality Finance, Loonars 2 Developer Finance, Cash Flow Forecast (harian/13 minggu/bulanan × 3 skenario), Debt & Liability Center (prioritas bayar + simulasi restrukturisasi), Budget & Expense Control, Financial Alerts + CEO Challenger, AI CFO Chat, Financial Reports (cetak + briefing WA), Integration & Sync Monitoring. Kode: `src/app/(app)/cfo/*`, `src/lib/cfo/*`, `src/app/api/cfo/*`, migrasi 0057.
