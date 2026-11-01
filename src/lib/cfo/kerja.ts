@@ -480,6 +480,13 @@ export function susunTindakan(m: ModelCfo, k: DataKerja, reviuL2: ReviuL2[], rev
       });
     } else if (p.id === 'l1_pajak_hotel') {
       add({ kunci: 'l1_setor_pajak_hotel', tingkat: 'tinggi', lini: 'L1', penanggung: 'finance villa', nilai: p.nilai ?? null, judul: p.judul, langkah: p.isi, sumber: p.sumber });
+    } else if (p.id.startsWith('l2_proyek_over:')) {
+      add({
+        kunci: p.id, tingkat: p.tingkat, lini: 'L2', penanggung: 'owner', nilai: p.nilai ?? null,
+        judul: `Tinjau pembengkakan biaya: ${p.judul}`,
+        langkah: `${p.isi} Minta rincian pos "lain-lain" dan selisih material dari pelaksana, putuskan apakah budget direvisi (versi RAB baru di MK Connect) atau biaya dibebankan ke pos lain, dan pastikan pengeluaran berikutnya lewat pengajuan.`,
+        sumber: p.sumber,
+      });
     } else if (p.id.startsWith('rekon:')) {
       add({ kunci: p.id, tingkat: p.tingkat, lini: 'Data', penanggung: 'finance', nilai: p.nilai ?? null, judul: p.judul.replace('Rekonsiliasi tidak cocok: ', 'Selesaikan selisih: '), langkah: p.isi, sumber: p.sumber });
     } else if (p.id.startsWith('l1_jaminan_rugi:') && p.id.endsWith(m.l1.terakhirFinal?.bulan ?? '—')) {

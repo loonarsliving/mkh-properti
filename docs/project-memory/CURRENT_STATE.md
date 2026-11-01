@@ -3,6 +3,29 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-01 — AI CFO: Loonars Coffee masuk laporan Loonars 2 (migrasi 0059)
+
+Koreksi owner: "Loonars Coffee menggunakan keuangan dari Loonars 2" — sebelumnya
+laporan L2 hanya memuat modul 4 rekening (villa) sehingga belanja Loonars
+Coffee tidak terhitung.
+- `proyekLoonars2()` (`src/lib/cfo/loonars2.ts`): proyek yang dibiayai L2 dari
+  snapshot MK Connect `proyek_konstruksi` (budget total/material/tenaga,
+  realisasi cost request posted/paid, komitmen, utang toko lunas/belum) +
+  pembanding jurnal MKH proyek `LC` (`PETA_PROYEK_JURNAL`). Tanpa snapshot,
+  tetap tampil dari jurnal LC.
+- Masuk: belanja konstruksi gabungan (konsolidasi), neraca L2 (aset tetap dalam
+  penyelesaian + utang toko proyek), kewajiban L2 (utang toko belum lunas),
+  peringatan lewat budget, tindakan "tinjau pembengkakan", rekonsiliasi MK
+  Connect vs jurnal LC (biaya, upah/kontraktor, utang), halaman L2, laporan
+  cetak, briefing WA, chat. Tes `src/lib/cfo/loonars-coffee.test.ts`.
+- Data produksi 2026-11-01: budget Rp 133.387.454; realisasi Rp 184.402.950
+  (material 74,5 jt = 128% budget material; kontraktor 75 jt; lain-lain 34,9 jt
+  tanpa pos) → lewat Rp 51.015.496 (138%). Jurnal LC hanya Rp 121.280.950,
+  tanpa pembayaran kontraktor, dan seluruhnya masih utang toko (MK Connect:
+  utang belum lunas Rp 6.657.850) → selisih tampil di rekonsiliasi.
+- Migrasi 0059: `cfo_sumber_terima` menerima jenis `proyek_konstruksi` (hanya
+  dari rahasia MK Connect). Pengirim: Mkhsistem 0309.
+
 ## 2026-11-01 — AI CFO bekerja: Meja Kerja CFO (migrasi 0058) — DIBANGUN, BELUM DI-MERGE, MIGRASI BELUM DITERAPKAN
 
 Permintaan owner: "Buat ai cfo benar2 melakukan pekerjaan sebagai cfo".

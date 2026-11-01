@@ -24,7 +24,7 @@ export default function HalamanCfoOverview() {
               <Kpi label="Pendapatan operasional bulan ini" nilai={k.pendapatanOperasionalBulanIni} ikon="grafik" nada="violet" catatan={`Loonars 1 saja (YTD ${rp(k.pendapatanOperasionalYtd)}). Hospitality L2 belum beroperasi.`} />
               <Kpi label="Cash-in investor (L2)" nilai={k.cashInInvestor} ikon="orang-grup" nada="emerald" catatan="Bukan pendapatan — uang muka sampai serah terima" />
               <Kpi label="Beban operasional bulan ini" nilai={k.bebanOperasionalBulanIni} ikon="kas-keluar" nada="amber" catatan="COGS + OPEX villa" />
-              <Kpi label="Belanja konstruksi L2" nilai={k.belanjaKonstruksiTotal} ikon="palu" nada="slate" catatan={`Bulan ini ${rp(k.belanjaKonstruksiBulanIni)}`} />
+              <Kpi label="Belanja konstruksi L2" nilai={k.belanjaKonstruksiTotal} ikon="palu" nada="slate" catatan={`Villa Loonars 2${m.l2.proyek.length ? ` + ${m.l2.proyek.map((x) => x.nama).join(', ')}` : ''} · bulan ini (villa) ${rp(k.belanjaKonstruksiBulanIni)}`} />
             </div>
 
             <div className="grid gap-4 xl:grid-cols-3">
