@@ -31,6 +31,8 @@ src/app/
     neraca-saldo/  laba-rugi/  posisi-keuangan/  laporan-keuangan/
     pendapatan-villa/  (baru 2026-09-10 — pendapatan Loonars Villa, manual)
     admin-proyek/  pengeluaran/  verifikasi/
+    cfo/            AI CFO (2026-11-01): layout memuat cfo_ambil_data sekali
+                    (CfoProvider) lalu 10 tampilan memakai model yang sama
   login/  no-access/
   lapor-pengeluaran/  lapor-biaya-lain/  lapor-biaya-lain-makassar/
                     tiga form lapangan TANPA login — di luar route group (app)
@@ -51,6 +53,9 @@ src/lib/
   akuntansi/saldo.ts     akumulasi debet/kredit per akun
   akuntansi/sak-emkm.ts  penyusun seluruh laporan SAK EMKM
   ekspor.ts  format.ts  terbilang.ts  notifikasi.ts
+  cfo/              AI CFO: mesin deterministik (loonars1, loonars2, arus-kas,
+                    kewajiban, kontrol, penantang, model, briefing, chat) +
+                    server.ts (RPC & narasi Gemini opsional, hanya server)
 ```
 
 ### Keadaan bersama (state)

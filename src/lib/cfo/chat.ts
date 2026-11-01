@@ -1,0 +1,245 @@
+/**
+ * AI CFO Chat — lapisan jawaban.
+ *
+ * Alur: pertanyaan → (1) jawaban DETERMINISTIK dari ModelCfo (selalu ada,
+ * tanpa AI) → (2) opsional, model bahasa menarasikan ulang HANYA dari daftar
+ * fakta bernomor → (3) validasi: setiap angka rupiah di jawaban AI harus ada
+ * di daftar fakta; bila tidak, jawaban AI ditolak dan jawaban deterministik
+ * yang dipakai. Jadi AI tidak pernah bisa mengarang angka.
+ */
+import { evaluasiKeputusan, type HasilEvaluasi } from './penantang';
+import type { ModelCfo } from './model';
+import { labelBulan, labelTanggal, persen, rp } from './util';
+
+export interface Fakta {
+  id: string; // F1, F2, …
+  label: string;
+  nilai: number | null;
+  teks: string;
+  sumber: string;
+}
+
+export function faktaCfo(m: ModelCfo): Fakta[] {
+  const f: Fakta[] = [];
+  const add = (label: string, nilai: number | null, sumber: string, teks?: string) =>
+    f.push({ id: `F${f.length + 1}`, label, nilai, teks: teks ?? (nilai === null ? 'tidak tersedia' : rp(nilai)), sumber });
+
+  add('Kas tercatat (total yang dipakai)', m.kasTotal, 'loonars2_v_rekening + jurnal LL');
+  for (const k of m.kas) add(`Kas — ${k.label}`, k.nilai, k.sumber.tabel);
+  add('Kas minimum (pengaturan)', m.kasMinimum, 'cfo_pengaturan');
+  for (const s of ['optimis', 'normal', 'pesimis'] as const) {
+    const h = m.arusKas.skenario[s];
+    add(`Forecast ${s}: saldo terendah 182 hari`, h.saldoMin, 'forecast', `${rp(h.saldoMin)} pada ${labelTanggal(h.tanggalSaldoMin)}`);
+    add(`Forecast ${s}: tanggal defisit pertama`, null, 'forecast', h.tanggalDefisit ? labelTanggal(h.tanggalDefisit) : 'tidak ada defisit dalam 182 hari');
+    add(`Forecast ${s}: kebutuhan dana`, h.kebutuhanDana, 'forecast');
+  }
+  add('Total kewajiban (semua lini + grup)', m.ringkasKewajiban.total, 'kewajiban');
+  add('Kewajiban Loonars 1', m.ringkasKewajiban.L1, 'kewajiban');
+  add('Kewajiban Loonars 2', m.ringkasKewajiban.L2, 'kewajiban');
+  add('Kewajiban grup MKH di luar Loonars', m.ringkasKewajiban.Grup, 'kewajiban');
+  add('Kewajiban jatuh tempo ≤7 hari', m.ringkasKewajiban.jatuhTempo7Hari, 'kewajiban');
+  add('Kewajiban lewat jatuh tempo', m.ringkasKewajiban.lewatJatuhTempo, 'kewajiban');
+  add('Total piutang', m.piutang.total, 'loonars2_v_unit + snapshot ota_settlement');
+  add('Modal kerja bersih Loonars', m.modalKerja.bersih, 'kas + piutang OTA − liabilitas lancar');
+
+  const l1f = m.l1.terakhirFinal;
+  const l1t = m.l1.terakhir;
+  for (const b of [l1f, l1t !== l1f ? l1t : null]) {
+    if (!b) continue;
+    const tag = `Loonars 1 ${labelBulan(b.bulan)} (${b.status})`;
+    add(`${tag}: revenue (omzet kotor)`, b.revenue, 'laporan_villa_bulanan');
+    add(`${tag}: komisi OTA`, b.komisiOta, 'laporan_villa_bulanan');
+    add(`${tag}: pendapatan bersih`, b.pendapatanBersih, 'laporan_villa_bulanan');
+    add(`${tag}: COGS`, b.cogs, 'laporan_villa_bulanan');
+    add(`${tag}: OPEX (gaji staf)`, b.opex, 'laporan_villa_bulanan');
+    add(`${tag}: EBITDA (= net profit, D&A/bunga/pajak belum tercatat)`, b.ebitda, 'laporan_villa_bulanan');
+    add(`${tag}: okupansi`, b.okupansiPct, 'laporan_villa_bulanan', b.okupansiPct === null ? 'tidak tersedia' : persen(b.okupansiPct));
+    add(`${tag}: ADR`, b.adr === null ? null : Math.round(b.adr), 'laporan_villa_bulanan');
+    add(`${tag}: RevPAR`, b.revpar === null ? null : Math.round(b.revpar), 'laporan_villa_bulanan');
+    add(`${tag}: bagi hasil investor (70%)`, b.bagiHasilInvestor, 'laporan_villa_bulanan');
+    add(`${tag}: top-up jaminan investor`, b.topupJaminan, 'laporan_villa_bulanan');
+    add(`${tag}: bagian MKH bersih (pengelola − top-up)`, b.bagianMkhBersih, 'laporan_villa_bulanan');
+  }
+  const l2 = m.l2;
+  add('Loonars 2: unit terjual', l2.unitTerjual, 'loonars2_v_unit', `${l2.unitTerjual} dari ${l2.jumlahUnit} unit`);
+  add('Loonars 2: nilai kontrak penjualan', l2.nilaiKontrak, 'loonars2_v_unit');
+  add('Loonars 2: cash-in investor tercatat', l2.cashInInvestor, 'loonars2_receipts');
+  add('Loonars 2: piutang kontrak (belum dibayar investor)', l2.piutangKontrak, 'loonars2_v_unit');
+  add('Loonars 2: belanja konstruksi (kas)', l2.biayaKonstruksiKas, 'loonars2_disbursements');
+  add('Loonars 2: biaya konstruksi akrual (termasuk utang toko)', l2.biayaKonstruksiAkrual, 'loonars2_v_unit');
+  add('Loonars 2: budget unit yang sudah dibangun', l2.budgetUnitAktif, 'loonars2_v_unit');
+  add('Loonars 2: aktual unit yang sudah dibangun', l2.aktualUnitAktif, 'loonars2_v_unit');
+  add('Loonars 2: utang toko bangunan', l2.utangToko, 'loonars2_v_toko');
+  add('Loonars 2: dana talangan owner', l2.danaTalangan, 'loonars2_v_rekening');
+  add('Loonars 2: sisa sewa tanah', l2.tanah.sisa, 'loonars2_settings', `${rp(l2.tanah.sisa)}${l2.tanah.jatuhTempo ? `, jatuh tempo ${labelTanggal(l2.tanah.jatuhTempo)}` : ''}`);
+  add('Loonars 2: proyeksi laba proyek', l2.proyeksi.laba, 'loonars2_v_unit + settings');
+  add('Loonars 2: unit dibangun tanpa pembeli', l2.unit.filter((u) => u.dibangunTanpaPembeli).length, 'loonars2_v_unit',
+    l2.unit.filter((u) => u.dibangunTanpaPembeli).map((u) => u.kode).join(', ') || 'tidak ada');
+  for (const k of m.kewajiban.slice(0, 5)) add(`Prioritas bayar #${k.urutan}: ${k.pihak}`, k.nominal, k.sumber.tabel, `${rp(k.nominal)} — ${k.alasanPrioritas}`);
+  for (const p of m.peringatan.slice(0, 8)) add(`Peringatan ${p.tingkat}: ${p.judul}`, p.nilai ?? null, p.sumber.map((s) => s.tabel).join(', '), p.isi);
+  for (const r of m.rekonsiliasi.filter((x) => x.status !== 'cocok').slice(0, 5)) {
+    add(`Rekonsiliasi ${r.status}: ${r.judul}`, r.selisih, 'rekonsiliasi', `${r.kiri.label}: ${r.kiri.nilai === null ? 'n/a' : rp(r.kiri.nilai)}; ${r.kanan.label}: ${r.kanan.nilai === null ? 'n/a' : rp(r.kanan.nilai)}`);
+  }
+  return f;
+}
+
+// ── Deteksi niat & jawaban deterministik ────────────────────────────────────
+
+const SATUAN: Record<string, number> = { rb: 1e3, ribu: 1e3, k: 1e3, jt: 1e6, juta: 1e6, m: 1e9, miliar: 1e9, milyar: 1e9, b: 1e9 };
+
+/** "150 jt", "1,2 M", "Rp 25.000.000" → rupiah. null bila tidak ada. */
+export function bacaNominal(t: string): number | null {
+  const m = t.toLowerCase().match(/(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta|miliar|milyar|m|b)?\b/);
+  if (!m) return null;
+  const [, raw, sat] = m;
+  let n: number;
+  if (/^\d{1,3}([.,]\d{3})+$/.test(raw) && !sat) n = Number(raw.replace(/[.,]/g, ''));
+  else n = Number(raw.replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+  if (!Number.isFinite(n)) return null;
+  const hasil = sat ? n * SATUAN[sat] : n;
+  return hasil >= 10_000 ? Math.round(hasil) : null;
+}
+
+const KATA_KEPUTUSAN = /\b(beli|membeli|bayar|keluarkan|mengeluarkan|investasi|ekspansi|bangun|membangun|pakai|transfer|tarik|ambil|renovasi|tambah|rekrut|sewa|pinjam|cairkan|bolehkah|boleh)\b/i;
+
+export interface JawabanCfo {
+  jawaban: string;
+  fakta: string[];
+  niat: string;
+  evaluasi?: HasilEvaluasi;
+}
+
+function pakai(fakta: Fakta[], pred: (f: Fakta) => boolean): Fakta[] {
+  return fakta.filter(pred);
+}
+
+export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta[] = faktaCfo(m)): JawabanCfo {
+  const q = pertanyaan.toLowerCase();
+  const nominal = bacaNominal(pertanyaan);
+
+  if (nominal && KATA_KEPUTUSAN.test(q)) {
+    const lini: 'L1' | 'L2' | 'Grup' = /villa|loonars ?1|hotel|kamar/.test(q) ? 'L1' : /loonars ?2|unit|konstruksi|bangun|tukang|material|tanah/.test(q) ? 'L2' : 'Grup';
+    const cicilan = Number(q.match(/cicil\w*\s*(\d{1,2})/)?.[1] ?? 1);
+    const ev = evaluasiKeputusan(m, { nominal, lini, ket: pertanyaan.trim().slice(0, 120), cicilan });
+    const n = ev.dampak.find((d) => d.skenario === 'normal')!;
+    const p = ev.dampak.find((d) => d.skenario === 'pesimis')!;
+    const jawaban = [
+      ev.ringkas,
+      '',
+      ...ev.alasan.map((a) => `• ${a}`),
+      '',
+      `Dampak ke kas terendah — normal: ${rp(n.saldoMinSebelum)} → ${rp(n.saldoMinSesudah)}; pesimis: ${rp(p.saldoMinSebelum)} → ${rp(p.saldoMinSesudah)}.`,
+      ...(ev.alternatif.length ? ['', 'Alternatif yang lebih aman:', ...ev.alternatif.map((a) => `• ${a}`)] : []),
+      '',
+      'Keputusan akhir tetap di tangan Anda; AI CFO tidak mengeksekusi pembayaran.',
+    ].join('\n');
+    return { jawaban, fakta: ['F1', 'F5'], niat: 'evaluasi_keputusan', evaluasi: ev };
+  }
+
+  const ambil = (pred: (f: Fakta) => boolean, judul: string, niat: string): JawabanCfo => {
+    const dipakai = pakai(fakta, pred);
+    return {
+      jawaban: [judul, ...dipakai.map((f) => `• ${f.label}: ${f.teks} [${f.id}]`)].join('\n'),
+      fakta: dipakai.map((f) => f.id),
+      niat,
+    };
+  };
+
+  if (/defisit|forecast|proyeksi|arus kas|cash ?flow|13 minggu|runway|kebutuhan dana|pendanaan/.test(q)) {
+    return ambil((f) => f.label.startsWith('Forecast') || f.label.startsWith('Kas tercatat') || f.label.startsWith('Kas minimum'), 'Proyeksi arus kas (182 hari, 3 skenario):', 'forecast');
+  }
+  if (/utang|hutang|kewajiban|jatuh tempo|prioritas|bayar dulu|supplier|toko|refund|bank/.test(q)) {
+    return ambil((f) => f.label.startsWith('Prioritas bayar') || f.label.startsWith('Kewajiban') || f.label.startsWith('Total kewajiban') || f.label.includes('utang toko') || f.label.includes('talangan'), 'Kewajiban & urutan bayar yang disarankan:', 'kewajiban');
+  }
+  if (/piutang|tagihan|investor|cash.?in|dp\b|pelunasan/.test(q) && !/villa|loonars ?1/.test(q)) {
+    return ambil((f) => f.label.includes('piutang') || f.label.includes('Total piutang') || f.label.includes('cash-in') || f.label.includes('nilai kontrak') || f.label.includes('unit terjual') || f.label.includes('Rekonsiliasi'), 'Investor & piutang:', 'piutang');
+  }
+  if (/villa|loonars ?1|hotel|okupansi|occupancy|adr|revpar|ota|hospitality|ebitda|kamar/.test(q)) {
+    return ambil((f) => f.label.startsWith('Loonars 1'), 'Loonars 1 — Hospitality:', 'loonars1');
+  }
+  if (/loonars ?2|konstruksi|budget|anggaran|proyek|unit|tanah|bangun/.test(q)) {
+    return ambil((f) => f.label.startsWith('Loonars 2'), 'Loonars 2 — Developer & Konstruksi:', 'loonars2');
+  }
+  if (/peringatan|risiko|bahaya|alert|masalah|bocor|kebocoran|abnormal/.test(q)) {
+    return ambil((f) => f.label.startsWith('Peringatan'), 'Peringatan risiko keuangan:', 'peringatan');
+  }
+  if (/rekonsiliasi|selisih|sinkron|cocok/.test(q)) {
+    return ambil((f) => f.label.startsWith('Rekonsiliasi'), 'Hasil rekonsiliasi yang belum cocok:', 'rekonsiliasi');
+  }
+  if (/kas|saldo|uang|cash/.test(q)) {
+    return ambil((f) => f.label.startsWith('Kas') || f.label.startsWith('Modal kerja'), 'Posisi kas:', 'kas');
+  }
+  return ambil(
+    (f) => ['F1'].includes(f.id) || f.label.startsWith('Forecast normal') || f.label === 'Total kewajiban (semua lini + grup)' || f.label.startsWith('Peringatan'),
+    'Ringkasan kondisi keuangan Loonars:',
+    'ringkasan',
+  );
+}
+
+// ── Prompt & validasi untuk model bahasa ────────────────────────────────────
+
+export function promptSistem(): string {
+  return [
+    'Anda adalah AI CFO / Financial Manager untuk Loonars (PT Maha Karya Haluoleo).',
+    'Loonars 1 = hospitality yang sudah beroperasi. Loonars 2 = developer & konstruksi (penjualan villa ke investor + pembangunan); hospitality Loonars 2 BELUM beroperasi.',
+    'ATURAN MUTLAK:',
+    '1. Gunakan HANYA angka dari DAFTAR FAKTA. Jangan menghitung angka baru, jangan menjumlahkan, jangan memperkirakan. Bila angka yang ditanya tidak ada, katakan "data tidak tersedia".',
+    '2. Setiap angka wajib diikuti rujukan fakta, mis. "Rp 123.992.000 [F42]".',
+    '3. Jangan mencampur cash-in investor dengan pendapatan operasional.',
+    '4. Anda boleh menganalisis, merekomendasikan, dan menegur owner/CEO dengan tegas bila keputusan berisiko — selalu dengan data dan alternatif yang lebih aman. Jangan sekadar menyetujui.',
+    '5. Anda TIDAK BISA memindahkan uang, membayar, atau mengubah transaksi. Owner pemegang keputusan akhir.',
+    '6. Bila ada JAWABAN DASAR berisi putusan (AMAN/WASPADA/TIDAK MENYARANKAN), pertahankan putusan itu.',
+    '7. Bahasa Indonesia, ringkas (maks ±200 kata), langsung ke inti.',
+  ].join('\n');
+}
+
+export function promptPengguna(pertanyaan: string, fakta: Fakta[], dasar: JawabanCfo, riwayat: { peran: 'owner' | 'cfo'; isi: string }[] = []): string {
+  return [
+    'DAFTAR FAKTA:',
+    ...fakta.map((f) => `[${f.id}] ${f.label}: ${f.teks} (sumber: ${f.sumber})`),
+    '',
+    'JAWABAN DASAR (dihitung sistem, jangan ubah angkanya):',
+    dasar.jawaban,
+    '',
+    ...(riwayat.length ? ['RIWAYAT SINGKAT:', ...riwayat.slice(-6).map((r) => `${r.peran === 'owner' ? 'Owner' : 'AI CFO'}: ${r.isi.slice(0, 400)}`), ''] : []),
+    `PERTANYAAN OWNER: ${pertanyaan}`,
+  ].join('\n');
+}
+
+/** Ambil semua nominal rupiah yang disebut dalam teks. */
+export function nominalDalamTeks(t: string): { nilai: number; ringkas: boolean }[] {
+  const hasil: { nilai: number; ringkas: boolean }[] = [];
+  const re = /rp\.?\s*-?\s*(\d{1,3}(?:\.\d{3})+|\d+(?:,\d+)?)\s*(rb|ribu|jt|juta|m|miliar|milyar)?\b/gi;
+  for (const m of t.matchAll(re)) {
+    const [, raw, sat] = m;
+    const s = sat?.toLowerCase();
+    if (/^\d{1,3}(\.\d{3})+$/.test(raw) && !s) hasil.push({ nilai: Number(raw.replace(/\./g, '')), ringkas: false });
+    else {
+      const n = Number(raw.replace(/\./g, '').replace(',', '.'));
+      hasil.push({ nilai: s ? n * SATUAN[s] : n, ringkas: Boolean(s) });
+    }
+  }
+  return hasil;
+}
+
+/**
+ * true bila setiap nominal rupiah di jawaban AI cocok dengan salah satu fakta
+ * (persis ±1 untuk angka penuh; ±2% untuk bentuk ringkas "jt"/"M"), atau
+ * dengan angka di jawaban dasar.
+ */
+export function validasiJawaban(teks: string, fakta: Fakta[], dasar: JawabanCfo): boolean {
+  const acuan = [
+    ...fakta.flatMap((f) => (f.nilai === null ? [] : [Math.abs(f.nilai)])),
+    ...nominalDalamTeks(fakta.map((f) => f.teks).join(' ')).map((x) => Math.abs(x.nilai)),
+    ...nominalDalamTeks(dasar.jawaban).map((x) => Math.abs(x.nilai)),
+  ];
+  return nominalDalamTeks(teks).every(({ nilai, ringkas }) => {
+    const a = Math.abs(nilai);
+    return acuan.some((r) => (ringkas ? Math.abs(a - r) <= Math.max(0.02 * r, 50_000) : Math.abs(a - r) <= 1));
+  });
+}
+
+export function ringkasUntukLog(j: JawabanCfo): Record<string, unknown> {
+  return { niat: j.niat, fakta: j.fakta.slice(0, 30), putusan: j.evaluasi?.putusan ?? null };
+}
+

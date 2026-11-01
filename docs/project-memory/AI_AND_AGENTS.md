@@ -1,5 +1,15 @@
 # AI_AND_AGENTS
 
+> **DIPERBARUI 2026-11-01:** repo ini kini memiliki **AI CFO** (branch
+> `claude/ai-cfo-financial-manager`). Semua angka dihitung deterministik di
+> `src/lib/cfo/`; model bahasa (Gemini, opsional via `GEMINI_API_KEY`) hanya
+> menarasikan daftar fakta bernomor di `src/lib/cfo/server.ts`, dan setiap
+> nominal rupiah di jawabannya divalidasi terhadap fakta (`validasiJawaban`)
+> — bila gagal, jawaban deterministik yang dipakai. Putusan CEO challenger
+> (aman/waspada/tolak) dihitung kode (`penantang.ts`), bukan model. AI CFO
+> tidak punya akses tulis ke transaksi. Bagian di bawah menggambarkan keadaan
+> sebelum AI CFO.
+
 ## Status: NOT IMPLEMENTED in this repository.
 
 No AI/LLM SDK, API client, prompt, model reference, or agent framework of any kind exists in this codebase. Searched for Gemini, OpenAI, Anthropic/Claude, and generic "AI"/"agent" code references across all `.html` files and the `supabase/` directory — none found.

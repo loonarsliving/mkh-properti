@@ -30,6 +30,16 @@ export const NAVIGASI: GrupNav[] = [
     item: [{ label: 'Dashboard Utama', href: '/', ikon: 'dashboard', peran: CFO }],
   },
   {
+    judul: 'AI CFO',
+    item: [
+      { label: 'Owner Financial Overview', href: '/cfo', ikon: 'grafik', peran: CFO },
+      { label: 'Cash Flow Forecast', href: '/cfo/arus-kas', ikon: 'kalender', peran: CFO },
+      { label: 'Debt & Liability Center', href: '/cfo/kewajiban', ikon: 'kas-keluar', peran: CFO },
+      { label: 'Financial Alerts', href: '/cfo/peringatan', ikon: 'peringatan', peran: CFO },
+      { label: 'AI CFO Chat', href: '/cfo/chat', ikon: 'kirim', peran: CFO },
+    ],
+  },
+  {
     judul: 'Penjualan & Piutang',
     item: [
       { label: 'Kas Masuk', href: '/kas-masuk', ikon: 'kas-masuk', peran: CFO },
