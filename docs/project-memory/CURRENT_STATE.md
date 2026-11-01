@@ -3,13 +3,26 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
-## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057) — DIBANGUN, BELUM DI-MERGE, MIGRASI BELUM DITERAPKAN
+## 2026-11-01 — AI CFO / Financial Manager (migrasi 0057) — LIVE DI PRODUKSI
 
-Branch `claude/ai-cfo-financial-manager`. Audit & desain lengkap:
+**Status produksi (2026-11-01, disetujui owner "Jika sdh benar bawa ke production"):**
+PR #35 + #36 di-merge ke `main`; deploy Vercel `haluoleofinance` READY.
+Migrasi 0057 diterapkan via Supabase MCP sebagai `0057a`–`0057f` (f = jadwal
+cron, setelah deploy). Diverifikasi dari database lewat pg_net (sandbox tidak
+bisa curl domain produksi): `/cfo` 200; `/api/cfo/briefing` & `/api/cfo/tanya-wa`
+tanpa rahasia 401; briefing dengan rahasia 200 (`tidak_ada_peringatan_kritis`,
+jalur route → `cfo_ambil_data` → mesin hitung berjalan). Snapshot dari MK
+Connect (Mkhsistem 0308, LIVE) diterima: 7 jenis, 306 baris. Layanan narasi AI MK Connect
+diuji dari database: tanpa tanda tangan 401; bertanda tangan 200 (jawaban hanya
+memakai fakta & menyebut [F1]). Advisor keamanan:
+temuan baru hanya pola RPC ber-rahasia yang disengaja (sama dengan `ir_*`);
+search_path & eksekusi fungsi trigger diperbaiki di 0057e.
+
+
+Audit & desain lengkap:
 `docs/ai-cfo/AUDIT-DAN-DESAIN.md`.
 
-- **Migrasi `0057_ai_cfo.sql` (BELUM diterapkan ke produksi — menunggu
-  persetujuan owner).** Hanya menambah: `cfo_pengaturan`, `cfo_sumber_snapshot`,
+- **Migrasi `0057_ai_cfo.sql` (LIVE, 0057a–f).** Hanya menambah: `cfo_pengaturan`, `cfo_sumber_snapshot`,
   `cfo_sync_log`, `cfo_audit_log` (append-only), RPC `cfo_sumber_terima`,
   `cfo_ambil_data` (hanya baca), `cfo_catat`, `cfo_briefing_antre`,
   `cfo_briefing_bangunkan` + 3 job pg_cron (`cfo-briefing-harian` 23:07 UTC,
@@ -32,12 +45,13 @@ Branch `claude/ai-cfo-financial-manager`. Audit & desain lengkap:
   (x-sync-secret dari pg_cron, atau token CFO untuk pratinjau/kirim manual),
   `POST /api/cfo/tanya-wa` (x-sync-secret + nomor, dipanggil tool `ai_cfo`
   asisten WA owner di Mkhsistem). Semua hanya baca + audit log.
-- **AI**: narasi AI memakai layanan AI MK Connect (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Narasi ditolak otomatis bila memuat nominal di luar daftar fakta; jalur WA (`tanya-wa`) hanya deterministik karena asisten WA MK Connect yang merangkai jawaban akhir.
+- **AI**: narasi AI memakai layanan AI MK Connect (system prompt AI CFO adalah
+  konstanta di MK Connect sejak #36 / Mkhsistem #141 — perbaikan CodeQL
+  `js/system-prompt-injection`; MKH Property hanya mengirim pesan pengguna), (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Narasi ditolak otomatis bila memuat nominal di luar daftar fakta; jalur WA (`tanya-wa`) hanya deterministik karena asisten WA MK Connect yang merangkai jawaban akhir.
 - **Kas Loonars 1**: tabel `cfo_saldo_rekening` (append-only) — CFO mencatat saldo rekening villa per tanggal di `/cfo/loonars-1`; kas berjalan = saldo + mutasi villa sesudahnya (snapshot `villa_kas_masuk`: settlement RECEIVED + walk-in lunas; `villa_kas_keluar`: biaya villa ditransfer). Peringatan bila belum dicatat atau > 7 hari.
 - **Data MK Connect/villa** (penjualan LNR2, refund, settlement OTA, transfer
   tertunda, pengajuan biaya villa) masuk lewat Mkhsistem migrasi `0308`
-  (BELUM diterapkan). Sebelum itu halaman Sinkronisasi menampilkan
-  "belum pernah" dan rekonsiliasi siteplan "tidak bisa dicek".
+  (LIVE, pg_cron tiap 30 menit).
 - 2026-11-01 (disetujui owner): penjualan BANYU-06 & AVARA-06 dicatat di modul
   Loonars 2 lewat `_loonars2_catat_receipt` (receipt #1–#4, total Rp 425 jt,
   alokasi C/B menunggu konfirmasi transfer; instruksi WA owner outbox #452–#455).

@@ -131,8 +131,7 @@ Owner web → /cfo/chat ─▶ POST /api/cfo/chat (token CFO)
 
 ## 8. Yang masih butuh keputusan/aksi owner
 
-1. Persetujuan menerapkan migrasi **mkh-properti 0057** dan **Mkhsistem 0308**
-   ke produksi (skema baru; sesuai CLAUDE.md wajib persetujuan owner).
+1. ✅ Disetujui & diterapkan 2026-11-01: mkh-properti 0057 (0057a–f), Mkhsistem 0308; kedua aplikasi LIVE.
 2. ✅ (2026-11-01, disetujui owner) Penjualan BANYU-06 (Susanto August Satria)
    & AVARA-06 (Adijana) dicatat lewat fungsi bisnis Loonars 2
    (`_loonars2_catat_receipt`, receipt #1–#4: BF 5 jt + DP 205/210 jt), alokasi
