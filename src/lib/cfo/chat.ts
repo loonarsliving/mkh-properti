@@ -178,6 +178,11 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
 
 // ── Prompt & validasi untuk model bahasa ────────────────────────────────────
 
+/**
+ * Rujukan aturan AI CFO. Salinan yang BERLAKU ada di MK Connect
+ * (Mkhsistem app/api/mkh-property/ai-cfo/narasi, SISTEM_AI_CFO) — system prompt
+ * tidak dikirim lewat jaringan.
+ */
 export function promptSistem(): string {
   return [
     'Anda adalah AI CFO / Financial Manager untuk Loonars (PT Maha Karya Haluoleo).',

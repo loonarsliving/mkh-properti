@@ -12,7 +12,7 @@
  */
 import { createHash } from 'node:crypto';
 import { rpc, type Kredensial } from '@/lib/laporan-investor/server';
-import { faktaCfo, jawabDeterministik, promptPengguna, promptSistem, ringkasUntukLog, validasiJawaban, type JawabanCfo } from './chat';
+import { faktaCfo, jawabDeterministik, promptPengguna, ringkasUntukLog, validasiJawaban, type JawabanCfo } from './chat';
 import { susunModelCfo, type ModelCfo } from './model';
 import type { DataCfo } from './tipe';
 import { hariIniJakarta } from './util';
@@ -47,8 +47,9 @@ export async function catat(k: KredensialCfo, aksi: string, ringkas: Record<stri
  */
 const MK_CONNECT_URL = (process.env.MK_CONNECT_URL || 'https://mkh.haluoleo.id').replace(/\/$/, '');
 
-async function narasiMkConnect(k: KredensialCfo, sistem: string, pengguna: string): Promise<string | null> {
-  const body = JSON.stringify({ sistem, pengguna });
+async function narasiMkConnect(k: KredensialCfo, pengguna: string): Promise<string | null> {
+  // System prompt (aturan AI CFO) dipegang MK Connect, bukan dikirim dari sini.
+  const body = JSON.stringify({ pengguna });
   try {
     const hash = createHash('sha256').update(body).digest('hex');
     const tanda = await rpc<{ ts: number; sig: string }>(k, 'cfo_tanda_ai', { p_hash: hash, p_peminta_wa: nomorPeminta(k) });
@@ -94,7 +95,7 @@ export async function tanyaCfo(
   const dasar = jawabDeterministik(pertanyaan, model, fakta);
   const rujukan = (ids: string[]) => fakta.filter((f) => ids.includes(f.id)).map(({ id, label, teks, sumber }) => ({ id, label, teks, sumber }));
 
-  const ai = narasi ? await narasiMkConnect(narasi, promptSistem(), promptPengguna(pertanyaan, fakta, dasar, riwayat)) : null;
+  const ai = narasi ? await narasiMkConnect(narasi, promptPengguna(pertanyaan, fakta, dasar, riwayat)) : null;
   if (ai && validasiJawaban(ai, fakta, dasar)) {
     const disebut = [...new Set([...ai.matchAll(/\[(F\d+)\]/g)].map((m) => m[1]))];
     return { jawaban: ai, mode: 'ai', niat: dasar.niat, putusan: dasar.evaluasi?.putusan ?? null, fakta: rujukan(disebut.length ? disebut : dasar.fakta), dasar };
