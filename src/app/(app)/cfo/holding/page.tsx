@@ -63,11 +63,11 @@ function Tabel({ baris, total }: { baris: BarisLr[]; total?: BarisLr[] }) {
 }
 
 function Isi({ m }: { m: ModelCfo }) {
-  const { data } = useCfo();
+  const { data, kerja } = useCfo();
   const tahunIni = Number(m.hariIni.slice(0, 4));
   const pilihan = [...new Set([tahunIni, TAHUN_BUKU_RESMI_PERTAMA])].sort();
   const [tahun, setTahun] = useState(tahunIni);
-  const h = useMemo(() => (data ? laporanHolding(m, data, tahun) : null), [m, data, tahun]);
+  const h = useMemo(() => (data ? laporanHolding(m, data, tahun, kerja?.laporanBulanan) : null), [m, data, tahun, kerja]);
   if (!h) return null;
   const lb = h.labaBersih;
   const barisLaba: BarisLr = { kode: '9-99', label: 'LABA (RUGI) BERSIH', L1: lb.L1, L2: lb.L2, holding: lb.holding, konsolidasi: lb.konsolidasi };
@@ -101,7 +101,9 @@ function Isi({ m }: { m: ModelCfo }) {
         <div className="mb-1 text-[11px] font-semibold uppercase text-slate-500">Aset</div>
         <Tabel baris={h.posisi.aset} total={[h.posisi.totalAset]} />
         <div className="mb-1 mt-3 text-[11px] font-semibold uppercase text-slate-500">Liabilitas</div>
-        <Tabel baris={h.posisi.liabilitas} total={[h.posisi.totalLiabilitas, h.posisi.ekuitas]} />
+        <Tabel baris={h.posisi.liabilitas} total={[h.posisi.totalLiabilitas]} />
+        <div className="mb-1 mt-3 text-[11px] font-semibold uppercase text-slate-500">Ekuitas</div>
+        <Tabel baris={h.posisi.komponenEkuitas} total={[h.posisi.ekuitas]} />
         <Catatan>Posisi keuangan dihitung dari data hari ini. Arsip posisi akhir bulan/tahun dibekukan lewat tutup buku (Meja Kerja CFO).</Catatan>
       </Panel>
 

@@ -3,6 +3,22 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-02 — Laporan Holding: kebijakan serah terima, ekuitas, pajak, penyusutan
+
+Keputusan owner (lanjutan):
+- **Serah terima unit L2:** akhir Desember. Pendapatan, HPP, dan fee unit diakui pada 31 Desember. Nilai per tahun = kumulatif sekarang − kumulatif arsip tutup buku Desember tahun lalu (`kumulatifL2` di arsip). Tahun 2026 memakai dasar 0.
+- **Modal disetor** ditetapkan dari posisi bisnis berjalan:
+  - 2026: modal disetor = ekuitas − laba berjalan.
+  - Mulai 2027: modal disetor = `ekuitasAkhir` dari arsip Desember 2026; selisihnya = setoran/(penarikan) owner.
+- **Utang AFP** milik PT Maha Karya. Dikeluarkan dari laporan holding, panel arsip Kewajiban, dan fakta chat.
+- **Bunga 0**, karena tidak ada pinjaman bank.
+- **Penyusutan bangunan Loonars Coffee:** garis lurus 20 tahun, mulai bulan setelah status MK Connect `completed`.
+- **PPh (estimasi):**
+  - Final 2,5% atas penjualan unit (PP 34/2016).
+  - PPh badan 22% dengan fasilitas Pasal 31E atas laba L1 + holding − penyusutan (`pphBadan()`).
+  - Disajikan sebagai utang PPh di neraca. Wajib dikonfirmasi konsultan pajak; koreksi fiskal belum dihitung.
+- **Rekening holding** menunggu owner.
+
 ## 2026-11-02 — Laporan Holding PT Loonars Mahakarya (SAK EMKM) (migrasi 0061)
 
 Keputusan owner 2026-11-02 (jawaban pertanyaan kebijakan):

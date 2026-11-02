@@ -35,7 +35,7 @@ export async function ambilModel(k: KredensialCfo): Promise<{ data: DataCfo; mod
     }),
   ]);
   const model = susunModelCfo(data, hariIniJakarta());
-  return { data, model, kerja: susunKerjaCfo(model, dataKerja), dataKerja, holding: laporanHolding(model, data) };
+  return { data, model, kerja: susunKerjaCfo(model, dataKerja), dataKerja, holding: laporanHolding(model, data, undefined, dataKerja.laporan_bulanan) };
 }
 
 export async function catat(k: KredensialCfo, aksi: string, ringkas: Record<string, unknown>): Promise<void> {
