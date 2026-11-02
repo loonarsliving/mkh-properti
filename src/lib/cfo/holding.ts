@@ -77,22 +77,64 @@ function bulanKe(iso: string): number {
   return Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1;
 }
 
+/** Jadwal penyusutan satu bangunan proyek L2 (dipakai laporan holding & laba rugi institusional). */
+export interface JadwalPenyusutan {
+  nama: string;
+  biaya: number;
+  /** Tanggal proyek berstatus 'completed' (null = masih dibangun → belum disusutkan). */
+  tglSelesai: string | null;
+  /** Indeks bulan (tahun×12 + bulan−1) mulai disusutkan = bulan setelah selesai. */
+  mulaiKe: number | null;
+  perBulan: number;
+}
+
+/** Garis lurus bangunan proyek L2 yang sudah 'completed', mulai bulan berikutnya. */
+export function jadwalPenyusutan(m: ModelCfo, data: DataCfo): JadwalPenyusutan[] {
+  return m.l2.proyek.map((p) => {
+    const snap = data.snapshot.find((s) => s.jenis === 'proyek_konstruksi' && s.id === p.id);
+    const selesai = snap && teks(snap.data.status) === 'completed';
+    const tglSelesai = selesai ? (snap!.sumber_diubah_pada ?? snap!.diterima_pada).slice(0, 10) : null;
+    return {
+      nama: p.nama,
+      biaya: p.realisasiTotal,
+      tglSelesai,
+      mulaiKe: tglSelesai ? bulanKe(tglSelesai) + 1 : null,
+      perBulan: p.realisasiTotal / (KEBIJAKAN.penyusutanBangunanTahun * 12),
+    };
+  });
+}
+
+/**
+ * Penyusutan untuk sekumpulan bulan (YYYY-MM). Bulan sesudah bulan `hariIni`
+ * tidak dihitung (belum terjadi) — sama dengan batas `akhirData` laporan holding.
+ */
+export function penyusutanBulan(jadwal: JadwalPenyusutan[], bulan: string[], hariIni: string): number {
+  const akhirData = bulanKe(hariIni);
+  const umur = KEBIJAKAN.penyusutanBangunanTahun * 12;
+  let total = 0;
+  for (const j of jadwal) {
+    if (j.mulaiKe === null) continue;
+    const n = bulan.map((b) => bulanKe(`${b}-01`)).filter((k) => k >= j.mulaiKe! && k < j.mulaiKe! + umur && k <= akhirData).length;
+    total += bulat(j.perBulan * n);
+  }
+  return bulat(total);
+}
+
 /** Penyusutan garis lurus bangunan proyek L2 yang sudah 'completed' (mulai bulan berikutnya). */
 function penyusutanProyek(m: ModelCfo, data: DataCfo, tahun: number) {
   const hari = m.hariIni;
   let tahunIni = 0;
   let akumulasi = 0;
   const rincian: { nama: string; biaya: number; mulai: string | null; tahunIni: number; akumulasi: number }[] = [];
-  for (const p of m.l2.proyek) {
-    const snap = data.snapshot.find((s) => s.jenis === 'proyek_konstruksi' && s.id === p.id);
-    const selesai = snap && teks(snap.data.status) === 'completed';
-    const tglSelesai = selesai ? (snap!.sumber_diubah_pada ?? snap!.diterima_pada).slice(0, 10) : null;
-    if (!tglSelesai) {
+  for (const j of jadwalPenyusutan(m, data)) {
+    const p = { nama: j.nama, realisasiTotal: j.biaya };
+    const tglSelesai = j.tglSelesai;
+    if (!tglSelesai || j.mulaiKe === null) {
       rincian.push({ nama: p.nama, biaya: p.realisasiTotal, mulai: null, tahunIni: 0, akumulasi: 0 });
       continue;
     }
-    const perBulan = p.realisasiTotal / (KEBIJAKAN.penyusutanBangunanTahun * 12);
-    const mulai = bulanKe(tglSelesai) + 1;
+    const perBulan = j.perBulan;
+    const mulai = j.mulaiKe;
     const akhirData = bulanKe(hari);
     const bulanTahun = Math.max(0, Math.min(akhirData, tahun * 12 + 11) - Math.max(mulai, tahun * 12) + 1);
     const bulanAkum = Math.max(0, Math.min(akhirData - mulai + 1, KEBIJAKAN.penyusutanBangunanTahun * 12));

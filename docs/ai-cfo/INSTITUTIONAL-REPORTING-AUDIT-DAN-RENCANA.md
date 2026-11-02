@@ -263,8 +263,8 @@ produksi **hanya setelah persetujuan owner**, dalam bagian kecil, diverifikasi.
 | 7 | Proyeksi 12/24/36 + PE readiness | 0069 | 3–6 |
 | 8 | Ekspor PDF/Excel/data room | — | 3–7, D-7 |
 
-Hal yang **dapat dikerjakan tanpa perubahan skema** (bisa jalan paralel sesudah
-rencana disetujui): kerangka P&L institusional per baris dengan status
+**Sudah dibangun 2026-11-02 (tanpa perubahan skema):** `/cfo/laba-rugi`,
+`/cfo/unit-economics`, `/cfo/kualitas-data` — lihat CURRENT_STATE.md. Ruang lingkupnya: kerangka P&L institusional per baris dengan status
 "belum tercatat" eksplisit dari sumber yang sudah ada, KPI channel/OTA ratio,
 dan panel Data Quality Warnings yang memuat F-1…F-12.
 
