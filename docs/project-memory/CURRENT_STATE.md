@@ -3,9 +3,13 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
-## 2026-11-02 — Institutional reporting: bagian tanpa perubahan skema (BELUM DI-MERGE)
+## 2026-11-02 — Institutional reporting: bagian tanpa perubahan skema — LIVE DI PRODUKSI
 
-Disetujui owner ("Ya") setelah audit Tahap 1. Branch `claude/ai-cfo-mkh-upgrade-tgom02`.
+Disetujui owner ("Ya", lalu "bawa ke production"). PR #45 di-squash ke `main`
+(51f6fea), CI lulus; deploy Vercel `haluoleofinance` `dpl_Any33Zb14iURvytUR5Epgvzr3gcy`
+READY, alias `finance.haluoleo.id`. Diverifikasi lewat Vercel (sandbox tidak bisa
+curl domain produksi): `/cfo/laba-rugi`, `/cfo/unit-economics`, `/cfo/kualitas-data`,
+`/cfo/holding` → 200. Uji dengan login CFO asli & data produksi masih disarankan.
 **Tanpa migrasi, tanpa env baru, halaman lama tidak diubah perilakunya.**
 - `src/lib/keuangan/` (baru, fungsi murni, 16 tes vitest):
   - `status.ts` — status per angka (aktual / estimasi / sebagian / nol_kebijakan /
