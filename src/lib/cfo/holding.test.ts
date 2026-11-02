@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { faktaCfo, jawabDeterministik } from './chat';
 import { HARI, dataProduksi } from './fixture-uji';
-import { gajiDariSnapshot, laporanHolding, TAHUN_BUKU_RESMI_PERTAMA } from './holding';
+import { gajiDariSnapshot, laporanHolding, pphBadan, TAHUN_BUKU_RESMI_PERTAMA } from './holding';
 import { susunModelCfo } from './model';
 import type { DataCfo } from './tipe';
 
@@ -62,14 +62,34 @@ describe('laporan holding PT Loonars Mahakarya', () => {
     expect(lr['4-02'].L2).toBe(m.l2.pendapatanDiakui);
     const um = h.posisi.liabilitas.find((b) => b.kode === '2-02')!;
     expect(um.L2).toBe(m.l2.neraca.uangMukaInvestor);
-    expect(h.rekonsiliasi.find((r) => r.label.startsWith('Total aset L2'))!.cocok).toBe(true);
+    expect(h.rekonsiliasi.find((r) => r.label.startsWith('Aset L2'))!.cocok).toBe(true);
   });
 
-  it('tahun tanpa tanggal serah terima L2 → L2 null (tidak ditebak), dicatat di CaLK', () => {
+  it('2027 tanpa arsip tutup buku Desember 2026 → L2 null (tidak ditebak); dengan arsip → selisih kumulatif', () => {
     const h27 = laporanHolding(m, data, 2027);
     expect(h27.labaBersih.L2).toBeNull();
     expect(h27.labaBersih.konsolidasi).toBeNull();
-    expect(h27.catatan.flatMap((c) => c.isi).join(' ')).toMatch(/Loonars 2 untuk 2027 belum bisa dihitung/);
+    expect(h27.catatan.flatMap((c) => c.isi).join(' ')).toMatch(/membutuhkan arsip tutup buku Desember 2026/);
+    const arsip = [{ periode: '2026-12-01', data: { holding: { kumulatifL2: { pendapatan: 0, hpp: 0, fee: 0 }, ekuitasAkhir: { L1: 1, L2: 2, holding: 3 } } } }];
+    const dgnArsip = laporanHolding(m, data, 2027, arsip);
+    expect(dgnArsip.labaBersih.L2).not.toBeNull();
+    expect(dgnArsip.labaRugi.find((b) => b.kode === '4-02')!.L2).toBe(m.l2.pendapatanDiakui);
+  });
+
+  it('bunga 0 (tanpa pinjaman bank); AFP tidak muncul; PPh & penyusutan tercantum', () => {
+    expect(lr['7-02']).toMatchObject({ L1: 0, L2: 0, holding: 0, konsolidasi: 0 });
+    const semua = JSON.stringify(h.labaRugi) + JSON.stringify(h.posisi);
+    expect(semua).not.toMatch(/AFP|utang bank/i);
+    expect(lr['8-01'].L2).toBe(-Math.round((m.l2.pendapatanDiakui * 2.5) / 100) || 0);
+    expect(lr['8-02'].holding).toBe(-h.pajak.pphBadan || 0);
+    expect(lr['7-01'].L2).toBe(0); // Loonars Coffee belum completed
+  });
+
+  it('modal disetor 2026 = ekuitas − laba berjalan (posisi bisnis berjalan)', () => {
+    const k = Object.fromEntries(h.posisi.komponenEkuitas.map((b) => [b.kode, b]));
+    expect(k['3-01'].label).toMatch(/posisi bisnis berjalan/);
+    expect((k['3-01'].holding ?? 0) + (k['3-02'].holding ?? 0)).toBe(h.posisi.ekuitas.holding);
+    expect(k['3-03']).toBeUndefined();
   });
 
   it('neraca: ekuitas = aset − liabilitas per kolom; kas villa belum dicatat → total L1 null', () => {
@@ -84,5 +104,31 @@ describe('laporan holding PT Loonars Mahakarya', () => {
     expect(j.niat).toBe('holding');
     expect(j.jawaban).toMatch(/beban holding, bukan Loonars 1\/2/);
     expect(j.jawaban).toContain('gaji cabang Jogja (sudah ditransfer): Rp 12.000.000');
+  });
+
+});
+
+describe('PPh badan Pasal 31E', () => {
+  it('omzet ≤ 4,8 M → 11% PKP; > 4,8 M ≤ 50 M → proporsional; rugi → 0', () => {
+    expect(pphBadan(100_000_000, 1_000_000_000)).toBe(11_000_000);
+    expect(pphBadan(1_000_000_000, 9_600_000_000)).toBe(Math.round(1e9 * 0.5 * 0.22 * 0.5 + 1e9 * 0.5 * 0.22));
+    expect(pphBadan(100_000_000, 60_000_000_000)).toBe(22_000_000);
+    expect(pphBadan(-5, 1)).toBe(0);
+  });
+});
+
+describe('penyusutan Loonars Coffee setelah completed', () => {
+  it('garis lurus 20 tahun mulai bulan berikutnya', () => {
+    const d = dataProduksi();
+    d.snapshot.push({
+      sumber: 'svcmyb', jenis: 'proyek_konstruksi', id: 'lc',
+      data: { nama: 'Loonars Coffee', status: 'completed', budget_total: 240_000_000, realisasi: { material_purchase: 240_000_000 }, komitmen: {}, utang_belum_lunas: 0 },
+      diterima_pada: HARI, sumber_diubah_pada: '2026-08-15T00:00:00Z',
+    });
+    const mm = susunModelCfo(d, HARI);
+    const hh = laporanHolding(mm, d, 2026);
+    const bulan = Number(HARI.slice(5, 7)) - 8; // Sep..bulan HARI
+    expect(hh.labaRugi.find((b) => b.kode === '7-01')!.L2).toBe(-Math.round(1_000_000 * bulan));
+    expect(hh.posisi.aset.find((b) => b.kode === '1-05')!.L2).toBe(-Math.round(1_000_000 * bulan));
   });
 });

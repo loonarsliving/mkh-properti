@@ -60,7 +60,7 @@ export async function POST(req: Request): Promise<Response> {
       await rpc(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan });
       const ringkas = ringkasBulan(model, periode);
       const komentar = komentarVarians(ringkas, laporanSebelum(dataKerja, periode), kerja.tindakan);
-      const hasil = await rpc<{ status: string }>(k, 'cfo_tutup_buku', { p_periode: `${periode}-01`, p_data: { ...ringkas, holding: holdingUntukArsip(model, data, periode) }, p_komentar: komentar });
+      const hasil = await rpc<{ status: string }>(k, 'cfo_tutup_buku', { p_periode: `${periode}-01`, p_data: { ...ringkas, holding: holdingUntukArsip(model, data, periode, dataKerja.laporan_bulanan) }, p_komentar: komentar });
       if (hasil.status !== 'ok') return Response.json({ ...hasil, periode });
       const wa = await rpc<{ status: string; antre: number }>(k, 'cfo_briefing_antre', {
         p_jenis: 'tutup_buku',

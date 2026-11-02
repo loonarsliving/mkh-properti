@@ -39,10 +39,6 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo, holding?: LaporanHolding
   add('Kewajiban Loonars 1', m.ringkasKewajiban.L1, 'kewajiban');
   add('Kewajiban Loonars 2', m.ringkasKewajiban.L2, 'kewajiban');
   add('Kewajiban grup MKH di luar Loonars (refund customer)', m.ringkasKewajiban.Grup, 'kewajiban');
-  add(
-    'Kewajiban proyek yang dikunci (arsip, di luar laporan)', m.kewajibanDiLuarLingkup.total, 'kewajiban (proyek dikunci)',
-    `${m.kewajibanDiLuarLingkup.total.toLocaleString('id-ID')} — sejak ${m.kewajibanDiLuarLingkup.sejak} laporan hanya Loonars 1 (hospitality) & Loonars 2 (penjualan villa + pembangunan, termasuk Loonars Coffee); AFP, IH, GCI, GCR, KDI dikunci`,
-  );
   add('Kewajiban jatuh tempo ≤7 hari', m.ringkasKewajiban.jatuhTempo7Hari, 'kewajiban');
   add('Kewajiban lewat jatuh tempo', m.ringkasKewajiban.lewatJatuhTempo, 'kewajiban');
   add('Total piutang', m.piutang.total, 'loonars2_v_unit + snapshot ota_settlement');
@@ -81,8 +77,10 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo, holding?: LaporanHolding
     add(`${tag}: total aset konsolidasi (per ${h.posisi.perTanggal})`, h.posisi.totalAset.konsolidasi, 'laporan holding SAK EMKM');
     add(`${tag}: total liabilitas konsolidasi`, h.posisi.totalLiabilitas.konsolidasi, 'laporan holding SAK EMKM');
     add(`${tag}: ekuitas konsolidasi`, h.posisi.ekuitas.konsolidasi, 'laporan holding SAK EMKM');
+    add(`${tag}: PPh badan Pasal 31E (estimasi)`, h.pajak.pphBadan, 'laporan holding SAK EMKM', `${rp(h.pajak.pphBadan)} (PKP ${rp(h.pajak.pkp)}, omzet non-final ${rp(h.pajak.omzetNonFinal)}; konfirmasi konsultan pajak)`);
+    add(`${tag}: PPh final 2,5% penjualan unit (estimasi)`, h.pajak.pphFinal, 'laporan holding SAK EMKM');
     add(`${tag}: kebijakan`, null, 'keputusan owner 2026-11-02',
-      'Pendapatan villa kotor penuh; bagi hasil & top-up investor = beban; gaji tim bersama (Jogja, Head Office, dll.) = beban holding, bukan Loonars 1/2; gaji staf villa ada di OPEX Loonars 1; tahun buku resmi pertama 2027.');
+      'Pendapatan villa kotor penuh; bagi hasil & top-up investor = beban; gaji tim bersama (Jogja, Head Office, dll.) = beban holding, bukan Loonars 1/2; gaji staf villa ada di OPEX Loonars 1; serah terima unit Loonars 2 akhir Desember (diakui 31 Desember); bunga 0 (tanpa pinjaman bank); penyusutan bangunan Loonars Coffee garis lurus 20 tahun setelah selesai; utang bank AFP milik PT Maha Karya, bukan laporan ini; tahun buku resmi pertama 2027.');
   }
   const namaProyekLain = l2.proyek.map((p) => p.nama).join(', ') || 'proyek lain';
   add('Loonars 2: TOTAL pengeluaran pembangunan (villa Loonars Living + ' + namaProyekLain + ')', l2.belanjaKonstruksiGabungan,
