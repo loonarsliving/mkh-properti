@@ -3,6 +3,21 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-02 — Laporan keuangan PDF lewat WhatsApp owner (migrasi 0062)
+
+Owner memilih tiga laporan: Holding SAK EMKM, Loonars 1 bulanan, Loonars 2.
+- **Migrasi 0062:**
+  - `cfo_pdf_buat_tautan(jenis, periode, nomor)` menerima akses lewat rahasia sync (MK Connect). Token `<exp>.<jenis>.<periode|->.<hmac>` berlaku 15 menit, HMAC `mk_sync_shared_secret`, dan dicatat di audit.
+  - `cfo_pdf_data(token)` memverifikasi token, lalu mengembalikan `cfo_ambil_data` + `cfo_ambil_kerja`.
+  - `_cfo_akses` mengenali token hanya lewat GUC lokal `cfo.tautan_pdf` yang diverifikasi ulang. Token PDF tidak bisa dipakai membuat tautan baru.
+- **Route:**
+  - `POST /api/cfo/pdf-wa` (rahasia sync) → `{url, nama_berkas}`.
+  - `GET /api/cfo/pdf/<token>/<nama>.pdf` → PDF, dibuat saat diunduh dan tidak disimpan.
+- **Dokumen:** `src/lib/cfo/pdf.tsx` (Holding / Loonars 1 / Loonars 2, format akuntansi) dan `pdf-dokumen.ts`.
+- **Sisi WA:** Mkhsistem `owner-assistant.ts` (tool `pdf_holding` / `pdf_loonars1` / `pdf_loonars2` + `arahkanPdf`).
+- **Perbaikan:** konsolidasi holding sebelumnya "-" untuk baris satu lini. Sekarang null hanya bila data tidak tersedia; kas villa yang belum dicatat tetap membuat total null.
+- **Catatan:** saldo rekening villa (Loonars 1) belum pernah dicatat, sehingga total aset/ekuitas konsolidasi tampil "tidak tersedia" sampai dicatat.
+
 ## 2026-11-02 — Laporan Holding: kebijakan serah terima, ekuitas, pajak, penyusutan
 
 Keputusan owner (lanjutan):

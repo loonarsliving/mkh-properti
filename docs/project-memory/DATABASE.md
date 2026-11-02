@@ -193,3 +193,6 @@ memasukkannya ke `terpakai_konstruksi`. Sequence `loonars2_kelompok_seq`.
 
 ## 2026-11-02 — migrasi 0061 (AI CFO gaji holding)
 - `cfo_sumber_terima` dinyatakan ulang: jenis `gaji_karyawan` ditambahkan ke daftar sumber `svcmyb`. Tanpa tabel/kolom baru.
+
+## 2026-11-02 — migrasi 0062 (AI CFO tautan PDF)
+- Fungsi baru: `_cfo_tanda_pdf`, `_cfo_token_pdf_sah` (internal), `cfo_pdf_buat_tautan`, `cfo_pdf_data` (anon/authenticated, keamanan di dalam fungsi). `_cfo_akses` dinyatakan ulang (+ token PDF lewat GUC lokal). Tanpa tabel/kolom baru.
