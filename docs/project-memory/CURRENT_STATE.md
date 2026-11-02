@@ -3,6 +3,44 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-02 — Institutional reporting: bagian tanpa perubahan skema (BELUM DI-MERGE)
+
+Disetujui owner ("Ya") setelah audit Tahap 1. Branch `claude/ai-cfo-mkh-upgrade-tgom02`.
+**Tanpa migrasi, tanpa env baru, halaman lama tidak diubah perilakunya.**
+- `src/lib/keuangan/` (baru, fungsi murni, 16 tes vitest):
+  - `status.ts` — status per angka (aktual / estimasi / sebagian / nol_kebijakan /
+    belum_tercatat / tidak_tersedia / tidak_berlaku) + kelengkapan Complete /
+    Needs Verification / Incomplete. Nol karena kebijakan tidak boleh menutupi
+    data yang hilang.
+  - `laba-rugi.ts` — P&L institusional (Gross Revenue … Net Profit + memo EBITDA
+    sebelum bagi hasil), kolom L1/L2/Holding/Konsolidasi, bulanan/kuartalan/tahunan,
+    aktual vs periode lalu vs anggaran (anggaran = belum ada). **Laba bersih tahunan
+    identik dengan Laporan Holding** (diuji). Jurnal LL tidak dijumlahkan (F-1).
+  - `unit-ekonomi.ts` — Occupancy, ADR, RevPAR, GOPPAR, per-room, cost/ARN, OTA
+    commission ratio, direct ratio (revenue & malam), ALOS, cancellation (dari
+    `ir_metrik_bulanan`); lead time & repeat guest = tidak tersedia. Penyebut
+    berstatus estimasi (F-3).
+  - `kualitas-data.ts` — pemeriksaan per area (debit=kredit per proyek/bulan, akun
+    di luar COA, F-1, biaya standar, kas villa, ekuitas plug, rekonsiliasi, sinkron…).
+    Tanpa skor "siap investasi".
+- `holding.ts`: jadwal penyusutan diekstrak (`jadwalPenyusutan`, `penyusutanBulan`)
+  — hasil laporan holding tidak berubah (tes lama lulus). `loonars1.ts`: jumlah
+  booking per channel ikut dibawa.
+- Halaman: `/cfo/laba-rugi`, `/cfo/unit-economics`, `/cfo/kualitas-data` (CFO saja,
+  ekspor CSV, cetak). Diuji render Chromium dengan data berbentuk produksi
+  (1280 px & 390 px, tanpa galat runtime, tanpa scroll horizontal).
+
+## 2026-11-02 — Upgrade AI CFO ke institutional reporting: Tahap 1 audit (MENUNGGU KEPUTUSAN OWNER)
+
+Branch `claude/ai-cfo-mkh-upgrade-tgom02`. Hanya dokumen:
+`docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md`. Tahap 2 (skema `fin_*`,
+mesin posting ke `jurnal`) belum dimulai — menunggu keputusan D-1…D-8 di dokumen itu
+(terutama D-1: penjualan unit villa L1 ±Rp 1,9 M di jurnal LL, dan D-2: arsitektur
+buku besar tunggal). Temuan terverifikasi read-only di produksi: neraca holding
+memakai ekuitas plug; biaya villa = standar (dasar bagi hasil), bukan aktual;
+`malam_tersedia` = unit × hari padahal villa punya `villa_daily_inventory_snapshot`
+dan `villa_room_maintenance`.
+
 ## 2026-11-02 — Laporan keuangan PDF lewat WhatsApp owner (migrasi 0062)
 
 Owner memilih tiga laporan: Holding SAK EMKM, Loonars 1 bulanan, Loonars 2.

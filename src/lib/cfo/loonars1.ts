@@ -44,7 +44,7 @@ export interface BulanL1 {
   topupJaminan: number; // ditanggung pengelola agar jaminan investor terpenuhi
   bagianPengelola: number; // 30%
   bagianMkhBersih: number; // pengelola − topup jaminan
-  channel: { sumber: string; kotor: number; komisi: number; bersih: number; malam: number }[];
+  channel: { sumber: string; booking: number; kotor: number; komisi: number; bersih: number; malam: number }[];
   diterimaPada: string;
 }
 
@@ -159,6 +159,7 @@ function susunBulan(l: L1Laporan): BulanL1 {
     bagianMkhBersih: pengelola - topup,
     channel: (l.channel ?? []).map((c) => ({
       sumber: c.sumber,
+      booking: angka(c.booking),
       kotor: angka(c.kotor),
       komisi: angka(c.komisi),
       bersih: angka(c.bersih),

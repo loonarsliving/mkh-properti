@@ -21,6 +21,9 @@ const MENU_CFO = [
   { href: '/cfo/peringatan', label: 'Alerts & CEO Challenger' },
   { href: '/cfo/chat', label: 'AI CFO Chat' },
   { href: '/cfo/holding', label: 'Laporan Holding (SAK EMKM)' },
+  { href: '/cfo/laba-rugi', label: 'P&L Institusional' },
+  { href: '/cfo/unit-economics', label: 'Unit Economics' },
+  { href: '/cfo/kualitas-data', label: 'Data Quality' },
   { href: '/cfo/laporan', label: 'Financial Reports' },
   { href: '/cfo/sinkronisasi', label: 'Integration & Sync' },
 ];
