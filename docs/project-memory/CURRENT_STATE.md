@@ -3,6 +3,17 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-02 — Upgrade AI CFO ke institutional reporting: Tahap 1 audit (MENUNGGU KEPUTUSAN OWNER)
+
+Branch `claude/ai-cfo-mkh-upgrade-tgom02`. Hanya dokumen:
+`docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md`. Tahap 2 (skema `fin_*`,
+mesin posting ke `jurnal`) belum dimulai — menunggu keputusan D-1…D-8 di dokumen itu
+(terutama D-1: penjualan unit villa L1 ±Rp 1,9 M di jurnal LL, dan D-2: arsitektur
+buku besar tunggal). Temuan terverifikasi read-only di produksi: neraca holding
+memakai ekuitas plug; biaya villa = standar (dasar bagi hasil), bukan aktual;
+`malam_tersedia` = unit × hari padahal villa punya `villa_daily_inventory_snapshot`
+dan `villa_room_maintenance`.
+
 ## 2026-11-02 — Laporan keuangan PDF lewat WhatsApp owner (migrasi 0062)
 
 Owner memilih tiga laporan: Holding SAK EMKM, Loonars 1 bulanan, Loonars 2.
