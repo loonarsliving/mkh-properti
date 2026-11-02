@@ -163,9 +163,24 @@ const tambah = (...v: (number | null)[]) => (v.some((x) => x === null) ? null : 
 
 const tanpaMinNol = (v: number | null) => (v === 0 ? 0 : v);
 
-function baris(kode: string, label: string, L1: number | null, L2: number | null, holding: number | null, catatan?: string): BarisLr {
+/**
+ * null di kolom = "tidak berlaku untuk lini ini" → konsolidasi menjumlah kolom
+ * yang berisi. Bila suatu kolom berarti "data TIDAK TERSEDIA" (mis. kas villa
+ * belum dicatat), sebutkan di `tidakTersedia` → konsolidasi ikut null.
+ */
+function baris(
+  kode: string,
+  label: string,
+  L1: number | null,
+  L2: number | null,
+  holding: number | null,
+  catatan?: string,
+  tidakTersedia = false,
+): BarisLr {
   const [a, b, c] = [tanpaMinNol(L1), tanpaMinNol(L2), tanpaMinNol(holding)];
-  return { kode, label, L1: a, L2: b, holding: c, konsolidasi: tanpaMinNol(tambah(a, b, c)), catatan };
+  const isi = [a, b, c].filter((x): x is number => x !== null);
+  const konsolidasi = tidakTersedia || isi.length === 0 ? null : tanpaMinNol(bulat(jumlah(isi, (x) => x)));
+  return { kode, label, L1: a, L2: b, holding: c, konsolidasi, catatan };
 }
 
 export function gajiDariSnapshot(data: DataCfo): GajiHolding[] {
@@ -298,7 +313,7 @@ export function laporanHolding(
   const n2 = l2.neraca;
   const utangGaji = bulat(jumlah(gajiDariSnapshot(data).filter((g) => g.status === 'pending_transfer' && !CABANG_GAJI_VILLA.includes(g.cabang)), (g) => g.nominal));
   const aset: BarisLr[] = [
-    baris('1-01', 'Kas & bank', n1.kas, n2.kas, null, 'Rekening holding akan ditambahkan owner; sementara gaji holding dibayar dari dana owner.'),
+    baris('1-01', 'Kas & bank', n1.kas, n2.kas, null, n1.kas === null ? 'Kas villa belum dicatat (AI CFO → Loonars 1). Rekening holding menyusul dari owner.' : 'Rekening holding akan ditambahkan owner; sementara gaji holding dibayar dari dana owner.', n1.kas === null),
     baris('1-02', 'Piutang settlement OTA', n1.piutangOta, null, null),
     baris('1-03', 'Persediaan unit villa dalam pembangunan', null, n2.asetDalamPembangunan, null),
     baris('1-04', 'Aset tetap — bangunan Loonars Coffee (biaya perolehan)', null, n2.asetProyekLain, null),
@@ -310,7 +325,7 @@ export function laporanHolding(
     baris('2-03', 'Utang fee marketing', null, n2.feeTerutang, null),
     baris('2-04', 'Utang kepada owner (dana talangan)', null, n2.utangOwner, null),
     baris('2-05', 'Utang pajak hotel (PBJT)', n1.pajakHotelTerutang, null, null),
-    baris('2-06', 'Utang biaya villa belum dibayar', n1.pengajuanBiayaBelumDibayar, null, null),
+    baris('2-06', 'Utang biaya villa belum dibayar', n1.pengajuanBiayaBelumDibayar, null, null, undefined, n1.pengajuanBiayaBelumDibayar === null),
     baris('2-07', 'Utang bagi hasil investor bulan berjalan', n1.kewajibanBagiHasilBerjalan, null, null),
     baris('2-08', 'Utang gaji karyawan', null, null, utangGaji),
     baris('2-09', `Utang PPh ${tahunIni} (estimasi, belum disetor)`, null, nol(hIni.pphFinal), hIni.pphBadan),
@@ -318,10 +333,14 @@ export function laporanHolding(
   // Kolom dengan komponen "tidak tersedia" (mis. kas villa belum dicatat) → total null, bukan nol.
   const sumKolom = (rows: BarisLr[], k: 'L1' | 'L2' | 'holding') =>
     rows.some((r) => r[k] === null && k === 'L1' && (r.kode === '1-01' || r.kode === '2-06')) ? null : bulat(jumlah(rows, (r) => nol(r[k])));
-  const totalAset = baris('1-99', 'Jumlah aset', sumKolom(aset, 'L1'), sumKolom(aset, 'L2'), 0);
-  const totalLiabilitas = baris('2-99', 'Jumlah liabilitas', sumKolom(liabilitas, 'L1'), sumKolom(liabilitas, 'L2'), sumKolom(liabilitas, 'holding'));
+  const total = (kode: string, label: string, rows: BarisLr[]) => {
+    const [a, b, c] = [sumKolom(rows, 'L1'), sumKolom(rows, 'L2'), sumKolom(rows, 'holding')];
+    return baris(kode, label, a, b, c, undefined, a === null || b === null || c === null);
+  };
+  const totalAset = total('1-99', 'Jumlah aset', aset);
+  const totalLiabilitas = total('2-99', 'Jumlah liabilitas', liabilitas);
   const ek = (k: 'L1' | 'L2' | 'holding') => (totalAset[k] === null || totalLiabilitas[k] === null ? null : bulat(nol(totalAset[k]) - nol(totalLiabilitas[k])));
-  const ekuitas = baris('3-99', 'Jumlah ekuitas', ek('L1'), ek('L2'), ek('holding'));
+  const ekuitas = baris('3-99', 'Jumlah ekuitas', ek('L1'), ek('L2'), ek('holding'), undefined, ek('L1') === null || ek('L2') === null || ek('holding') === null);
 
   // Ekuitas: modal disetor ditetapkan dari posisi bisnis berjalan (keputusan
   // owner). Tahun persiapan: modal = ekuitas − laba tahun berjalan. Tahun buku
@@ -336,9 +355,9 @@ export function laporanHolding(
     kol.map((k) => [k, ekuitas[k] === null || modal[k] === null ? null : bulat(nol(ekuitas[k]) - nol(modal[k]) - nol(lbIni[k]))]),
   ) as Record<(typeof kol)[number], number | null>;
   const komponenEkuitas: BarisLr[] = [
-    baris('3-01', awal ? `Modal disetor (ekuitas akhir ${tahunIni - 1})` : 'Modal disetor (ditetapkan dari posisi bisnis berjalan)', modal.L1, modal.L2, modal.holding),
-    baris('3-02', `Laba (rugi) tahun berjalan ${tahunIni}`, lbIni.L1, lbIni.L2, lbIni.holding),
-    ...(awal ? [baris('3-03', 'Setoran / (penarikan) owner — selisih', selisih.L1, selisih.L2, selisih.holding)] : []),
+    baris('3-01', awal ? `Modal disetor (ekuitas akhir ${tahunIni - 1})` : 'Modal disetor (ditetapkan dari posisi bisnis berjalan)', modal.L1, modal.L2, modal.holding, undefined, ekuitas.konsolidasi === null),
+    baris('3-02', `Laba (rugi) tahun berjalan ${tahunIni}`, lbIni.L1, lbIni.L2, lbIni.holding, undefined, lbIni.konsolidasi === null),
+    ...(awal ? [baris('3-03', 'Setoran / (penarikan) owner — selisih', selisih.L1, selisih.L2, selisih.holding, undefined, ekuitas.konsolidasi === null)] : []),
   ];
 
   // ── Rekonsiliasi ke laporan sumber ─────────────────────────────────────────

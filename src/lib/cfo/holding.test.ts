@@ -132,3 +132,22 @@ describe('penyusutan Loonars Coffee setelah completed', () => {
     expect(hh.posisi.aset.find((b) => b.kode === '1-05')!.L2).toBe(-Math.round(1_000_000 * bulan));
   });
 });
+
+describe('konsolidasi: kolom "tidak berlaku" vs "tidak tersedia"', () => {
+  it('baris satu lini tetap punya angka konsolidasi; kas villa belum dicatat → total null', () => {
+    const d = dataProduksi();
+    const m = susunModelCfo(d, HARI);
+    const h = laporanHolding(m, d, 2026);
+    const pendapatan = h.labaRugi.find((b) => b.kode === '4-01')!;
+    expect(pendapatan.konsolidasi).toBe(pendapatan.L1);
+    const gaji = h.labaRugi.find((b) => b.kode === '6-05')!;
+    expect(gaji.konsolidasi).toBe(gaji.holding);
+    const kas = h.posisi.aset.find((b) => b.kode === '1-01')!;
+    if (m.l1.neraca.kas === null) {
+      expect(kas.konsolidasi).toBeNull();
+      expect(h.posisi.totalAset.konsolidasi).toBeNull();
+    }
+    const utangToko = h.posisi.liabilitas.find((b) => b.kode === '2-01')!;
+    expect(utangToko.konsolidasi).toBe(utangToko.L2);
+  });
+});
