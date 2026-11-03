@@ -156,7 +156,7 @@ export default function HalamanCfoL2() {
                       { label: 'HPP / biaya proyek (akun 5-)', nilai: l2.bukuBesarLL.hpp },
                       { label: 'Beban (akun 6-)', nilai: l2.bukuBesarLL.beban },
                     ]} />
-                    <Catatan>{l2.bukuBesarLL.jumlahBaris} baris jurnal. Tidak dijumlahkan ke angka modul 4 rekening agar tidak terhitung ganda; hubungan kedua buku belum dipastikan.</Catatan>
+                    <Catatan>{l2.bukuBesarLL.jumlahBaris} baris jurnal. Buku ini berisi pembangunan & penjualan villa Loonars 1 (keputusan owner D-1, 2026-11-03), sehingga dilaporkan di kolom Loonars 1 — tidak dijumlahkan ke modul 4 rekening Loonars 2.</Catatan>
                   </>
                 ) : <Catatan>Tidak ada jurnal proyek LL.</Catatan>}
               </Panel>

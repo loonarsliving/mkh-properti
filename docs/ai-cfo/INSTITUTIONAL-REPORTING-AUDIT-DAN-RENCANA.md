@@ -144,7 +144,7 @@ Status: ✅ ada & aktual · 🟡 ada tapi estimasi/standar/parsial · ⛔ belum 
 
 | # | Temuan | Dampak | Usulan |
 |---|---|---|---|
-| **F-1** | Jurnal proyek **LL** (918 baris, 29 Mei–29 Okt 2026) berisi penjualan unit Loonars **Villa** (A2, A4, A5, B1, B3, C2, C3: 4-1001 total Rp 1,763 M; DP B2 4-1002 Rp 145 jt), HPP konstruksi (5-100x ±Rp 907 jt), dan beban lain 6-1007 Rp 175,7 jt. Laporan holding **tidak** memasukkan P&L jurnal LL, dan menyatakan villa L1 milik investor. | Pendapatan & HPP ±Rp 1,9 M / ±Rp 0,9 M bisa hilang dari laporan konsolidasi — atau, jika dimasukkan naif, tercampur dengan modul Loonars 2 (jurnal LL juga dipakai belanja L2 s.d. Okt). | **Keputusan owner**: apakah penjualan unit villa L1 ke investor = pendapatan PT (developer) yang diakui? Lalu pisahkan jurnal LL menjadi dimensi properti (Loonars 1 development vs Loonars 2) lewat pemetaan, tanpa mengubah baris historis. |
+| **F-1** | Jurnal proyek **LL** (918 baris, 29 Mei–29 Okt 2026) berisi penjualan unit Loonars **Villa** (A2, A4, A5, B1, B3, C2, C3: 4-1001 total Rp 1,763 M; DP B2 4-1002 Rp 145 jt), HPP konstruksi (5-* Rp 816,7 jt), dan beban 6-* Rp 146,3 jt. _(Koreksi 2026-11-03: versi awal menulis ±Rp 907 jt / Rp 175,7 jt karena query ikut menjumlahkan proyek LC.)_ Laporan holding **tidak** memasukkan P&L jurnal LL, dan menyatakan villa L1 milik investor. | Pendapatan & HPP ±Rp 1,9 M / ±Rp 0,9 M bisa hilang dari laporan konsolidasi — atau, jika dimasukkan naif, tercampur dengan modul Loonars 2 (jurnal LL juga dipakai belanja L2 s.d. Okt). | **Keputusan owner**: apakah penjualan unit villa L1 ke investor = pendapatan PT (developer) yang diakui? Lalu pisahkan jurnal LL menjadi dimensi properti (Loonars 1 development vs Loonars 2) lewat pemetaan, tanpa mengubah baris historis. |
 | F-2 | Neraca holding: ekuitas = aset − liabilitas; modal disetor = plug. | Persamaan neraca tidak bisa membuktikan kelengkapan. Tidak layak due diligence. | Buku besar tunggal + saldo awal yang disetujui akuntan (§5). Sampai itu ada, neraca diberi status **Incomplete**. |
 | F-3 | `malam_tersedia` = unit × hari, termasuk kamar ditutup maintenance. Okupansi/ADR/RevPAR historis akan ikut berubah bila jumlah unit berubah (dihitung ulang dari `count(units)` saat dikirim ulang). | KPI tidak sesuai definisi yang diminta; periode final bisa berubah. | Snapshot `villa_inventaris_harian` → tabel inventaris historis di MKH Property; bulan final dibekukan. |
 | F-4 | COGS & payroll villa = standar; aktual laundry/listrik ada sebagian di pengajuan biaya villa. | Menambahkan aktual di atas standar = **double counting**. | P&L institusional memakai **aktual**; biaya standar tetap disajikan sebagai "dasar bagi hasil investor" (rekonsiliasi standar vs aktual). Rumus bagi hasil **tidak diubah**. |
@@ -290,3 +290,23 @@ dan panel Data Quality Warnings yang memuat F-1…F-12.
 - **D-7.** Boleh menambah dependensi Excel (`exceljs`) atau cukup CSV?
 - **D-8.** Kebijakan pengakuan pendapatan kamar untuk laporan institusional: per
   malam menginap (akrual) atau tetap per bulan check-in seperti laporan villa?
+
+---
+
+## 8. Keputusan owner (2026-11-03)
+
+| # | Keputusan | Akibat |
+|---|---|---|
+| D-1 | Penjualan unit villa Loonars 1 ke investor = **pendapatan PT** | Jurnal proyek LL (pembangunan & penjualan villa L1, Mei–Okt 2026 — diverifikasi tidak memuat belanja Loonars 2) dipetakan ke kolom Loonars 1 di Laporan Holding & P&L institusional: penjualan Rp 1,908 M, HPP Rp 816,7 jt, beban proyek Rp 146,3 jt, PPh final 2,5% Rp 47,7 jt (2026). Neraca: kas/piutang/utang buku besar LL di kolom L1. `src/lib/cfo/pengembangan-l1.ts`. |
+| D-2 | Buku besar tunggal, dimensi lewat **tabel pemetaan** (tabel `jurnal` tidak diubah) | Tahap 2a. |
+| D-3 | **Satu badan hukum** (PT Loonars Mahakarya); L1, L2, LC = properti/lini | Konsolidasi = gabungan properti; eliminasi hanya antarproperti. |
+| D-4 | Saldo awal = **saldo yang ada di data per tanggal penetapan** | Pos yang belum pernah dicatat (mis. saldo rekening villa) tetap "tidak tersedia", tidak diisi nol. |
+| D-5 | Laporan tetap memakai **biaya standar** villa | Ditandai estimasi; Data Quality mengingatkan sebelum due diligence PE. |
+| D-6 | Daftar investor per jenis & dokumen perjanjian | **Masih ditunggu dari owner.** |
+| D-7 | Boleh tambah **exceljs** | Tahap 8. |
+| D-8 | Pendapatan kamar diakui **per malam menginap** (laporan institusional saja) | Butuh kiriman pendapatan per malam dari villa (Tahap 2c, lewat snapshot MK Connect); laporan villa & bagi hasil tidak berubah. |
+
+Temuan baru dari pemeriksaan D-1 (data produksi, read-only):
+- **F-13** Sistem villa: 8 unit lunas (A2, A4, A5, B1, B2, B3, C2, C3), 5 belum terjual (A1, A3, B4, C1, C4). Jurnal LL: B1 terjual dengan nilai Rp 0; B2 baru DP Rp 145 jt.
+- **F-14** Bagi hasil villa dihitung untuk 13 unit; bila 5 unit belum terjual milik PT, beban bagi hasil di laporan lebih besar dari yang dibayar ke investor. Rumus villa tidak diubah.
+- **F-15** Buku besar LL: akun bank 1-1004 bersaldo −Rp 421,4 jt (tidak mungkin untuk rekening nyata); total kas buku LL Rp 805,3 jt perlu dicocokkan dengan rekening koran. Piutang antar proyek Rp 124,4 jt ke proyek arsip.

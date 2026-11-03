@@ -25,6 +25,7 @@
  * diminta, nilainya null + catatan — tidak pernah ditebak.
  */
 import type { ModelCfo } from './model';
+import { KEPUTUSAN_D1, labaRugiPengembanganL1, neracaPengembanganL1 } from './pengembangan-l1';
 import type { DataCfo } from './tipe';
 import { angka, bulat, jumlah, teks } from './util';
 
@@ -241,6 +242,11 @@ interface HasilTahun {
   labaRugi: BarisLr[];
   labaBersih: { L1: number | null; L2: number | null; holding: number; konsolidasi: number | null };
   pphFinal: number | null;
+  /** PPh final atas penjualan unit villa Loonars 1 (jurnal LL, keputusan D-1). */
+  pphFinalL1: number;
+  /** Laba operasional villa L1 (tanpa pengembangan/penjualan unit) — dasar rekonsiliasi ke laporan villa. */
+  labaL1Operasi: number | null;
+  pengembanganL1: { penjualan: number; hpp: number; beban: number } | null;
   pphBadan: number;
   pkp: number;
   omzetNonFinal: number;
@@ -284,20 +290,30 @@ function hitungTahun(m: ModelCfo, data: DataCfo, tahun: number, arsip?: ArsipHol
     perCabangMap.set(g.cabang, v);
   }
 
+  // ── Loonars 1: pengembangan & penjualan unit villa (jurnal LL, D-1) ───────
+  const bulanTahun = Array.from({ length: 12 }, (_, i) => `${th}-${String(i + 1).padStart(2, '0')}`);
+  const dev = labaRugiPengembanganL1(data, bulanTahun);
+  const adaDev = Object.keys(dev).length > 0;
+  const devV = (k: keyof typeof dev) => dev[k]?.nilai ?? 0;
+  const devBeban = devV('gaji') + devV('listrikAir') + devV('pemasaran') + devV('administrasi') + devV('lain');
+
   // ── Penyusutan & bunga ─────────────────────────────────────────────────────
   const penyusutan = penyusutanProyek(m, data, tahun);
 
   const sebelumPajak: BarisLr[] = [
     baris('4-01', 'Pendapatan sewa kamar villa (kotor)', l1Pendapatan, null, null),
     baris('4-02', 'Pendapatan penjualan unit villa (serah terima 31 Desember)', null, l2Pendapatan, null),
+    baris('4-03', 'Pendapatan penjualan unit villa Loonars 1 (jurnal proyek LL)', adaDev ? devV('penjualan') : null, null, null),
     baris('5-01', 'Komisi OTA', s1((b) => -b.komisiOta), null, null),
     baris('5-02', 'Harga pokok kamar (COGS villa)', s1((b) => -b.cogs), null, null),
     baris('5-03', 'Harga pokok unit terjual', null, l2Hpp, null),
+    baris('5-04', 'Harga pokok pembangunan unit villa Loonars 1 (jurnal LL)', adaDev ? -devV('hpp') : null, null, null),
     baris('6-01', 'Beban operasional villa (gaji staf villa)', s1((b) => -b.opex), null, null),
     baris('6-02', 'Bagi hasil investor villa (pool 70%)', s1((b) => -b.bagiHasilInvestor), null, null),
     baris('6-03', 'Top-up jaminan investor villa', s1((b) => -b.topupJaminan), null, null),
     baris('6-04', 'Beban fee marketing penjualan unit', null, l2Fee, null),
     baris('6-05', 'Beban gaji tim bersama (holding)', null, null, bebanGaji),
+    baris('6-06', 'Beban proyek pengembangan Loonars 1 (jurnal LL)', adaDev ? -devBeban : null, null, null),
     baris('7-01', `Beban penyusutan (garis lurus ${KEBIJAKAN.penyusutanBangunanTahun} th)`, null, -penyusutan.tahunIni, null),
     baris('7-02', 'Beban bunga (tidak ada pinjaman bank)', 0, 0, 0),
   ];
@@ -306,16 +322,20 @@ function hitungTahun(m: ModelCfo, data: DataCfo, tahun: number, arsip?: ArsipHol
   // ── PPh ────────────────────────────────────────────────────────────────────
   // Final 2,5% atas penjualan unit (pengalihan bangunan); laba penjualan unit
   // tidak ikut PPh badan. PKP non-final = laba L1 + holding − penyusutan.
+  // Penjualan unit villa L1 (D-1) juga PPh final; laba & bebannya keluar dari PKP.
   const pphFinal = l2Pendapatan === null ? null : bulat((l2Pendapatan * KEBIJAKAN.pphFinalBangunanPct) / 100);
-  const pkp = Math.max(0, bulat((adaL1 ? sum(sebelumPajak, 'L1') : 0) + sum(sebelumPajak, 'holding') - penyusutan.tahunIni));
+  const pphFinalL1 = adaDev && devV('penjualan') > 0 ? bulat((devV('penjualan') * KEBIJAKAN.pphFinalBangunanPct) / 100) : 0;
+  const KODE_DEV = ['4-03', '5-04', '6-06'];
+  const labaL1Operasi = adaL1 ? sum(sebelumPajak.filter((b) => !KODE_DEV.includes(b.kode)), 'L1') : null;
+  const pkp = Math.max(0, bulat(nol(labaL1Operasi) + sum(sebelumPajak, 'holding') - penyusutan.tahunIni));
   const omzetNonFinal = nol(l1Pendapatan);
   const pph = pphBadan(pkp, omzetNonFinal);
   const labaRugi: BarisLr[] = [
     ...sebelumPajak,
-    baris('8-01', `Beban PPh final ${KEBIJAKAN.pphFinalBangunanPct}% penjualan unit (estimasi)`, null, pphFinal === null ? null : -pphFinal, null),
+    baris('8-01', `Beban PPh final ${KEBIJAKAN.pphFinalBangunanPct}% penjualan unit (estimasi)`, pphFinalL1 ? -pphFinalL1 : null, pphFinal === null ? null : -pphFinal, null),
     baris('8-02', 'Beban PPh badan — Pasal 31E (estimasi, konsolidasi)', null, null, -pph),
   ];
-  const labaL1 = adaL1 ? sum(labaRugi, 'L1') : null;
+  const labaL1 = adaL1 || adaDev ? sum(labaRugi, 'L1') : null;
   const labaL2 = l2Sah ? sum(labaRugi, 'L2') : null;
   const labaHolding = sum(labaRugi, 'holding');
 
@@ -323,6 +343,9 @@ function hitungTahun(m: ModelCfo, data: DataCfo, tahun: number, arsip?: ArsipHol
     labaRugi,
     labaBersih: { L1: labaL1, L2: labaL2, holding: labaHolding, konsolidasi: tambah(labaL1, labaL2, labaHolding) },
     pphFinal,
+    pphFinalL1,
+    labaL1Operasi,
+    pengembanganL1: adaDev ? { penjualan: devV('penjualan'), hpp: devV('hpp'), beban: bulat(devBeban) } : null,
     pphBadan: pph,
     pkp,
     omzetNonFinal,
@@ -353,6 +376,7 @@ export function laporanHolding(
   // ── Posisi keuangan (per hari ini; arsip per tanggal lewat tutup buku) ──────
   const n1 = l1.neraca;
   const n2 = l2.neraca;
+  const nd = neracaPengembanganL1(data);
   const utangGaji = bulat(jumlah(gajiDariSnapshot(data).filter((g) => g.status === 'pending_transfer' && !CABANG_GAJI_VILLA.includes(g.cabang)), (g) => g.nominal));
   const aset: BarisLr[] = [
     baris('1-01', 'Kas & bank', n1.kas, n2.kas, null, n1.kas === null ? 'Kas villa belum dicatat (AI CFO → Loonars 1). Rekening holding menyusul dari owner.' : 'Rekening holding akan ditambahkan owner; sementara gaji holding dibayar dari dana owner.', n1.kas === null),
@@ -360,6 +384,23 @@ export function laporanHolding(
     baris('1-03', 'Persediaan unit villa dalam pembangunan', null, n2.asetDalamPembangunan, null),
     baris('1-04', 'Aset tetap — bangunan Loonars Coffee (biaya perolehan)', null, n2.asetProyekLain, null),
     baris('1-05', 'Akumulasi penyusutan', null, -hIni.penyusutan.akumulasi, null),
+    ...(nd
+      ? [
+          baris(
+            '1-06',
+            'Kas & bank — buku besar proyek LL (pengembangan Loonars 1)',
+            nd.kas,
+            null,
+            null,
+            nd.kasNegatif.length
+              ? `PERLU VERIFIKASI: ${nd.kasNegatif.map((k) => `akun ${k.akun} bersaldo Rp ${k.saldo.toLocaleString('id-ID')}`).join('; ')} — rekening nyata tidak bisa negatif; cocokkan dengan rekening koran.`
+              : 'Saldo kumulatif akun kas/bank jurnal proyek LL.',
+          ),
+          ...(nd.piutangAntarProyek ? [baris('1-07', 'Piutang antar proyek (ke proyek arsip PT)', nd.piutangAntarProyek, null, null, 'Pinjaman jurnal LL ke proyek arsip yang dikunci — satu badan hukum; perlu keputusan penyelesaian.')] : []),
+          ...(nd.piutangLain ? [baris('1-08', 'Piutang lain — buku besar proyek LL', nd.piutangLain, null, null)] : []),
+          ...(nd.asetTetap ? [baris('1-09', 'Aset tetap — buku besar proyek LL', nd.asetTetap, null, null)] : []),
+        ]
+      : []),
   ];
   const liabilitas: BarisLr[] = [
     baris('2-01', 'Utang toko bangunan', null, n2.utangToko + n2.utangProyekLain, null),
@@ -370,7 +411,8 @@ export function laporanHolding(
     baris('2-06', 'Utang biaya villa belum dibayar', n1.pengajuanBiayaBelumDibayar, null, null, undefined, n1.pengajuanBiayaBelumDibayar === null),
     baris('2-07', 'Utang bagi hasil investor bulan berjalan', n1.kewajibanBagiHasilBerjalan, null, null),
     baris('2-08', 'Utang gaji karyawan', null, null, utangGaji),
-    baris('2-09', `Utang PPh ${tahunIni} (estimasi, belum disetor)`, null, nol(hIni.pphFinal), hIni.pphBadan),
+    baris('2-09', `Utang PPh ${tahunIni} (estimasi, belum disetor)`, hIni.pphFinalL1 || null, nol(hIni.pphFinal), hIni.pphBadan),
+    ...(nd && nd.utang ? [baris('2-10', 'Utang — buku besar proyek LL', nd.utang, null, null)] : []),
   ];
   // Kolom dengan komponen "tidak tersedia" (mis. kas villa belum dicatat) → total null, bukan nol.
   const sumKolom = (rows: BarisLr[], k: 'L1' | 'L2' | 'holding') =>
@@ -404,9 +446,9 @@ export function laporanHolding(
 
   // ── Rekonsiliasi ke laporan sumber ─────────────────────────────────────────
   const rekonsiliasi: LaporanHolding['rekonsiliasi'] = [];
-  if (h.labaBersih.L1 !== null) {
+  if (h.labaL1Operasi !== null) {
     const bagianMkh = bulat(jumlah(h.bulanL1, (b) => b.bagianMkhBersih));
-    rekonsiliasi.push({ label: 'Laba L1 (sebelum pajak) = bagian MKH bersih di laporan villa', kiri: bulat(h.labaBersih.L1), kanan: bagianMkh, cocok: Math.abs(h.labaBersih.L1 - bagianMkh) <= h.bulanL1.length });
+    rekonsiliasi.push({ label: 'Laba operasional villa L1 (sebelum pajak, tanpa penjualan unit) = bagian MKH bersih di laporan villa', kiri: bulat(h.labaL1Operasi), kanan: bagianMkh, cocok: Math.abs(h.labaL1Operasi - bagianMkh) <= h.bulanL1.length });
   }
   rekonsiliasi.push({ label: 'Aset L2 (sebelum akumulasi penyusutan) = neraca modul Loonars 2', kiri: bulat(nol(totalAset.L2) + hIni.penyusutan.akumulasi), kanan: n2.totalAset, cocok: Math.abs(nol(totalAset.L2) + hIni.penyusutan.akumulasi - n2.totalAset) <= 1 });
 
@@ -430,6 +472,8 @@ export function laporanHolding(
         'Pendapatan villa diakui KOTOR penuh saat menginap/dibayar tamu; komisi OTA, bagi hasil investor (pool 70%), dan top-up jaminan investor diakui sebagai beban.',
         'Pendapatan walk-in (kafe/spa) belum termasuk karena laporan villa sumber belum memisahkan biayanya.',
         'Pembayaran investor sebelum serah terima unit dicatat sebagai UANG MUKA (liabilitas). Unit diserahterimakan akhir Desember; pendapatan, harga pokok, dan fee marketing unit diakui pada 31 Desember tahun serah terima.',
+        `${KEPUTUSAN_D1} Penjualan unit villa Loonars 1 diakui pada tanggal closing di jurnal proyek LL; harga pokoknya = biaya pembangunan yang tercatat di jurnal LL; beban proyek LL disajikan terpisah.${h.pengembanganL1 ? ` Tahun ${tahun}: penjualan ${rp(h.pengembanganL1.penjualan)}, harga pokok ${rp(h.pengembanganL1.hpp)}, beban proyek ${rp(h.pengembanganL1.beban)}.` : ''}`,
+        'Keterbatasan penjualan unit Loonars 1 (perlu verifikasi): unit B1 tercatat terjual dengan nilai Rp 0, unit B2 baru tercatat uang muka padahal sistem villa menyatakan lunas, dan 5 unit (A1, A3, B4, C1, C4) belum tercatat terjual. Harga pokok mencakup pembangunan seluruh 13 unit, sehingga margin penjualan belum mencerminkan unit yang terjual saja.',
       ],
     },
     {
@@ -438,7 +482,7 @@ export function laporanHolding(
         'Biaya pembangunan unit villa dikapitalisasi sebagai persediaan dalam pembangunan sampai serah terima (tidak disusutkan).',
         `Bangunan Loonars Coffee dicatat sebesar biaya perolehan (realisasi MK Connect) dan disusutkan garis lurus ${KEBIJAKAN.penyusutanBangunanTahun} tahun tanpa nilai sisa, mulai bulan setelah proyek berstatus selesai (completed).`,
         ...h.penyusutan.rincian.map((r) => (r.mulai ? `${r.nama}: biaya ${rp(r.biaya)}, siap pakai ${r.mulai}, penyusutan tahun ${tahun} ${rp(r.tahunIni)}.` : `${r.nama}: masih dalam pembangunan — belum disusutkan.`)),
-        'Villa Loonars 1 milik investor, bukan aset PT, sehingga tidak disusutkan di laporan ini.',
+        'Unit villa Loonars 1 yang sudah dijual milik investor, sehingga tidak disusutkan di laporan ini. Unit yang belum terjual belum dipisahkan sebagai persediaan (biaya pembangunannya sudah dibebankan sebagai harga pokok di jurnal LL).',
       ],
     },
     {
@@ -448,7 +492,7 @@ export function laporanHolding(
     {
       judul: '5. Pajak penghasilan (estimasi)',
       isi: [
-        `Penjualan unit villa: PPh final ${KEBIJAKAN.pphFinalBangunanPct}% dari nilai penjualan (pengalihan hak atas bangunan, PP 34/2016); laba penjualan unit tidak ikut dihitung PPh badan.`,
+        `Penjualan unit villa (Loonars 1 dan Loonars 2): PPh final ${KEBIJAKAN.pphFinalBangunanPct}% dari nilai penjualan (pengalihan hak atas bangunan, PP 34/2016); laba dan beban penjualan unit tidak ikut dihitung PPh badan.${h.pphFinalL1 ? ` PPh final Loonars 1 tahun ${tahun}: ${rp(h.pphFinalL1)}.` : ''}`,
         `Penghasilan lainnya (villa + holding): PPh badan ${KEBIJAKAN.pphBadanPct}% dengan fasilitas Pasal 31E (pengurangan 50% untuk bagian omzet s.d. Rp 4,8 M). Tahun ${tahun}: omzet non-final ${rp(h.omzetNonFinal)}, PKP ${rp(h.pkp)}, PPh badan ${rp(h.pphBadan)}.`,
         'PBJT (pajak hotel) dicatat terpisah sebagai utang pajak daerah, bukan PPh.',
         'Angka pajak adalah ESTIMASI berdasarkan ketentuan umum dan wajib dikonfirmasi konsultan pajak sebelum SPT; koreksi fiskal (beban yang tidak boleh dikurangkan) belum dihitung.',

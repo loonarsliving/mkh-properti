@@ -79,18 +79,25 @@ describe('laba rugi institusional', () => {
     // EBITDA setelah bagi hasil = bagian MKH bersih
     expect(cari(lr.baris, 'PL-16').sel.L1.nilai).toBe(Math.round(okt.ebitda - okt.bagiHasilInvestor - okt.topupJaminan));
     // Loonars 2 diakui 31 Des → Oktober nol karena kebijakan, bukan "kosong"
-    expect(cari(lr.baris, 'PL-01').sel.L2).toMatchObject({ nilai: 0, status: 'nol_kebijakan' });
+    expect(cari(lr.baris, 'PL-01B').sel.L2).toMatchObject({ nilai: 0, status: 'nol_kebijakan' });
+    expect(cari(lr.baris, 'PL-01').sel.L2.status).toBe('tidak_berlaku');
     // gaji holding: slip cabang villa dikecualikan
     expect(cari(lr.baris, 'PL-07').sel.holding.nilai).toBe(-6_000_000);
     expect(cari(lr.baris, 'PL-22').kelengkapan).toBe('tidak_lengkap');
   });
 
-  it('pendapatan jurnal LL (F-1) disebut di catatan, tidak dijumlahkan', () => {
+  it('D-1: penjualan unit villa L1 (jurnal LL) masuk kolom Loonars 1', () => {
     const agu = labaRugiInstitusional(m, data, periodeMemuat('bulanan', '2026-08'));
-    expect(agu.catatan.join(' ')).toMatch(/1\.908\.000\.000/);
-    // L1 tidak tersedia + L2 nol-kebijakan → konsolidasi tidak tersedia, BUKAN 0
+    expect(cari(agu.baris, 'PL-01B').sel.L1).toMatchObject({ nilai: 1_908_000_000, status: 'aktual' });
+    expect(cari(agu.baris, 'PL-01B').konsolidasi.nilai).toBe(1_908_000_000);
+    expect(cari(agu.baris, 'PL-21').sel.L1.nilai).toBe(-47_700_000); // PPh final 2,5%
+    // bulan tanpa laporan villa: pendapatan kamar tetap tidak tersedia, BUKAN 0
     expect(cari(agu.baris, 'PL-01').konsolidasi).toMatchObject({ nilai: null, status: 'tidak_tersedia' });
-    expect(cari(agu.baris, 'PL-15').sel.L2.catatan).toMatch(/F-1/);
+    const sep = labaRugiInstitusional(m, data, periodeMemuat('bulanan', '2026-09'));
+    expect(cari(sep.baris, 'PL-05B').sel.L1.nilai).toBe(-(499_828_028 + 316_854_000));
+    expect(cari(sep.baris, 'PL-08').sel.L1).toMatchObject({ nilai: -1_021_750, status: 'sebagian' }); // LL tercatat, tagihan villa belum
+    expect(cari(sep.baris, 'PL-15').sel.L1.nilai).toBe(-140_863_691);
+    expect(agu.catatan.join(' ')).toMatch(/D-1/);
   });
 
   it('tidak ada sel "belum tercatat" / "tidak tersedia" yang bernilai', () => {
@@ -178,8 +185,11 @@ describe('kualitas data', () => {
   const r = cekKualitasData(m, data);
   const id = (x: string) => r.cek.find((c) => c.id === x);
 
-  it('mendeteksi pendapatan jurnal LL yang belum dipetakan (F-1)', () => {
-    expect(id('jurnal_ll_belum_dipetakan')).toMatchObject({ status: 'perlu_verifikasi', nilai: 1_908_000_000 });
+  it('D-1: kelengkapan penjualan unit L1 & saldo bank negatif buku besar LL ditandai', () => {
+    expect(id('jurnal_ll_belum_dipetakan')).toBeUndefined();
+    expect(id('penjualan_unit_l1')!.status).toBe('perlu_verifikasi');
+    expect(id('kas_negatif:1-1004')).toMatchObject({ status: 'perlu_verifikasi', nilai: 610_000_000 - 1_027_042_297 });
+    expect(id('bagi_hasil_unit_pt')!.status).toBe('perlu_verifikasi');
   });
 
   it('validasi debit = kredit', () => {
