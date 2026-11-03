@@ -206,3 +206,6 @@ begin
   return jsonb_build_object('status', 'ok', 'balasan', v_pesan);
 end;
 $function$;
+
+-- Sama seperti pembaca rekening lain (0056c): bukan untuk dipanggil klien.
+revoke execute on function public._loonars2_nomor_rekening(text) from public, anon, authenticated;
