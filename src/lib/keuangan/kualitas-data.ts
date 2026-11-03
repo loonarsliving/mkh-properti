@@ -13,6 +13,7 @@ import { COA } from '@/lib/master';
 import type { ModelCfo } from '@/lib/cfo/model';
 import type { DataCfo, Sumber } from '@/lib/cfo/tipe';
 import { angka, bulat, hariDalamBulan, labelBulan, rp } from '@/lib/cfo/util';
+import { neracaPengembanganL1 } from '@/lib/cfo/pengembangan-l1';
 import type { Kelengkapan } from './status';
 
 export type AreaLaporan = 'laba_rugi' | 'neraca' | 'arus_kas' | 'unit_ekonomi' | 'investor' | 'konsolidasi' | 'kontrol';
@@ -99,22 +100,41 @@ export function cekKualitasData(m: ModelCfo, data: DataCfo): RingkasanKualitas {
   });
 
   // ── Laba rugi ────────────────────────────────────────────────────────────
-  const pendapatanLL = bulat(
-    data.jurnal_bulanan.filter((j) => j.proyek === 'LL' && (j.akun ?? '').startsWith('4-')).reduce((a, j) => a + angka(j.k) - angka(j.d), 0),
-  );
-  if (pendapatanLL !== 0) {
+  // D-1 (2026-11-03): jurnal LL = pengembangan & penjualan villa Loonars 1 → kolom L1.
+  const nd = neracaPengembanganL1(data);
+  if (nd) {
     tambah({
-      id: 'jurnal_ll_belum_dipetakan',
+      id: 'penjualan_unit_l1',
       area: 'laba_rugi',
       status: 'perlu_verifikasi',
-      judul: 'Pendapatan di jurnal proyek LL belum masuk laporan',
-      isi: `Jurnal proyek LL mencatat pendapatan ${rp(pendapatanLL)} (penjualan unit Loonars Villa ke investor) yang tidak dimasukkan ke laporan holding/laba rugi, karena villa Loonars 1 dinyatakan milik investor. Jika ini pendapatan PT, laba rugi konsolidasi kurang saji; jika bukan, akunnya perlu dikoreksi.`,
-      tindakan: 'Keputusan owner D-1, lalu pemetaan jurnal LL per properti (tanpa mengubah baris historis).',
-      nilai: pendapatanLL,
-      rujukan: 'F-1 / D-1',
-      sumber: [{ tabel: 'jurnal', ket: 'proyek LL, akun 4-*' }],
+      judul: 'Kelengkapan penjualan unit villa Loonars 1',
+      isi: 'Sistem villa menyatakan 8 unit lunas (A2, A4, A5, B1, B2, B3, C2, C3) dan 5 unit belum terjual (A1, A3, B4, C1, C4). Di jurnal LL, B1 tercatat terjual dengan nilai Rp 0 dan B2 baru tercatat uang muka Rp 145 jt. Harga pokok di jurnal LL mencakup pembangunan 13 unit.',
+      tindakan: 'Lengkapi nilai penjualan B1 dan pelunasan B2 di jurnal LL; tetapkan perlakuan 5 unit yang belum terjual (persediaan milik PT).',
+      rujukan: 'D-1 / audit 2026-11-03',
+      sumber: [{ tabel: 'jurnal', ket: 'proyek LL, akun 4-*' }, { tabel: 'villa units', ket: 'lunas_pembayaran (svcmyb)' }],
     });
+    for (const k of nd.kasNegatif) {
+      tambah({
+        id: `kas_negatif:${k.akun}`,
+        area: 'neraca',
+        status: 'perlu_verifikasi',
+        judul: `Saldo bank negatif di buku besar proyek LL (akun ${k.akun})`,
+        isi: `Saldo kumulatif ${rp(k.saldo)}. Rekening bank nyata tidak bisa negatif — kemungkinan ada penerimaan yang tidak dijurnal ke akun ini, atau pengeluaran yang dijurnal dari rekening yang salah.`,
+        tindakan: 'Cocokkan dengan rekening koran dan koreksi lewat jurnal penyesuaian (bukan mengubah baris lama).',
+        nilai: k.saldo,
+        sumber: [{ tabel: 'jurnal', ket: `proyek LL, akun ${k.akun}` }],
+      });
+    }
   }
+  tambah({
+    id: 'bagi_hasil_unit_pt',
+    area: 'laba_rugi',
+    status: 'perlu_verifikasi',
+    judul: 'Bagi hasil villa dibagi ke 13 unit, 5 unit belum terjual',
+    isi: 'Pool bagi hasil investor (70%) dihitung untuk 13 unit. Bila 5 unit yang belum terjual masih milik PT, porsi bagi hasilnya kembali ke PT, sehingga beban bagi hasil di laporan lebih besar dari yang benar-benar dibayar ke investor.',
+    tindakan: 'Konfirmasi pemilik 5 unit tersebut; rumus bagi hasil di sistem villa TIDAK diubah otomatis.',
+    sumber: [{ tabel: 'laporan_villa_bulanan', ket: 'rincian.bagi_hasil.investor_count' }],
+  });
 
   tambah({
     id: 'biaya_standar_villa',
@@ -122,7 +142,7 @@ export function cekKualitasData(m: ModelCfo, data: DataCfo): RingkasanKualitas {
     status: 'perlu_verifikasi',
     judul: 'COGS & gaji villa = biaya standar, bukan aktual',
     isi: 'COGS villa = biaya standar per malam (listrik, laundry, amenities + alokasi internet, listrik resepsionis, Cloudbeds); gaji = jumlah staf × gaji standar. Angka ini dasar bagi hasil investor, tetapi bukan tagihan aktual.',
-    tindakan: 'Keputusan owner D-5: catat tagihan aktual per kategori; standar tetap dipakai hanya untuk bagi hasil.',
+    tindakan: 'Keputusan owner D-5 (2026-11-03): laporan tetap memakai biaya standar dan ditandai estimasi. Pertimbangkan ulang sebelum due diligence PE — investor biasanya meminta biaya aktual.',
     rujukan: 'F-4 / D-5',
     sumber: [{ tabel: 'laporan_villa_bulanan', ket: 'rincian.cogs_standar, opex_rincian' }],
   });
@@ -191,7 +211,7 @@ export function cekKualitasData(m: ModelCfo, data: DataCfo): RingkasanKualitas {
     status: 'tidak_lengkap',
     judul: 'Ekuitas dihitung sebagai sisa (plug)',
     isi: 'Laporan holding menghitung ekuitas = aset − liabilitas dan modal disetor dari posisi berjalan, sehingga persamaan neraca tidak menguji kelengkapan data. Belum ada catatan setoran modal & saldo laba.',
-    tindakan: 'Keputusan owner D-2 & D-4: buku besar tunggal + saldo awal yang disetujui.',
+    tindakan: 'Tahap 2a (disetujui owner D-2/D-4): buku besar tunggal + saldo awal dari data per tanggal penetapan.',
     rujukan: 'F-2',
     sumber: [{ tabel: 'laporanHolding()' }],
   });

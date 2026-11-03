@@ -3,6 +3,20 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-03 — Keputusan owner D-1…D-8; D-1 diterapkan — LIVE (PR #47, disetujui owner "bawa ke production")
+
+Keputusan lengkap: `docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md` §8.
+**D-1 diterapkan tanpa migrasi:** jurnal proyek LL = pembangunan & penjualan villa
+Loonars 1 (diverifikasi: tidak ada belanja Loonars 2) → kolom Loonars 1 di Laporan
+Holding (baris 4-03, 5-04, 6-06, PPh final 8-01 L1; neraca 1-06…1-09, 2-10) dan P&L
+institusional (Gross Revenue — Property Unit Sales, COGS — Property Units, OPEX per
+kategori, PPh final). PKP PPh badan tidak memuat penjualan unit (final). Rekonsiliasi
+laba villa ↔ laporan villa memakai laba operasional L1. Dampak 2026 (data produksi):
+laba L1 +± Rp 897 jt. Data Quality: F-13 (B1 Rp 0, B2 baru DP, 5 unit belum terjual),
+F-14 (bagi hasil 13 unit), F-15 (bank 1-1004 −Rp 421 jt di buku LL).
+Kas buku LL di Owner Overview kini berlabel Loonars 1 (total kas tidak berubah).
+D-6 (daftar investor) masih ditunggu. Berikutnya: Tahap 2a (migrasi `fin_*`).
+
 ## 2026-11-02 — Institutional reporting: bagian tanpa perubahan skema — LIVE DI PRODUKSI
 
 Disetujui owner ("Ya", lalu "bawa ke production"). PR #45 di-squash ke `main`

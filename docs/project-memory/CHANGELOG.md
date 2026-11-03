@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-03 — D-1: penjualan unit villa Loonars 1 (jurnal LL) = pendapatan PT
+- Laporan Holding & P&L institusional memuat jurnal proyek LL di kolom Loonars 1 (penjualan, HPP, beban, PPh final, neraca). Keputusan D-1…D-8 dicatat. Lihat CURRENT_STATE.md.
+
 ## 2026-11-02 — P&L institusional, Unit Economics, Data Quality (tanpa migrasi)
 - Halaman `/cfo/laba-rugi`, `/cfo/unit-economics`, `/cfo/kualitas-data`; mesin `src/lib/keuangan/` (status per angka, "belum tercatat" ≠ nol). Laba bersih tahunan = Laporan Holding. Lihat CURRENT_STATE.md.
 

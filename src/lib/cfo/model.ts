@@ -42,11 +42,11 @@ export function susunModelCfo(data: DataCfo, hariIni: string, sekarang: Date = n
     },
     {
       id: 'll_buku_besar',
-      label: 'Kas & bank buku besar proyek LL',
-      lini: 'L2',
+      label: 'Kas & bank buku besar proyek LL (pengembangan Loonars 1)',
+      lini: 'L1',
       nilai: l2.bukuBesarLL?.kas ?? null,
       dipakaiDalamTotal: l2.bukuBesarLL !== null,
-      catatan: 'Saldo akun kas/bank (1-1001…1-1008) jurnal proyek LL. Asumsi: rekening fisiknya berbeda dari rekening A–D modul Loonars 2.',
+      catatan: 'Saldo akun kas/bank (1-1001…1-1008) jurnal proyek LL — buku pembangunan & penjualan villa Loonars 1 (keputusan owner D-1, 2026-11-03). Rekening fisiknya berbeda dari rekening A–D Loonars 2. Saldo bank yang negatif di buku ini perlu dicocokkan dengan rekening koran.',
       sumber: { tabel: 'jurnal', ket: 'proyek LL, akun kas/bank' },
     },
     {

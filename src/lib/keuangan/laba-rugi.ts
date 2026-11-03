@@ -25,11 +25,12 @@
  *     villa/holding belum dicatat per kategori di sistem mana pun → "belum
  *     tercatat". Biaya standar yang sudah memuat sebagian pos ini TIDAK dipecah
  *     ulang agar tidak terhitung dua kali.
- *   - Jurnal proyek LL belum dipetakan ke properti (temuan F-1) → tidak
- *     dijumlahkan; nilainya disebut di catatan.
+ *   - Jurnal proyek LL = pengembangan & penjualan unit villa Loonars 1 →
+ *     kolom Loonars 1 (keputusan owner D-1, 2026-11-03; lihat pengembangan-l1.ts).
  */
 import { CABANG_GAJI_VILLA, gajiDariSnapshot, jadwalPenyusutan, laporanHolding, NAMA_ENTITAS, penyusutanBulan, type ArsipHolding, type LaporanHolding } from '@/lib/cfo/holding';
 import type { ModelCfo } from '@/lib/cfo/model';
+import { KEPUTUSAN_D1, labaRugiPengembanganL1, type KategoriL1 } from '@/lib/cfo/pengembangan-l1';
 import type { DataCfo, Sumber } from '@/lib/cfo/tipe';
 import { angka, bulat, jumlah, labelBulan, rp } from '@/lib/cfo/util';
 import { bulanBerjalan, periodeSebelumnya, type PeriodeLaporan } from './periode';
@@ -67,13 +68,16 @@ const S_GAJI: Sumber = { tabel: 'snapshot:gaji_karyawan', ket: 'slip gaji MK Con
 const S_L2: Sumber = { tabel: 'loonars2_v_unit', ket: 'diakui 31 Des (laporanHolding)' };
 const S_PROYEK: Sumber = { tabel: 'snapshot:proyek_konstruksi', ket: 'realisasi MK Connect' };
 const S_KEBIJAKAN: Sumber = { tabel: 'kebijakan owner 2026-11-02', ket: 'holding.ts KEBIJAKAN' };
+const S_LL: Sumber = { tabel: 'jurnal', ket: 'proyek LL — pengembangan Loonars 1 (D-1)' };
 
 /** Urutan & definisi baris. `tanda` hanya dokumentasi: pendapatan +, beban −. */
 const POS = {
-  pendapatanKotor: { kode: 'PL-01', label: 'Gross Revenue' },
+  pendapatanKotor: { kode: 'PL-01', label: 'Gross Revenue — Rooms' },
+  pendapatanUnit: { kode: 'PL-01B', label: 'Gross Revenue — Property Unit Sales' },
   diskon: { kode: 'PL-02', label: 'Discount' },
   komisiOta: { kode: 'PL-03', label: 'OTA Commission' },
-  hpp: { kode: 'PL-05', label: 'Cost of Goods Sold' },
+  hpp: { kode: 'PL-05', label: 'Cost of Goods Sold — Rooms' },
+  hppUnit: { kode: 'PL-05B', label: 'Cost of Goods Sold — Property Units' },
   gaji: { kode: 'PL-07', label: 'Payroll' },
   listrikAir: { kode: 'PL-08', label: 'Electricity & Water' },
   laundry: { kode: 'PL-09', label: 'Laundry' },
@@ -146,19 +150,31 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
     return sel(v, 'estimasi', [S_L2], `Diakui 31 Des ${tahunDes}; dihitung dari kontrak & biaya per ${hariIni} — berubah sampai serah terima.`);
   };
 
-  // ── Jurnal LL belum dipetakan (F-1) ───────────────────────────────────────
-  const bebanLL = bulat(
-    jumlah(
-      data.jurnal_bulanan.filter((j) => j.proyek === 'LL' && (j.akun ?? '').startsWith('6-') && periode.bulan.includes(j.bulan)),
-      (j) => angka(j.d) - angka(j.k),
-    ),
-  );
-  const pendapatanLL = bulat(
-    jumlah(
-      data.jurnal_bulanan.filter((j) => j.proyek === 'LL' && (j.akun ?? '').startsWith('4-') && periode.bulan.includes(j.bulan)),
-      (j) => angka(j.k) - angka(j.d),
-    ),
-  );
+  // ── Pengembangan & penjualan unit villa Loonars 1 (jurnal LL, D-1) ───────
+  const dev = labaRugiPengembanganL1(data, periode.bulan);
+  const CAT_DEV: Record<KategoriL1, string> = {
+    penjualan: 'Penjualan unit villa Loonars 1 (jurnal proyek LL, diakui saat closing). Perlu verifikasi: B1 tercatat Rp 0, B2 baru uang muka.',
+    hpp: 'Biaya pembangunan villa Loonars 1 (jurnal proyek LL) — mencakup 13 unit, termasuk 5 unit belum terjual.',
+    gaji: 'Gaji di jurnal proyek LL.',
+    listrikAir: 'Listrik & air aktual di jurnal proyek LL (bedeng/kantor proyek).',
+    pemasaran: 'Biaya pemasaran/komisi di jurnal proyek LL.',
+    administrasi: 'Sewa, transportasi, perizinan & notaris di jurnal proyek LL.',
+    lain: 'Beban lain-lain di jurnal proyek LL (fee, reimburse, invoice).',
+  };
+  /** Sel jurnal LL; beban bertanda negatif. null bila tidak ada baris di periode ini. */
+  const selDev = (k: KategoriL1): Sel | null => {
+    const v = dev[k];
+    if (!v) return null;
+    return sel(k === 'penjualan' ? v.nilai : -v.nilai, 'aktual', [S_LL], CAT_DEV[k]);
+  };
+  /** Gabungkan sel villa/standar dengan sel jurnal LL pada kolom Loonars 1. */
+  const plusDev = (asal: Sel, k: KategoriL1): Sel => {
+    const d = selDev(k);
+    if (!d) return asal;
+    if (asal.status === 'tidak_berlaku' || asal.status === 'tidak_tersedia') return d;
+    return jumlahSel([asal, d], [asal.catatan, d.catatan].filter(Boolean).join(' + '));
+  };
+  const penjualanL1 = dev.penjualan?.nilai ?? 0;
 
   // ── Penyusutan ────────────────────────────────────────────────────────────
   const jadwal = jadwalPenyusutan(m, data);
@@ -173,6 +189,11 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
   const pos: Record<KunciPos, Record<Kolom, Sel>> = {
     pendapatanKotor: {
       L1: selL1((b) => b.revenue, 'aktual', 'Total dibayar tamu (sudah setelah diskon/voucher); diakui per bulan check-in.'),
+      L2: tidakBerlaku('Loonars 2 belum beroperasi sebagai hospitality.'),
+      holding: tidakBerlaku(),
+    },
+    pendapatanUnit: {
+      L1: selDev('penjualan') ?? sel(0, 'nol_kebijakan', [S_LL], 'Tidak ada closing unit villa Loonars 1 di jurnal LL pada periode ini.'),
       L2: selL2Tahunan('4-02', 'Pendapatan penjualan'),
       holding: tidakBerlaku(),
     },
@@ -184,36 +205,37 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
     komisiOta: { L1: selL1((b) => -b.komisiOta, 'aktual', 'Komisi per channel (Cloudbeds).'), L2: tidakBerlaku(), holding: tidakBerlaku() },
     hpp: {
       L1: selL1((b) => -b.cogs, 'estimasi', 'COGS STANDAR per malam terisi (dasar bagi hasil investor), bukan tagihan aktual.'),
+      L2: tidakBerlaku(),
+      holding: tidakBerlaku(),
+    },
+    hppUnit: {
+      L1: selDev('hpp') ?? sel(0, 'nol_kebijakan', [S_LL], 'Tidak ada biaya pembangunan di jurnal LL pada periode ini.'),
       L2: selL2Tahunan('5-03', 'Harga pokok'),
       holding: tidakBerlaku(),
     },
     gaji: {
-      L1: selL1((b) => -b.payroll, 'estimasi', 'Gaji staf villa = jumlah staf × gaji standar (laporan villa), bukan slip aktual.'),
+      L1: plusDev(selL1((b) => -b.payroll, 'estimasi', 'Gaji staf villa = jumlah staf × gaji standar (laporan villa), bukan slip aktual.'), 'gaji'),
       L2: tidakBerlaku('Upah konstruksi dikapitalisasi ke persediaan unit.'),
       holding: gajiHolding,
     },
-    listrikAir: { L1: belumTercatat(`Tagihan PLN/PDAM aktual villa belum tercatat. ${CAT_STANDAR}`), L2: tidakBerlaku(), holding: belumTercatat('Belum ada pencatatan biaya kantor holding.') },
+    listrikAir: { L1: plusDev(belumTercatat(`Tagihan PLN/PDAM aktual villa belum tercatat. ${CAT_STANDAR}`), 'listrikAir'), L2: tidakBerlaku(), holding: belumTercatat('Belum ada pencatatan biaya kantor holding.') },
     laundry: { L1: belumTercatat(`Laundry aktual ada di pengajuan biaya villa tetapi belum dipetakan. ${CAT_STANDAR}`), L2: tidakBerlaku(), holding: tidakBerlaku() },
     pemeliharaan: { L1: belumTercatat('Biaya maintenance villa belum tercatat.'), L2: tidakBerlaku('Masih tahap pembangunan.'), holding: tidakBerlaku() },
     pemasaran: {
-      L1: belumTercatat('Biaya iklan/promosi villa belum tercatat (komisi OTA disajikan terpisah).'),
+      L1: plusDev(belumTercatat('Biaya iklan/promosi villa belum tercatat (komisi OTA disajikan terpisah).'), 'pemasaran'),
       L2: selL2Tahunan('6-04', 'Fee marketing'),
       holding: belumTercatat('Belum ada pencatatan biaya pemasaran holding.'),
     },
     teknologi: { L1: belumTercatat(`Langganan software villa belum tercatat per kategori. ${CAT_STANDAR}`), L2: tidakBerlaku(), holding: belumTercatat('Belum ada pencatatan biaya software holding.') },
-    administrasi: { L1: belumTercatat('Biaya administrasi villa belum tercatat.'), L2: belumTercatat('Biaya administrasi proyek belum dipetakan.'), holding: belumTercatat('Belum ada pencatatan biaya administrasi holding.') },
+    administrasi: { L1: plusDev(belumTercatat('Biaya administrasi villa belum tercatat.'), 'administrasi'), L2: belumTercatat('Biaya administrasi proyek belum dipetakan.'), holding: belumTercatat('Belum ada pencatatan biaya administrasi holding.') },
     bagiHasil: {
       L1: selL1((b) => -(b.bagiHasilInvestor + b.topupJaminan), 'aktual', 'Pool investor 70% + top-up jaminan, dihitung sistem villa sesuai kontrak (rumus beku). Belum ada catatan pembayarannya.'),
       L2: tidakBerlaku('Pembeli unit Loonars 2 = kontrak jual beli, bukan bagi hasil.'),
       holding: tidakBerlaku(),
     },
     lain: {
-      L1: opexLainL1 !== 0 ? selL1((b) => -b.opexLain, 'estimasi', 'OPEX villa di luar gaji (laporan villa).') : belumTercatat('Tidak ada pos OPEX lain di laporan villa.'),
-      L2: belumTercatat(
-        bebanLL > 0
-          ? `Beban jurnal proyek LL periode ini ${rp(bebanLL)} belum dipetakan ke properti (temuan F-1, menunggu keputusan owner D-1) — tidak dijumlahkan.`
-          : 'Beban operasional proyek belum dipetakan ke properti (temuan F-1).',
-      ),
+      L1: plusDev(opexLainL1 !== 0 ? selL1((b) => -b.opexLain, 'estimasi', 'OPEX villa di luar gaji (laporan villa).') : belumTercatat('Tidak ada pos OPEX lain di laporan villa.'), 'lain'),
+      L2: belumTercatat('Beban operasional Loonars 2 di luar modul 4 rekening belum dicatat per kategori.'),
       holding: belumTercatat('Belum ada pencatatan biaya lain holding.'),
     },
     penyusutan: {
@@ -229,7 +251,10 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
       holding: sel(0, 'nol_kebijakan', [S_KEBIJAKAN], 'Tidak ada pinjaman bank.'),
     },
     pajak: {
-      L1: tidakBerlaku('PPh badan atas laba villa dihitung di tingkat holding.'),
+      L1:
+        penjualanL1 > 0
+          ? sel(-bulat((penjualanL1 * 2.5) / 100), 'estimasi', [S_KEBIJAKAN, S_LL], 'PPh final 2,5% atas penjualan unit villa Loonars 1 (PP 34/2016) — estimasi. PPh badan atas laba villa dihitung di tingkat holding.')
+          : tidakBerlaku('PPh badan atas laba villa dihitung di tingkat holding.'),
       L2: !desember
         ? sel(0, 'nol_kebijakan', [S_KEBIJAKAN], 'PPh final 2,5% terutang saat pengalihan unit (31 Des).')
         : (() => {
@@ -247,8 +272,8 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
     const s = Object.fromEntries((['L1', 'L2', 'holding'] as Kolom[]).map((k) => [k, jumlahSel(kunci.map((x) => pos[x][k]))])) as Record<Kolom, Sel>;
     return baris(kode, label, jenis, s, kunci.flatMap((x) => [pos[x].L1, pos[x].L2, pos[x].holding]));
   };
-  const kNet: KunciPos[] = ['pendapatanKotor', 'diskon', 'komisiOta'];
-  const kGp: KunciPos[] = [...kNet, 'hpp'];
+  const kNet: KunciPos[] = ['pendapatanKotor', 'pendapatanUnit', 'diskon', 'komisiOta'];
+  const kGp: KunciPos[] = [...kNet, 'hpp', 'hppUnit'];
   const kOpex: KunciPos[] = ['gaji', 'listrikAir', 'laundry', 'pemeliharaan', 'pemasaran', 'teknologi', 'administrasi', 'bagiHasil', 'lain'];
   const kEbitda: KunciPos[] = [...kGp, ...kOpex];
   const kEbit: KunciPos[] = [...kEbitda, 'penyusutan'];
@@ -257,10 +282,12 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
 
   const daftar: BarisPl[] = [
     b('pendapatanKotor'),
+    b('pendapatanUnit'),
     b('diskon'),
     b('komisiOta'),
     sub('PL-04', 'Net Revenue', kNet),
     b('hpp'),
+    b('hppUnit'),
     sub('PL-06', 'Gross Profit', kGp),
     ...kOpex.map(b),
     sub('PL-16', 'EBITDA', kEbitda),
@@ -278,9 +305,7 @@ export function labaRugiInstitusional(m: ModelCfo, data: DataCfo, periode: Perio
     'Subtotal menjumlah pos yang tercatat saja. Pos "Belum tercatat" bukan nol — subtotal yang memuatnya ditandai Incomplete.',
     'Biaya villa adalah biaya STANDAR yang juga menjadi dasar bagi hasil investor; rumus bagi hasil tidak diubah oleh laporan ini.',
   ];
-  if (pendapatanLL !== 0) {
-    catatan.push(`Jurnal proyek LL mencatat pendapatan ${rp(pendapatanLL)} pada periode ini (penjualan unit villa) yang TIDAK dimasukkan — menunggu keputusan owner D-1 (temuan F-1).`);
-  }
+  catatan.push(`${KEPUTUSAN_D1} Jurnal proyek LL (pembangunan & penjualan villa Loonars 1) masuk kolom Loonars 1.${penjualanL1 ? ` Penjualan unit periode ini ${rp(penjualanL1)}.` : ''}`);
   if (periode.bulan.length > bulanDihitung.length) {
     catatan.push(`Periode belum selesai: dihitung ${bulanDihitung.length} dari ${periode.bulan.length} bulan.`);
   }

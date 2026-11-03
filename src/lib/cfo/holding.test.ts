@@ -52,8 +52,27 @@ describe('laporan holding PT Loonars Mahakarya', () => {
     expect(lr['4-01'].L1).toBe(Math.round(bulan.reduce((a, b) => a + b.revenue, 0)));
     expect(lr['6-02'].L1).toBeLessThanOrEqual(0);
     expect(lr['6-03'].L1).toBeLessThanOrEqual(0);
-    const rek = h.rekonsiliasi.find((r) => r.label.startsWith('Laba L1'))!;
+    const rek = h.rekonsiliasi.find((r) => r.label.startsWith('Laba operasional villa L1'))!;
     expect(rek.cocok).toBe(true);
+  });
+
+  it('D-1: penjualan unit villa L1 dari jurnal LL = pendapatan PT, dengan HPP, beban proyek & PPh final', () => {
+    // fixture jurnal LL: 4-1001 1.763 M + 4-1002 145 jt; 5-1001 + 5-1003; 6-1007 + 6-1003
+    expect(lr['4-03'].L1).toBe(1_908_000_000);
+    expect(lr['5-04'].L1).toBe(-(499_828_028 + 316_854_000));
+    expect(lr['6-06'].L1).toBe(-(140_863_691 + 1_021_750));
+    expect(lr['8-01'].L1).toBe(-47_700_000); // 2,5% × 1,908 M
+    // laba L1 = operasional villa + pengembangan − PPh final
+    const operasi = h.rekonsiliasi.find((r) => r.label.startsWith('Laba operasional villa L1'))!.kiri;
+    expect(h.labaBersih.L1).toBe(operasi + 1_908_000_000 - 816_682_028 - 141_885_441 - 47_700_000);
+    // PKP tidak memuat laba penjualan unit (PPh final)
+    expect(h.pajak.pkp).toBeLessThan(operasi + 1);
+    // neraca: kas buku besar LL masuk kolom L1, saldo bank negatif ditandai
+    const kasLL = h.posisi.aset.find((b) => b.kode === '1-06')!;
+    expect(kasLL.L1).toBe(1_298_000_000 - 71_221_750 + 610_000_000 - 1_027_042_297);
+    expect(kasLL.catatan).toMatch(/PERLU VERIFIKASI: akun 1-1004/);
+    expect(h.posisi.aset.find((b) => b.kode === '1-07')!.L1).toBe(124_400_000);
+    expect(h.catatan.flatMap((c) => c.isi).join(' ')).toMatch(/B1 tercatat terjual dengan nilai Rp 0/);
   });
 
   it('konsolidasi = L1 + L2 + holding; uang investor bukan pendapatan', () => {
