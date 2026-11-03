@@ -258,7 +258,7 @@ produksi **hanya setelah persetujuan owner**, dalam bagian kecil, diverifikasi.
 | 2c | Snapshot baru dari villa (inventaris, KPI booking, biaya aktual) | 0065 + Mkhsistem | koordinasi svcmyb |
 | 3 | P&L, Neraca, Arus Kas (indirect) + budget | 0066 (`fin_anggaran`, `fin_aset_tetap`) | 2a–2b |
 | 4 | Unit economics + inventaris historis | — | 2c |
-| 5 | Investor reporting + distribusi | 0067 | D-6 |
+| 5 | Investor reporting: skema 70% dari profit + distribusi bulanan terhitung (D-6, tanpa register investor) | — | D-6 ✅ |
 | 6 | Konsolidasi + eliminasi + EBITDA normalisasi | 0068 | 3, 5 |
 | 7 | Proyeksi 12/24/36 + PE readiness | 0069 | 3–6 |
 | 8 | Ekspor PDF/Excel/data room | — | 3–7, D-7 |
@@ -302,7 +302,7 @@ dan panel Data Quality Warnings yang memuat F-1…F-12.
 | D-3 | **Satu badan hukum** (PT Loonars Mahakarya); L1, L2, LC = properti/lini | Konsolidasi = gabungan properti; eliminasi hanya antarproperti. |
 | D-4 | Saldo awal = **saldo yang ada di data per tanggal penetapan** | Pos yang belum pernah dicatat (mis. saldo rekening villa) tetap "tidak tersedia", tidak diisi nol. |
 | D-5 | Laporan tetap memakai **biaya standar** villa | Ditandai estimasi; Data Quality mengingatkan sebelum due diligence PE. |
-| D-6 | Daftar investor per jenis & dokumen perjanjian | **Masih ditunggu dari owner.** |
+| D-6 | **Tidak perlu register investor.** Investor reporting cukup menyebut skema: investor menerima **70% dari profit** | Modul Investor Reporting disederhanakan: skema 70% + distribusi bulanan terhitung (laporan villa). Tanpa tabel investor/kontrak/riwayat pembayaran; pemisahan 4 jenis investor tidak dibangun. |
 | D-7 | Boleh tambah **exceljs** | Tahap 8. |
 | D-8 | Pendapatan kamar diakui **per malam menginap** (laporan institusional saja) | Butuh kiriman pendapatan per malam dari villa (Tahap 2c, lewat snapshot MK Connect); laporan villa & bagi hasil tidak berubah. |
 

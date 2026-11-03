@@ -249,14 +249,14 @@ export function cekKualitasData(m: ModelCfo, data: DataCfo): RingkasanKualitas {
 
   // ── Investor ─────────────────────────────────────────────────────────────
   tambah({
-    id: 'register_investor',
+    id: 'skema_bagi_hasil_investor',
     area: 'investor',
-    status: 'tidak_lengkap',
-    judul: 'Register investor & kontrak',
-    isi: 'Belum ada register investor per jenis (saham / bagi hasil properti / pinjaman / convertible), dokumen perjanjian, maupun riwayat pembayaran distribusi. Bagi hasil villa hanya tersedia sebagai angka terhitung bulanan.',
-    tindakan: 'Keputusan owner D-6, lalu Tahap 5.',
+    status: 'lengkap',
+    judul: 'Skema bagi hasil investor: 70% dari profit',
+    isi: 'Keputusan owner D-6 (2026-11-03): investor reporting cukup menyatakan skema pembagian — investor properti menerima 70% dari profit (Loonars 1, dihitung sistem villa per bulan; top-up jaminan bila berlaku). Register investor per nama, dokumen perjanjian, dan riwayat pembayaran tidak dimasukkan ke sistem ini.',
+    tindakan: '—',
     rujukan: 'D-6',
-    sumber: [{ tabel: 'laporan_villa_bulanan', ket: 'rincian.bagi_hasil' }],
+    sumber: [{ tabel: 'laporan_villa_bulanan', ket: 'rincian.bagi_hasil (pool 70%)' }],
   });
 
   // ── Konsolidasi: rekonsiliasi lintas sumber ──────────────────────────────

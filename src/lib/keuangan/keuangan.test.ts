@@ -208,6 +208,9 @@ describe('kualitas data', () => {
     expect(id('kas_villa')!.status).toBe('tidak_lengkap');
     expect(id('ekuitas_plug')!.status).toBe('tidak_lengkap');
     expect(r.perArea.find((a) => a.area === 'neraca')!.status).toBe('tidak_lengkap');
+    // D-6: investor reporting cukup skema 70% dari profit
+    expect(id('skema_bagi_hasil_investor')).toMatchObject({ status: 'lengkap', judul: expect.stringMatching(/70%/) });
+    expect(id('register_investor')).toBeUndefined();
     expect(Object.keys(r)).not.toContain('skor');
     // urutan: Incomplete dulu
     expect(r.cek[0].status).toBe('tidak_lengkap');
