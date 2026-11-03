@@ -15,7 +15,7 @@ laba villa ↔ laporan villa memakai laba operasional L1. Dampak 2026 (data prod
 laba L1 +± Rp 897 jt. Data Quality: F-13 (B1 Rp 0, B2 baru DP, 5 unit belum terjual),
 F-14 (bagi hasil 13 unit), F-15 (bank 1-1004 −Rp 421 jt di buku LL).
 Kas buku LL di Owner Overview kini berlabel Loonars 1 (total kas tidak berubah).
-D-6 (daftar investor) masih ditunggu. Berikutnya: Tahap 2a (migrasi `fin_*`).
+D-6 (2026-11-03, owner): tidak perlu register investor — cukup sebut skema bagi hasil investor 70% dari profit (Data Quality: area Investor = Complete). Berikutnya: Tahap 2a (migrasi `fin_*`, nomor ≥ 0064 karena 0063 dipakai Loonars 2).
 
 ## 2026-11-02 — Institutional reporting: bagian tanpa perubahan skema — LIVE DI PRODUKSI
 

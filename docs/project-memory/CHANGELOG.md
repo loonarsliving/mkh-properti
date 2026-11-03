@@ -5,6 +5,9 @@ Built directly from `git log` on `main` (55 commits, oldest first). No entries a
 ## 2026-11-03 — Loonars 2: satu transfer gabungan untuk beberapa pengajuan ke rekening yang sama (migrasi 0063)
 - `_loonars2_bukti_transfer` langkah (d): bila tidak ada satu kode yang cocok, foto bukti dicocokkan ke semua kode terbuka (M-n, L2-n, cicilan) yang rekening tujuannya sama (nomor rekening di foto dipakai bila terbaca) — jumlah semuanya, atau tepat satu gabungan kode utuh (maks. 12). Lebih dari satu kemungkinan = ambigu. Setuju + bayar memakai fungsi yang sama dengan langkah (a)/(b). Insiden: owner membayar M-77+M-78+M-79 (Rp 7.590.500, rekening Vando) sekali transfer, sistem menjawab "tidak cocok"; pembayaran itu dicatat manual hari yang sama. Uji: `supabase/tests/loonars2_uji_bukti_gabungan.sql` (seluruh uji Loonars 2 lulus di Postgres 16 lokal).
 
+## 2026-11-03 — D-6: investor reporting = skema bagi hasil 70% dari profit
+- Tanpa register investor (keputusan owner). Data Quality area Investor kini Complete.
+
 ## 2026-11-03 — D-1: penjualan unit villa Loonars 1 (jurnal LL) = pendapatan PT
 - Laporan Holding & P&L institusional memuat jurnal proyek LL di kolom Loonars 1 (penjualan, HPP, beban, PPh final, neraca). Keputusan D-1…D-8 dicatat. Lihat CURRENT_STATE.md.
 
