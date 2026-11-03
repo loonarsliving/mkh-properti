@@ -3,6 +3,14 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-03 — Tahap 2a: migrasi 0064 `fin_*` — DIBANGUN & DIUJI LOKAL, BELUM DITERAPKAN
+
+Lihat DATABASE.md. Seluruh uji SQL CFO (0057–0064 + uji 0064 + 0064 dijalankan
+ulang) lulus di Postgres 16 lokal. Diperiksa read-only di produksi: belum ada objek
+`fin_*`, tidak ada bentrok nama trigger `jurnal`, `extensions.digest` tersedia,
+tidak ada jurnal bertanggal null. Menunggu persetujuan owner untuk diterapkan.
+Aplikasi belum membaca `fin_*` (tetap berjalan bila 0064 belum diterapkan).
+
 ## 2026-11-03 — Keputusan owner D-1…D-8; D-1 diterapkan — LIVE (PR #47, disetujui owner "bawa ke production")
 
 Keputusan lengkap: `docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md` §8.

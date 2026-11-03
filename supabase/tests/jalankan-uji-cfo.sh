@@ -23,3 +23,8 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0061_ai_cfo_gaji_hold
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_gaji.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0062_ai_cfo_tautan_pdf.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_pdf.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0063_loonars2_bukti_transfer_gabungan_satu_rekening.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0064_fin_struktur_buku_besar.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/fin_uji_struktur.sql
+# migrasi dijalankan ulang → harus idempoten
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0064_fin_struktur_buku_besar.sql

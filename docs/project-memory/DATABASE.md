@@ -2,6 +2,23 @@
 
 Supabase Postgres project. Project ref visible in hardcoded frontend URL / `supabase/config.toml` comment: `gluoioiimapyhchdasfl` (`https://gluoioiimapyhchdasfl.supabase.co`). No credentials, keys, or secrets are reproduced in this document (the anon/publishable key does appear in the app's own client-side source, which is intentional/expected for a Supabase anon key, but is not repeated here).
 
+
+## 2026-11-03 — Migrasi 0064: struktur buku besar institusional (`fin_*`) — BELUM DITERAPKAN
+
+Aditif; tabel `jurnal` tidak diubah (keputusan owner D-2). Tabel: `fin_entitas`
+(PT-LM), `fin_properti` (L1, L2, LC, HOLDING, ARSIP), `fin_peta_proyek` (LL→L1,
+LC→LC, HO→HOLDING, proyek dikunci→ARSIP), `fin_jurnal_dimensi` (append-only,
+pengecualian per nomor + penanda antarproperti), `fin_periode` + `fin_periode_log`
+(tutup buku per bulan), `fin_laporan_beku` (append-only, hash sha256 dihitung DB),
+`fin_peran` (viewer_laporan / auditor). Trigger `trg_jurnal_periode_ditutup` pada
+`jurnal` menolak insert/update/delete bertanggal di bulan berstatus `ditutup`
+(errcode 42501) — tidak berdampak sampai CFO menutup bulan. RPC: `fin_ambil_struktur`,
+`fin_periode_tutup` (menolak bila ada nomor jurnal timpang di bulan itu),
+`fin_periode_buka` (alasan ≥ 10 karakter), `fin_peta_ubah`, `fin_dimensi_catat`,
+`fin_laporan_bekukan`, `fin_peran_set`; semua tercatat di `cfo_audit_log`. RLS:
+baca = `fin_boleh_baca()` (CFO atau `fin_peran`); tulis hanya lewat RPC (CFO).
+Uji: `supabase/tests/fin_uji_struktur.sql` (dalam `jalankan-uji-cfo.sh`).
+
 ## Migration history
 55 migration files, `supabase/migrations/0001_...sql` through `0029_...sql` (audited: `0001`–`0029`, all present). This is an **append-only, incrementally-applied set relative to a pre-existing base schema** — the migration history does not contain `create table` statements for the app's core tables (`jurnal`, `pengajuan`, `aset`, `utang_bank`, `tukang_borongan`, `bayar_tukang`, `users_proyek`, `mkh_projects`, `loonars_fee`). Those tables are referenced (`alter table`, RPC bodies, frontend `sbGet`/`sbInsert` calls) as already existing. UNKNOWN — NEEDS CONFIRMATION: where/how those base tables were originally created (likely via the Supabase dashboard/SQL editor directly, predating this migration history).
 
