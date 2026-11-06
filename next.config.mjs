@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
 
   // Pembuat PDF Laporan Investor (route /api/laporan-investor/*) memakai
   // @react-pdf/renderer di Node runtime; paket ini dimuat apa adanya dari
@@ -11,6 +12,21 @@ const nextConfig = {
   // render PDF gagal di produksi (MODULE_NOT_FOUND Helvetica.cjs).
   outputFileTracingIncludes: {
     '/api/laporan-investor/**': ['./node_modules/pdfkit/js/standard-fonts/**', './node_modules/pdfkit/js/data/**'],
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self)" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+        ],
+      },
+    ];
   },
 
   // Halaman lama berbasis file .html sudah digantikan route Next.js.
