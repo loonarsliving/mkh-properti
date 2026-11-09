@@ -46,6 +46,10 @@ export function rpPdf(n: number | null | undefined): string {
   return r < 0 ? `(${idNum.format(-r)})` : idNum.format(r);
 }
 const pct = (n: number | null) => (n === null ? '-' : `${n.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`);
+const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const HARI_PENDEK = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const tglPendek = (iso: string) => `${Number(iso.slice(8, 10))} ${BULAN_PENDEK[Number(iso.slice(5, 7)) - 1]}`;
+const tglHari = (iso: string) => `${HARI_PENDEK[new Date(`${iso.slice(0, 10)}T00:00:00Z`).getUTCDay()]} ${tglPendek(iso)}`;
 /** Helvetica standar (WinAnsi) tidak punya beberapa simbol Unicode. */
 export function aman(t: string): string {
   return t.replace(/[−–]/g, '-').replace(/↔/g, '-').replace(/→/g, '->').replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/[^\u0000-ÿ—’‘“”•…]/g, '');
@@ -257,6 +261,7 @@ export function DokumenLoonars1({ m, bulan, dibuat }: { m: ModelCfo; bulan: Bula
 
 export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) {
   const l2 = m.l2;
+  const k = l2.kontraktor;
   return (
     <Kerangka judul="Laporan Loonars 2 — Penjualan Villa & Pembangunan" sub="Loonars 2 · Developer Loonars Living + Loonars Coffee" dibuat={dibuat}>
       <Kartu
@@ -304,26 +309,63 @@ export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) 
       {l2.danaTalangan > 0 && <Text style={s.paragraf}>{aman(`Dana talangan owner (saldo C negatif): ${rpPdf(l2.danaTalangan)}.`)}</Text>}
 
       <Text style={s.h2}>3. Pengeluaran pembangunan</Text>
+      <Text style={s.h3}>Material & lain-lain per unit</Text>
       <View style={s.tabel}>
         <View style={s.barisKepala}>
-          <Sel w="16%" tebal>Unit</Sel>
-          <Sel w="14%" tebal>Status</Sel>
-          <Sel w="18%" kanan tebal>Budget</Sel>
-          <Sel w="18%" kanan tebal>Aktual</Sel>
-          <Sel w="14%" kanan tebal>Realisasi</Sel>
-          <Sel w="20%" kanan tebal>Lewat budget</Sel>
+          <Sel w="30%" tebal>Unit</Sel>
+          <Sel w="30%" tebal>Status</Sel>
+          <Sel w="40%" kanan tebal>Material & lain-lain</Sel>
         </View>
         {l2.unit.filter((u) => u.aktual > 0 || u.sedangDibangun).map((u) => (
           <View key={u.id} style={s.baris} wrap={false}>
-            <Sel w="16%">{u.kode}</Sel>
-            <Sel w="14%">{u.statusBangun}</Sel>
-            <Sel w="18%" kanan>{rpPdf(u.budget)}</Sel>
-            <Sel w="18%" kanan>{rpPdf(u.aktual)}</Sel>
-            <Sel w="14%" kanan>{pct(u.realisasiPct)}</Sel>
-            <Sel w="20%" kanan>{u.overBudget > 0 ? rpPdf(u.overBudget) : '-'}</Sel>
+            <Sel w="30%">{u.kode}</Sel>
+            <Sel w="30%">{u.statusBangun}</Sel>
+            <Sel w="40%" kanan>{rpPdf(u.aktualTanpaKontraktor)}</Sel>
           </View>
         ))}
       </View>
+
+      <Text style={s.h3}>Pembayaran kontraktor villa (mingguan, tidak dipecah per unit)</Text>
+      <View style={s.tabel}>
+        <View style={s.barisKepala}>
+          <Sel w="35%" tebal>Minggu</Sel>
+          <Sel w="35%" tebal>Tanggal bayar</Sel>
+          <Sel w="30%" kanan tebal>Nominal</Sel>
+        </View>
+        {[...k.minggu, ...k.mingguTanpaBayar]
+          .sort((a, b) => a.mulai.localeCompare(b.mulai))
+          .map((w) => (
+            <View key={w.mulai} style={s.baris} wrap={false}>
+              <Sel w="35%">{`${tglPendek(w.mulai)} - ${tglPendek(w.selesai)}`}</Sel>
+              <Sel w="35%">{w.tanggalBayar.length ? w.tanggalBayar.map(tglHari).join(', ') : 'BELUM ADA PEMBAYARAN'}</Sel>
+              <Sel w="30%" kanan>{w.tanggalBayar.length ? rpPdf(w.nominal) : '-'}</Sel>
+            </View>
+          ))}
+        <View style={s.barisTotal} wrap={false}>
+          <Sel w="70%" tebal>Total pembayaran kontraktor</Sel>
+          <Sel w="30%" kanan tebal>{rpPdf(k.total)}</Sel>
+        </View>
+      </View>
+      {k.mingguTanpaBayar.length > 0 && (
+        <Text style={s.paragraf}>
+          {aman(`Perhatian: ${k.mingguTanpaBayar.length} minggu tanpa catatan pembayaran kontraktor (${k.mingguTanpaBayar.map((w) => tglPendek(w.mulai)).join(', ')}). Bila sudah ditransfer, pembayaran itu belum diajukan/dicatat di sistem sehingga biaya pembangunan di laporan ini lebih kecil dari sebenarnya.`)}
+        </Text>
+      )}
+      {k.tukangL1.total > 0 && (
+        <Text style={s.paragraf}>
+          {aman(
+            `Tidak termasuk upah tukang Loonars 1 yang diajukan lewat Loonars 2 (dibayar Sabtu/Minggu/Senin): ${k.tukangL1.pembayaran.map((x) => `${tglHari(x.tanggal)} ${rpPdf(x.nominal)}`).join(', ')} = ${rpPdf(k.tukangL1.total)}. Dicatat sebagai piutang ke Loonars 1, bukan biaya villa.`,
+          )}
+        </Text>
+      )}
+      <Text style={s.paragraf}>
+        {aman(
+          `Budget unit yang sedang dibangun ${rpPdf(l2.budgetUnitAktif)} · terpakai ${rpPdf(l2.aktualUnitAktif)} (material & lain-lain + kontraktor + utang toko)` +
+            (l2.budgetUnitAktif > 0 ? ` · realisasi ${pct((l2.aktualUnitAktif / l2.budgetUnitAktif) * 100)}` : '') +
+            (l2.aktualUnitAktif > l2.budgetUnitAktif ? ` · lewat budget ${rpPdf(l2.aktualUnitAktif - l2.budgetUnitAktif)}` : '') +
+            '.',
+        )}
+      </Text>
       {l2.proyek.map((p) => (
         <View key={p.id} wrap={false}>
           <Text style={s.h3}>{aman(`${p.nama} (dibiayai Loonars 2)`)}</Text>
@@ -359,6 +401,7 @@ export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) 
             ['Kas rekening (saldo positif)', l2.neraca.kas],
             ['Persediaan unit dalam pembangunan', l2.neraca.asetDalamPembangunan],
             ['Aset tetap dalam penyelesaian (Loonars Coffee)', l2.neraca.asetProyekLain],
+            ...(l2.neraca.piutangLoonars1 ? ([['Piutang ke Loonars 1 (upah tukang L1 dari rekening C)', l2.neraca.piutangLoonars1]] as const) : []),
             ['Jumlah aset', l2.neraca.totalAset, true],
             ['Utang toko (villa + proyek lain)', l2.neraca.utangToko + l2.neraca.utangProyekLain],
             ['Uang muka investor', l2.neraca.uangMukaInvestor],

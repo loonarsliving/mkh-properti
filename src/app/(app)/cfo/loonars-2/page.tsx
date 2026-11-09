@@ -104,6 +104,7 @@ export default function HalamanCfoL2() {
                     { label: 'Kas di rekening (A/B/D positif)', nilai: l2.neraca.kas },
                     { label: 'Aset dalam pembangunan (persediaan villa)', nilai: l2.neraca.asetDalamPembangunan },
                     ...(l2.proyek.length ? [{ label: `Aset tetap dalam penyelesaian (${l2.proyek.map((x) => x.nama).join(', ')})`, nilai: l2.neraca.asetProyekLain }] : []),
+                    ...(l2.neraca.piutangLoonars1 ? [{ label: 'Piutang ke Loonars 1 (upah tukang L1 dari rekening C)', nilai: l2.neraca.piutangLoonars1 }] : []),
                     { label: 'Total aset', nilai: l2.neraca.totalAset, tebal: true },
                     { label: 'Utang toko bangunan (villa)', nilai: l2.neraca.utangToko },
                     ...(l2.proyek.length ? [{ label: `Utang toko ${l2.proyek.map((x) => x.nama).join(', ')}`, nilai: l2.neraca.utangProyekLain }] : []),
