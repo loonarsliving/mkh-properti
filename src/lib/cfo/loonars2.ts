@@ -18,7 +18,7 @@
  */
 import { AKUN_KAS } from '@/lib/master';
 import type { DataCfo, L2Unit, Sumber } from './tipe';
-import { angka, bulat, jumlah, teks } from './util';
+import { angka, bulat, hariIniJakarta, jumlah, keTanggal, tambahHari, teks } from './util';
 
 export const KATEGORI_KONSTRUKSI = ['material', 'tukang', 'lain_konstruksi'] as const;
 
@@ -38,11 +38,73 @@ export interface UnitL2 {
   budget: number; // biaya bangun
   budgetDenganBuffer: number;
   aktual: number; // terpakai konstruksi (termasuk utang toko disetujui)
+  /** aktual tanpa upah kontraktor/tukang — kontraktor dilaporkan mingguan, bukan per unit */
+  aktualTanpaKontraktor: number;
   realisasiPct: number | null;
   overBudget: number; // > budget + buffer
   dibangunTanpaPembeli: boolean;
   fee: number;
   proyeksiLaba: number;
+}
+
+/**
+ * PEMBAYARAN KONTRAKTOR (borongan tukang, a.n. Sarno) — keputusan owner
+ * 2026-11-09: kontraktor dibayar SEKALI SEMINGGU (Rabu/Kamis) untuk seluruh
+ * pekerjaan villa, jadi di laporan TIDAK dipecah ke unit AVARA/BANYU. Patokan
+ * = pembayaran mingguan itu: semua pengeluaran kategori 'tukang' dijumlah per
+ * minggu (Senin–Minggu), apa pun unit yang tertera di catatan sumbernya.
+ * Angka total tidak berubah — hanya cara menampilkannya.
+ */
+export interface MingguKontraktor {
+  mulai: string; // Senin
+  selesai: string; // Minggu
+  tanggalBayar: string[];
+  nominal: number;
+}
+
+export interface KontraktorL2 {
+  total: number;
+  jumlahMinggu: number;
+  minggu: MingguKontraktor[];
+  /** minggu (sejak pembayaran pertama s.d. minggu laporan) tanpa pembayaran */
+  mingguTanpaBayar: MingguKontraktor[];
+  terakhir: string | null;
+}
+
+function seninDari(iso: string): string {
+  const hari = keTanggal(iso).getUTCDay(); // 0 = Minggu
+  return tambahHari(iso, hari === 0 ? -6 : 1 - hari);
+}
+
+export function pembayaranKontraktorL2(data: DataCfo): KontraktorL2 {
+  const bayar = data.l2_pengeluaran.filter((d) => d.kategori === 'tukang').sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  if (!bayar.length) return { total: 0, jumlahMinggu: 0, minggu: [], mingguTanpaBayar: [], terakhir: null };
+  const perMinggu = new Map<string, MingguKontraktor>();
+  for (const d of bayar) {
+    const tgl = d.tanggal.slice(0, 10);
+    const mulai = seninDari(tgl);
+    const m = perMinggu.get(mulai) ?? { mulai, selesai: tambahHari(mulai, 6), tanggalBayar: [], nominal: 0 };
+    if (!m.tanggalBayar.includes(tgl)) m.tanggalBayar.push(tgl);
+    m.nominal += angka(d.nominal);
+    perMinggu.set(mulai, m);
+  }
+  const hariLaporan = data.dibuat_pada ? hariIniJakarta(new Date(data.dibuat_pada)) : bayar[bayar.length - 1].tanggal.slice(0, 10);
+  const mingguLaporan = seninDari(hariLaporan);
+  const kosong: MingguKontraktor[] = [];
+  for (let w = seninDari(bayar[0].tanggal.slice(0, 10)); w <= mingguLaporan; w = tambahHari(w, 7)) {
+    if (perMinggu.has(w)) continue;
+    // Minggu berjalan baru dianggap terlewat setelah lewat Kamis.
+    if (w === mingguLaporan && hariLaporan <= tambahHari(w, 3)) continue;
+    kosong.push({ mulai: w, selesai: tambahHari(w, 6), tanggalBayar: [], nominal: 0 });
+  }
+  const minggu = [...perMinggu.values()].sort((a, b) => a.mulai.localeCompare(b.mulai)).map((m) => ({ ...m, nominal: bulat(m.nominal) }));
+  return {
+    total: bulat(jumlah(bayar, (d) => d.nominal)),
+    jumlahMinggu: minggu.length,
+    minggu,
+    mingguTanpaBayar: kosong,
+    terakhir: bayar[bayar.length - 1].tanggal.slice(0, 10),
+  };
 }
 
 /**
@@ -193,6 +255,8 @@ export interface LaporanL2 {
   utangProyekLain: number;
   /** Belanja konstruksi gabungan: villa Loonars 2 (kas) + proyek lain (realisasi). */
   belanjaKonstruksiGabungan: number;
+  /** Pembayaran kontraktor mingguan — tidak dialokasikan per unit. */
+  kontraktor: KontraktorL2;
   sumber: Sumber[];
 }
 
@@ -205,6 +269,13 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
   const targetTanah = angka(set?.target_tanah);
   const nUnit = data.l2_unit.length || 1;
   const tanahPerUnit = targetTanah / nUnit;
+
+  const tukangPerUnit = new Map<number, number>();
+  for (const d of data.l2_pengeluaran) {
+    // Sama dengan loonars2_v_unit.terpakai_konstruksi: hanya pengeluaran rekening C.
+    if (d.kategori !== 'tukang' || d.unit_id == null || d.dari !== 'C') continue;
+    tukangPerUnit.set(d.unit_id, (tukangPerUnit.get(d.unit_id) ?? 0) + angka(d.nominal));
+  }
 
   const unit: UnitL2[] = data.l2_unit.map((u) => {
     const harga = angka(u.harga);
@@ -229,6 +300,7 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
       budget,
       budgetDenganBuffer: budget + buffer,
       aktual,
+      aktualTanpaKontraktor: bulat(Math.max(0, aktual - (tukangPerUnit.get(u.id) ?? 0))),
       realisasiPct: budget > 0 ? (aktual / budget) * 100 : null,
       overBudget: Math.max(0, aktual - (budget + buffer)),
       dibangunTanpaPembeli: sudahMulai && !terjual(u) && !u.is_unit_contoh,
@@ -393,6 +465,7 @@ export function laporanLoonars2(data: DataCfo): LaporanL2 {
     biayaProyekLain: bulat(biayaProyekLain),
     utangProyekLain: bulat(utangProyekLain),
     belanjaKonstruksiGabungan: bulat(biayaKonstruksiKas + biayaProyekLain),
+    kontraktor: pembayaranKontraktorL2(data),
     sumber: [
       { tabel: 'loonars2_v_unit', ket: 'harga efektif, terpakai konstruksi per unit' },
       { tabel: 'snapshot:proyek_konstruksi', ket: 'Loonars Coffee — budget & realisasi MK Connect' },
