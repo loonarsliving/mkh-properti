@@ -384,6 +384,9 @@ export function laporanHolding(
     baris('1-03', 'Persediaan unit villa dalam pembangunan', null, n2.asetDalamPembangunan, null),
     baris('1-04', 'Aset tetap — bangunan Loonars Coffee (biaya perolehan)', null, n2.asetProyekLain, null),
     baris('1-05', 'Akumulasi penyusutan', null, -hIni.penyusutan.akumulasi, null),
+    ...(n2.piutangLoonars1
+      ? [baris('1-10', 'Piutang ke Loonars 1 (upah tukang L1 dibayar dari rekening C Loonars 2)', null, n2.piutangLoonars1, null, 'Antarlini: berpasangan dengan utang Loonars 1 ke Loonars 2 (2-11).')]
+      : []),
     ...(nd
       ? [
           baris(
@@ -413,6 +416,9 @@ export function laporanHolding(
     baris('2-08', 'Utang gaji karyawan', null, null, utangGaji),
     baris('2-09', `Utang PPh ${tahunIni} (estimasi, belum disetor)`, hIni.pphFinalL1 || null, nol(hIni.pphFinal), hIni.pphBadan),
     ...(nd && nd.utang ? [baris('2-10', 'Utang — buku besar proyek LL', nd.utang, null, null)] : []),
+    ...(n2.piutangLoonars1
+      ? [baris('2-11', 'Utang ke Loonars 2 (upah tukang Loonars 1 dibayar dari rekening C)', n2.piutangLoonars1, null, null, 'Upah tukang Loonars 1 yang diajukan lewat sistem Loonars 2 (Sabtu/Minggu/Senin). Belum masuk laba rugi villa Loonars 1.')]
+      : []),
   ];
   // Kolom dengan komponen "tidak tersedia" (mis. kas villa belum dicatat) → total null, bukan nol.
   const sumKolom = (rows: BarisLr[], k: 'L1' | 'L2' | 'holding') =>

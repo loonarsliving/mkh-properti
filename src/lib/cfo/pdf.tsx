@@ -325,7 +325,7 @@ export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) 
         ))}
       </View>
 
-      <Text style={s.h3}>Pembayaran kontraktor (mingguan, tidak dipecah per unit)</Text>
+      <Text style={s.h3}>Pembayaran kontraktor villa (mingguan, tidak dipecah per unit)</Text>
       <View style={s.tabel}>
         <View style={s.barisKepala}>
           <Sel w="35%" tebal>Minggu</Sel>
@@ -349,6 +349,13 @@ export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) 
       {k.mingguTanpaBayar.length > 0 && (
         <Text style={s.paragraf}>
           {aman(`Perhatian: ${k.mingguTanpaBayar.length} minggu tanpa catatan pembayaran kontraktor (${k.mingguTanpaBayar.map((w) => tglPendek(w.mulai)).join(', ')}). Bila sudah ditransfer, pembayaran itu belum diajukan/dicatat di sistem sehingga biaya pembangunan di laporan ini lebih kecil dari sebenarnya.`)}
+        </Text>
+      )}
+      {k.tukangL1.total > 0 && (
+        <Text style={s.paragraf}>
+          {aman(
+            `Tidak termasuk upah tukang Loonars 1 yang diajukan lewat Loonars 2 (dibayar Sabtu/Minggu/Senin): ${k.tukangL1.pembayaran.map((x) => `${tglHari(x.tanggal)} ${rpPdf(x.nominal)}`).join(', ')} = ${rpPdf(k.tukangL1.total)}. Dicatat sebagai piutang ke Loonars 1, bukan biaya villa.`,
+          )}
         </Text>
       )}
       <Text style={s.paragraf}>
@@ -394,6 +401,7 @@ export function DokumenLoonars2({ m, dibuat }: { m: ModelCfo; dibuat: string }) 
             ['Kas rekening (saldo positif)', l2.neraca.kas],
             ['Persediaan unit dalam pembangunan', l2.neraca.asetDalamPembangunan],
             ['Aset tetap dalam penyelesaian (Loonars Coffee)', l2.neraca.asetProyekLain],
+            ...(l2.neraca.piutangLoonars1 ? ([['Piutang ke Loonars 1 (upah tukang L1 dari rekening C)', l2.neraca.piutangLoonars1]] as const) : []),
             ['Jumlah aset', l2.neraca.totalAset, true],
             ['Utang toko (villa + proyek lain)', l2.neraca.utangToko + l2.neraca.utangProyekLain],
             ['Uang muka investor', l2.neraca.uangMukaInvestor],
