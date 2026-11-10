@@ -2,7 +2,7 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-11-10 — Loonars 2: bukti transfer menyebut kode + pilih kode saat ambigu (migrasi 0070)
+## 2026-11-10 — Loonars 2: bukti transfer menyebut kode + pilih kode saat ambigu (migrasi 0070 — LIVE; total DP Vando dicatat → kontrak D-1/D-2; M-100 dicatat dibayar dari foto owner)
 - Insiden: M-100 & M-101 sama-sama Rp 3 jt ke rekening yang sama; foto owner → "ambigu"; foto ulang "L2 m100" tidak dikenali dan jatuh ke modul slip gaji MK Connect; "L2 bayar M-n" pun tidak bisa untuk kode yang masih menunggu. `_loonars2_bayar_kode_bukti` (nominal foto harus = total kode; owner + menunggu = disetujui lalu dibayar, fungsi sama dengan 0063), `_loonars2_bukti_transfer_utama` membaca kode di keterangan foto dan menyimpan pending `pilih_bukti` (30 menit) saat ambigu sehingga owner cukup membalas "M-100", aksi `bayar_kelompok` dengan foto/pending memakai jalur baru. Uji `supabase/tests/loonars2_uji_bukti_kode.sql`.
 - Pasangan MK Connect: "L2 m100"/"M-100" dikenali, jawaban total bentuk bebas Vando ("1. DP Kaca - Rp 3.000.000 total Rp 11.652.000") terbaca, pengajuan satu baris tanpa kata kunci ("L2 DP kaca 3 jt BCA …") tidak lagi dibalas daftar perintah, foto berketerangan tak dikenali tetap ke pencocok bukti transfer, jawaban tanpa pertanyaan yang menunggu dibalas jujur (bukan asisten umum).
 

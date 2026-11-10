@@ -128,7 +128,9 @@ begin
   if nullif(p_data ->> 'bukti_url', '') is not null then
     return public._loonars2_bayar_kode_bukti(p_user, v_kode, nullif(p_data ->> 'nominal', '')::numeric, p_data ->> 'bukti_url');
   end if;
-  delete from public.loonars2_wa_pending where nomor = p_user.nomor and aksi = 'pilih_bukti' and kedaluwarsa_pada > now()
+  -- Pending dipakai sekali: dikedaluwarsakan (bukan dihapus), pola yang sama dengan fungsi pending lain.
+  update public.loonars2_wa_pending set kedaluwarsa_pada = now() - interval '1 second'
+   where nomor = p_user.nomor and aksi = 'pilih_bukti' and kedaluwarsa_pada > now()
   returning * into v_pend;
   return public._loonars2_bayar_kode_bukti(p_user, v_kode, nullif(v_pend.data ->> 'nominal', '')::numeric, v_pend.data ->> 'bukti_url');
 end;
