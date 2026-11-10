@@ -161,6 +161,23 @@ export interface L2Pengajuan {
   minggu_ke: number | null;
   retensi: boolean;
   pesanan_id: number | null;
+  kontrak_dp_id?: number | null;
+}
+
+/** Kontrak DP (migrasi 0065): total nilai yang disebut pelaksana saat mengajukan DP, dan sisanya. */
+export interface L2KontrakDp {
+  id: number;
+  kode: string;
+  item: string;
+  penerima: string | null;
+  total: number;
+  diajukan_oleh: string | null;
+  dibuat_pada: string;
+  dibayar: number;
+  disetujui: number;
+  menunggu: number;
+  sisa: number;
+  status: 'berjalan' | 'lunas' | 'melebihi' | 'batal';
 }
 
 export interface L2Toko {
