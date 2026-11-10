@@ -11,6 +11,25 @@
 > tidak punya akses tulis ke transaksi. Bagian di bawah menggambarkan keadaan
 > sebelum AI CFO.
 
+## Prinsip owner untuk AI CFO / sistem (2026-11-10)
+
+Arahan owner setelah sistem mengirim "Pak Avi minta total harga untuk DP…" ke pelaksana:
+"Jangan pernah bawa saya lagi. MKH sistem adalah CFO AI sendiri, jadi harus bisa berpikir
+sendiri ketika sebuah pengajuan tidak lengkap, lebih teliti, terus menyempurnakan diri."
+
+1. **Bersuara sebagai sistem/CFO sendiri.** Pesan ke pelaksana/staf tidak pernah
+   mengatasnamakan owner, menyebut nama owner, atau "persetujuan owner" (migrasi 0067
+   membersihkan pesan Loonars 2; uji `loonars2_uji_total_dp_susulan.sql` menjaga agar
+   tidak muncul lagi). Pesan KE owner boleh tetap menyapa owner.
+2. **Periksa kelengkapan sendiri sebelum meneruskan.** Pengajuan yang kurang data
+   (rekening tujuan — 0056, total DP — 0064/0066, unit — 0047) ditahan dan ditanyakan
+   oleh sistem; data yang dijawab disimpan terstruktur (mis. kontrak DP 0065) dan dipakai
+   untuk mengecek pembayaran berikutnya.
+3. **Batas pengaman tetap berlaku:** angka dihitung kode, bukan model; keputusan uang
+   (setuju/tolak/transfer) tetap di owner. "Berkembang sendiri" diwujudkan sebagai
+   pemeriksaan baru yang ditambahkan bertahap dan diuji, bukan model yang mengubah aturan
+   keuangannya sendiri.
+
 ## Status: NOT IMPLEMENTED in this repository.
 
 No AI/LLM SDK, API client, prompt, model reference, or agent framework of any kind exists in this codebase. Searched for Gemini, OpenAI, Anthropic/Claude, and generic "AI"/"agent" code references across all `.html` files and the `supabase/` directory — none found.
