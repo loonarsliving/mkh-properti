@@ -157,6 +157,11 @@ Fungsi baru `_loonars2_kunci_toko`, `_loonars2_cek_utang_double`; `_loonars2_car
 ## 2026-10-13 — migrasi 0046 (tabel `loonars2_akses_web`) — LIVE (0046a–c)
 - Tabel baru `loonars2_akses_web (id, email, nama, dibuat_pada)`, unik `lower(email)`, RLS: CFO kelola, pemilik email hanya baca barisnya, trigger audit. Menggantikan kebutuhan baris kedua di `users_proyek` (email unik di sana). `loonars2_boleh_lihat()` diperbarui. Seed: vando@haluoleo.id.
 
+## 2026-11-10 — migrasi 0069 (Tahap 2a buku besar) — DISIAPKAN, BELUM DITERAPKAN
+- Tabel baru (RLS, baca via `fin_boleh`): `fin_entitas`, `fin_properti`, `fin_akun`, `fin_pemetaan_proyek`, `fin_jurnal_dimensi`, `fin_peran`, `fin_periode`, `fin_laporan_beku` (append-only). View `fin_v_jurnal` (security_invoker). Fungsi: `fin_peran_saya`, `fin_boleh`, `fin_tutup_periode`, `fin_buka_periode`, `fin_bekukan_laporan`, `_fin_tolak_periode_tertutup`, `_fin_aktor`, `_fin_tolak_ubah_laporan_beku`.
+- Trigger baru di `public.jurnal`: `trg_jurnal_periode_tertutup` (BEFORE INSERT/UPDATE/DELETE) — hanya menolak bila tanggal (lama/baru) jatuh di bulan berstatus `ditutup`. Sinkronisasi MK Connect yang menulis jurnal bertanggal di bulan tertutup akan ditolak (disengaja).
+- `cfo_ambil_data` menambah kunci `fin_periode`.
+
 ## 2026-11-10 — migrasi 0068 (CFO memeriksa kelengkapan) — LIVE
 - Kolom baru: `loonars2_settings.nota_wajib_minimal` (numeric, default 1000000, 0 = nonaktif), `loonars2_kontrak_dp.dibayar_luar` (numeric, default 0). View `loonars2_v_kontrak_dp` memperhitungkan `dibayar_luar` dan menambah kolom itu di akhir.
 - Fungsi baru: `_loonars2_tempel_ket`, `_loonars2_qty_satuan`, `_loonars2_kunci_barang`, `_loonars2_perlu_nota`, `_loonars2_cek_nota`, `_loonars2_teks_minta_nota`, `_loonars2_wa_nota`, `_loonars2_cari_dobel`, `_loonars2_ket_harga`, `_loonars2_cek_dobel_harga`, `_loonars2_teks_dobel`; diganti: `_loonars2_cek_satu_dp`, `_loonars2_teks_minta_total_dp`, `_loonars2_wa_total_dp`, `loonars2_tautkan_kontrak_dp`, `_loonars2_teks_kontrak_dp`; `_loonars2_wa_jalankan` menambah cek nota, dobel/harga, aksi `nota`/`tanpa_nota`.
