@@ -23,3 +23,5 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0061_ai_cfo_gaji_hold
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_gaji.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0062_ai_cfo_tautan_pdf.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_pdf.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0069_fin_buku_besar_tahap_2a.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/cfo_uji_buku_besar.sql

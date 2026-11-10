@@ -258,3 +258,19 @@ describe('kesiapan investasi', () => {
     expect(barisKesiapanWa(r, 'u').join('\n')).not.toContain('Pak Avi');
   });
 });
+
+describe('kunci periode (Tahap 2a)', () => {
+  it('tanpa data fin_periode: teks lama; dengan data: bulan lampau belum ditutup terdaftar', () => {
+    const d = dataLengkap();
+    const m = susunModelCfo(d, HARI);
+    expect(cekKualitasData(m, d).cek.find((c) => c.id === 'kunci_periode')!.isi).toContain('Belum ada kunci periode');
+    const bulanJurnal = [...new Set(d.jurnal_bulanan.map((j) => j.bulan))].filter((b) => b < HARI.slice(0, 7)).sort();
+    const d2 = { ...d, fin_periode: [] };
+    const c2 = cekKualitasData(m, d2).cek.find((c) => c.id === 'kunci_periode')!;
+    expect(c2.status).toBe(bulanJurnal.length ? 'perlu_verifikasi' : 'lengkap');
+    const d3 = { ...d, fin_periode: bulanJurnal.map((periode) => ({ periode, status: 'ditutup' as const, ditutup_pada: null })) };
+    expect(cekKualitasData(m, d3).cek.find((c) => c.id === 'kunci_periode')!.status).toBe('lengkap');
+    const t = kesiapanInvestasi(m, d3).butir.find((b) => b.id === 'tutup_buku')!;
+    expect(t.bukti?.href).toBe('/cfo/buku-besar');
+  });
+});

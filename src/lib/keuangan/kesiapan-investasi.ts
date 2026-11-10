@@ -138,11 +138,13 @@ export function kesiapanInvestasi(m: ModelCfo, data: DataCfo): RingkasanKesiapan
       id: 'tutup_buku',
       kelompok: 'kontrol',
       diminta: 'Tutup buku bulanan yang terkunci — angka yang sudah dilaporkan tidak berubah diam-diam',
-      posisi: 'Jurnal diperiksa debit = kredit dan akun COA setiap hari; arsip tutup buku AI CFO membekukan ringkasan, tetapi buku besar belum dikunci per periode.',
-      langkah: 'Kunci periode buku besar + laporan beku per bulan.',
-      pelaksana: 'sistem',
-      tahap: '2a',
-      bukti: { label: 'Meja Kerja CFO', href: '/cfo/kerja' },
+      posisi: data.fin_periode
+        ? `Kunci periode buku besar tersedia; ${data.fin_periode.filter((p) => p.status === 'ditutup').length} bulan sudah ditutup. Jurnal diperiksa debit = kredit dan akun COA setiap hari.`
+        : 'Jurnal diperiksa debit = kredit dan akun COA setiap hari; arsip tutup buku AI CFO membekukan ringkasan, tetapi buku besar belum dikunci per periode.',
+      langkah: data.fin_periode ? 'Tutup bulan-bulan lampau yang sudah final (debit = kredit).' : 'Kunci periode buku besar + laporan beku per bulan.',
+      pelaksana: data.fin_periode ? 'owner' : 'sistem',
+      tahap: data.fin_periode ? undefined : '2a',
+      bukti: data.fin_periode ? { label: 'Buku Besar & Periode', href: '/cfo/buku-besar' } : { label: 'Meja Kerja CFO', href: '/cfo/kerja' },
       cek,
     });
   }

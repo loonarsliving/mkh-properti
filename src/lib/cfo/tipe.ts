@@ -225,6 +225,8 @@ export interface DataCfo {
   utang_bank: UtangBank[];
   /** saldo rekening tercatat terbaru per (lini, rekening) — cfo_saldo_rekening */
   saldo_rekening?: SaldoRekening[];
+  /** status kunci periode buku besar (migrasi 0069); tidak ada sebelum migrasi diterapkan */
+  fin_periode?: { periode: string; status: 'buka' | 'ditutup'; ditutup_pada: string | null }[];
   snapshot: Snapshot[];
   kesegaran: Record<string, string | null>;
   sync_log: SyncLog[];

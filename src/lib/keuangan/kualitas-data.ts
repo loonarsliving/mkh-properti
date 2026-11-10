@@ -88,16 +88,35 @@ export function cekKualitasData(m: ModelCfo, data: DataCfo): RingkasanKualitas {
     sumber: [{ tabel: 'jurnal' }],
   });
 
-  tambah({
-    id: 'kunci_periode',
-    area: 'kontrol',
-    status: 'perlu_verifikasi',
-    judul: 'Kunci periode & reproducibility laporan',
-    isi: 'Belum ada kunci periode pada buku besar: transaksi bertanggal lampau masih bisa ditambah setelah laporan dibagikan. Arsip tutup buku membekukan ringkasan AI CFO, bukan buku besar.',
-    tindakan: 'Tahap 2a: tabel fin_periode + fin_laporan_beku (perlu persetujuan skema).',
-    rujukan: 'F-12',
-    sumber: [{ tabel: 'cfo_laporan_bulanan' }],
-  });
+  // Kunci periode (Tahap 2a, migrasi 0069): bulan lampau yang berisi jurnal harus sudah ditutup.
+  if (data.fin_periode) {
+    const ditutup = new Set(data.fin_periode.filter((p) => p.status === 'ditutup').map((p) => p.periode));
+    const bulanIni = m.hariIni.slice(0, 7);
+    const belum = [...new Set(data.jurnal_bulanan.map((j) => j.bulan))].filter((b) => b < bulanIni && !ditutup.has(b)).sort();
+    tambah({
+      id: 'kunci_periode',
+      area: 'kontrol',
+      status: belum.length ? 'perlu_verifikasi' : 'lengkap',
+      judul: 'Kunci periode & reproducibility laporan',
+      isi: belum.length
+        ? `Kunci periode buku besar sudah tersedia, tetapi ${belum.length} bulan berisi jurnal belum ditutup: ${belum.map(labelBulan).join(', ')}. Selama belum ditutup, transaksi bertanggal di bulan itu masih bisa ditambah/diubah.`
+        : 'Semua bulan lampau yang berisi jurnal sudah ditutup; koreksi hanya lewat jurnal penyesuaian di periode berjalan.',
+      tindakan: belum.length ? 'Tutup bulan yang sudah final di AI CFO → Buku Besar & Periode (syarat: debit = kredit).' : '—',
+      rujukan: 'F-12',
+      sumber: [{ tabel: 'fin_periode' }, { tabel: 'jurnal', ket: 'bulan berisi transaksi' }],
+    });
+  } else {
+    tambah({
+      id: 'kunci_periode',
+      area: 'kontrol',
+      status: 'perlu_verifikasi',
+      judul: 'Kunci periode & reproducibility laporan',
+      isi: 'Belum ada kunci periode pada buku besar: transaksi bertanggal lampau masih bisa ditambah setelah laporan dibagikan. Arsip tutup buku membekukan ringkasan AI CFO, bukan buku besar.',
+      tindakan: 'Tahap 2a: tabel fin_periode + fin_laporan_beku (perlu persetujuan skema).',
+      rujukan: 'F-12',
+      sumber: [{ tabel: 'cfo_laporan_bulanan' }],
+    });
+  }
 
   // ── Laba rugi ────────────────────────────────────────────────────────────
   // D-1 (2026-11-03): jurnal LL = pengembangan & penjualan villa Loonars 1 → kolom L1.

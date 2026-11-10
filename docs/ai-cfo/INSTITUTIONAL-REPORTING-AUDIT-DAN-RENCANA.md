@@ -263,6 +263,8 @@ produksi **hanya setelah persetujuan owner**, dalam bagian kecil, diverifikasi.
 | 7 | Proyeksi 12/24/36 + PE readiness | 0069 | 3–6 |
 | 8 | Ekspor PDF/Excel/data room | — | 3–7, D-7 |
 
+**Tahap 2a disiapkan 2026-11-10** sebagai migrasi `0069_fin_buku_besar_tahap_2a.sql` (nomor 0063–0068 terpakai modul Loonars 2): tanpa `fin_saldo_awal` — saldo awal per tanggal penetapan (D-4) dan posting (2b) menyusul. Lihat CHANGELOG.
+
 **Sudah dibangun 2026-11-02 (tanpa perubahan skema):** `/cfo/laba-rugi`,
 `/cfo/unit-economics`, `/cfo/kualitas-data` — lihat CURRENT_STATE.md. Ruang lingkupnya: kerangka P&L institusional per baris dengan status
 "belum tercatat" eksplisit dari sumber yang sudah ada, KPI channel/OTA ratio,
