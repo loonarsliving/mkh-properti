@@ -31,6 +31,8 @@ export const AKSI_WA_LOONARS2 = [
   'laporan_utang',
   'rekening',
   'tanpa_rekening',
+  'total_dp',
+  'tanpa_total_dp',
   'ya',
   'batal',
   'outbox_ambil',
