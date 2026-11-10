@@ -22,6 +22,7 @@ import {
   type L2Borongan,
   type L2Cicilan,
   type L2Pengajuan,
+  type L2KontrakDp,
   type L2Pengaturan,
   type L2Pengeluaran,
   type L2PenggunaWa,
@@ -87,6 +88,7 @@ interface Data {
   borongan: L2Borongan[];
   rab: L2Rab[];
   dibangun: { id: number; sedang_dibangun: boolean }[];
+  kontrakDp: L2KontrakDp[];
 }
 
 function pesanGalat(e: unknown): string {
@@ -108,7 +110,7 @@ function IsiLoonars2() {
   const muatUlang = useCallback(async () => {
     setGalat(null);
     try {
-      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun] =
+      const [rekening, unit, tipe, pengaturan, receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun, kontrakDp] =
         await Promise.all([
           sbQuery<L2Rekening>('loonars2_v_rekening', 'select=*&order=kode.asc'),
           sbQuery<L2Unit>('loonars2_v_unit', 'select=*&order=nomor.asc'),
@@ -127,8 +129,10 @@ function IsiLoonars2() {
           sbQuery<L2Borongan>('loonars2_v_borongan', 'select=*&order=id.asc'),
           sbQuery<L2Rab>('loonars2_v_rab_bahan', 'select=*'),
           sbQuery<{ id: number; sedang_dibangun: boolean }>('loonars2_units', 'select=id,sedang_dibangun'),
+          // Kontrak DP (migrasi 0065); halaman tetap jalan bila view belum ada.
+          sbQuery<L2KontrakDp>('loonars2_v_kontrak_dp', 'select=*&order=id.desc&limit=200').catch(() => [] as L2KontrakDp[]),
         ]);
-      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun });
+      setData({ rekening, unit, tipe, pengaturan: pengaturan[0], receipt, alokasi, pengajuan, pengeluaran, pengguna, audit, ringkasan, toko, utang, cicilan, borongan, rab, dibangun, kontrakDp });
     } catch (e) {
       setGalat(pesanGalat(e));
     }
@@ -734,6 +738,39 @@ function TabPengajuan({ data, jalankan, web }: { data: Data; jalankan: Jalankan;
           })}
         </div>
         <p className="mt-2 text-[10.5px] text-slate-500">Baris cicilan utang ada di tab Utang Toko. Satu kode dibayar sekaligus dengan satu bukti transfer.</p>
+      </Panel>
+    ) : null}
+    {data.kontrakDp.some((k) => k.status !== 'batal') ? (
+      <Panel judul="Kontrak DP — total & sisa" ikon="dokumen" padat>
+        <div className="overflow-x-auto">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Kode</th>
+                <th>Item</th>
+                <th className="text-right">Total</th>
+                <th className="text-right">Dibayar</th>
+                <th className="text-right">Disetujui/menunggu</th>
+                <th className="text-right">Sisa</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.kontrakDp.filter((k) => k.status !== 'batal').map((k) => (
+                <tr key={k.id}>
+                  <td className="font-mono">{k.kode}</td>
+                  <td>{k.item}{k.penerima ? <div className="text-[10px] text-slate-400">{k.penerima}</div> : null}</td>
+                  <td className="text-right">{rupiah(Number(k.total))}</td>
+                  <td className="text-right">{rupiah(Number(k.dibayar))}</td>
+                  <td className="text-right">{rupiah(Number(k.disetujui) + Number(k.menunggu))}</td>
+                  <td className={`text-right font-semibold ${Number(k.sisa) < 0 ? 'text-rose-600' : ''}`}>{rupiah(Number(k.sisa))}</td>
+                  <td>{k.status === 'melebihi' ? <span className="text-rose-600">Melebihi total</span> : k.status === 'lunas' ? 'Lunas' : 'Berjalan'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[10.5px] text-slate-500">Total disebut pelaksana saat mengajukan DP. Pelunasan/termin item yang sama (atau yang menyebut kode D-n) otomatis ditautkan; sisa = total − semua pengajuan yang tidak ditolak.</p>
       </Panel>
     ) : null}
     <Panel judul={`Pengajuan material/tukang — ${data.pengajuan.length}`} ikon="dokumen" padat>

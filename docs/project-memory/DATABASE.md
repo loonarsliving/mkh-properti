@@ -157,6 +157,10 @@ Fungsi baru `_loonars2_kunci_toko`, `_loonars2_cek_utang_double`; `_loonars2_car
 ## 2026-10-13 — migrasi 0046 (tabel `loonars2_akses_web`) — LIVE (0046a–c)
 - Tabel baru `loonars2_akses_web (id, email, nama, dibuat_pada)`, unik `lower(email)`, RLS: CFO kelola, pemilik email hanya baca barisnya, trigger audit. Menggantikan kebutuhan baris kedua di `users_proyek` (email unik di sana). `loonars2_boleh_lihat()` diperbarui. Seed: vando@haluoleo.id.
 
+## 2026-11-10 — migrasi 0064 + 0065 (DP pelaksana: total ditanya & disimpan sebagai kontrak) — LIVE
+- 0064: fungsi saja (`_loonars2_kata_dp`, `_loonars2_tempel_total_dp`, `_loonars2_teks_minta_total_dp`, `_loonars2_wa_total_dp`; `_loonars2_wa_jalankan` menambah cek DP + aksi `total_dp`/`tanpa_total_dp`). Pending memakai `loonars2_wa_pending.data._perlu_total_dp`.
+- 0065: tabel `loonars2_kontrak_dp` (kode D-n generated, item, penerima, total, kelompok_awal, diajukan_oleh; RLS SELECT `mkh_is_cfo()`, trigger audit), kolom `loonars2_material_requests.kontrak_dp_id` (FK, on delete restrict), view `loonars2_v_kontrak_dp` (security_invoker), trigger BEFORE INSERT `loonars2_material_requests_kontrak_dp`. `_loonars2_isi_dan_cek_dp` diganti (+ `_loonars2_cek_satu_dp`, `_loonars2_cari_kontrak_dp`, `_loonars2_kunci_dp`, `_loonars2_kata_lanjutan`, `_loonars2_tempel_lanjutan_dp`, `_loonars2_teks_kontrak_dp`); `_loonars2_teks_kelompok`/`_loonars2_teks_pengajuan` menambah baris kontrak.
+
 ## 2026-10-13 — migrasi 0045 (akses baca-saja pelaksana) — LIVE (0045a–b)
 - Fungsi baru: `loonars2_boleh_lihat()` (CFO atau `users_proyek.proyek_id = 'LOONARS2'`), `loonars2_web_lihat()` (jsonb read-only: proyeksi tanah, unit tanpa pembeli/harga/pembayaran, toko, utang, cicilan, pengajuan). Keduanya security definer, EXECUTE hanya `authenticated`.
 - Tidak ada tabel/kolom baru dan tidak ada policy SELECT baru pada `loonars2_*`: pelaksana tidak bisa membaca tabel langsung.
