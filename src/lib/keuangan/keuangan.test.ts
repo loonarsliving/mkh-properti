@@ -4,6 +4,8 @@ import { laporanHolding } from '@/lib/cfo/holding';
 import { susunModelCfo } from '@/lib/cfo/model';
 import type { DataCfo } from '@/lib/cfo/tipe';
 import { cekKualitasData } from './kualitas-data';
+import { barisKesiapanWa, kesiapanInvestasi } from './kesiapan-investasi';
+import { teksBriefingMingguan } from '@/lib/cfo/briefing';
 import { bandingLabaRugi, labaRugiInstitusional, type BarisPl } from './laba-rugi';
 import { daftarPeriode, periodeMemuat, periodeSebelumnya } from './periode';
 import { jumlahSel, kelengkapanDari, sel } from './status';
@@ -214,5 +216,45 @@ describe('kualitas data', () => {
     expect(Object.keys(r)).not.toContain('skor');
     // urutan: Incomplete dulu
     expect(r.cek[0].status).toBe('tidak_lengkap');
+  });
+});
+
+describe('kesiapan investasi', () => {
+  const data = dataLengkap();
+  const m = susunModelCfo(data, HARI);
+  const r = kesiapanInvestasi(m, data);
+
+  it('setiap butir punya status; jumlah = total; tanpa skor', () => {
+    expect(r.butir.length).toBeGreaterThanOrEqual(12);
+    expect(r.jumlah.lengkap + r.jumlah.perlu_verifikasi + r.jumlah.tidak_lengkap).toBe(r.butir.length);
+    expect(JSON.stringify(r)).not.toMatch(/skor|score/i);
+  });
+
+  it('status mengikuti pemeriksaan Data Quality terburuk', () => {
+    const neraca = r.butir.find((b) => b.id === 'neraca')!;
+    expect(neraca.cek.some((c) => c.id === 'ekuitas_plug')).toBe(true);
+    expect(neraca.status).toBe('tidak_lengkap');
+    const tutup = r.butir.find((b) => b.id === 'tutup_buku')!;
+    expect(tutup.status).not.toBe('lengkap');
+  });
+
+  it('butir di luar sistem tidak pernah Complete dari data', () => {
+    for (const id of ['legal', 'proyeksi']) expect(r.butir.find((b) => b.id === id)!.status).toBe('tidak_lengkap');
+  });
+
+  it('langkah berikutnya: hanya yang belum lengkap, maks 5, keputusan owner didahulukan', () => {
+    expect(r.langkahBerikutnya.length).toBeLessThanOrEqual(5);
+    expect(r.langkahBerikutnya.every((b) => b.status !== 'lengkap')).toBe(true);
+    const iOwner = r.langkahBerikutnya.findIndex((b) => b.pelaksana === 'owner');
+    const iSistem = r.langkahBerikutnya.findIndex((b) => b.pelaksana === 'sistem');
+    if (iOwner >= 0 && iSistem >= 0) expect(iOwner).toBeLessThan(iSistem);
+  });
+
+  it('laporan mingguan WA memuat bagian kesiapan dan tetap ≤ 4000 karakter', () => {
+    const w = teksBriefingMingguan(m, 'https://finance.haluoleo.id', undefined, r);
+    expect(w).toContain('Kesiapan investasi');
+    expect(w).toContain('https://finance.haluoleo.id/cfo/kesiapan-investasi');
+    expect(w.length).toBeLessThanOrEqual(4000);
+    expect(barisKesiapanWa(r, 'u').join('\n')).not.toContain('Pak Avi');
   });
 });

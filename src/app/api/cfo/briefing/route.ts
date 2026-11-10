@@ -1,4 +1,5 @@
 import { rpc, GalatAkses } from '@/lib/laporan-investor/server';
+import { kesiapanInvestasi } from '@/lib/keuangan/kesiapan-investasi';
 import { teksBriefingHarian, teksBriefingMingguan, teksPeringatanKritis, teksTutupBuku } from '@/lib/cfo/briefing';
 import { komentarVarians, laporanSebelum, ringkasBulan, siapTutupBuku } from '@/lib/cfo/kerja';
 import { ambilModel, type KredensialCfo } from '@/lib/cfo/server';
@@ -82,7 +83,7 @@ export async function POST(req: Request): Promise<Response> {
       if (jenis === 'harian' && k.jenis === 'wa') {
         await rpc(k, 'cfo_tindakan_sinkron', { p_daftar: kerja.tindakan }).catch((e: unknown) => console.error('sinkron tindakan', e));
       }
-      teks = jenis === 'harian' ? teksBriefingHarian(model, url, kerja) : teksBriefingMingguan(model, url, kerja);
+      teks = jenis === 'harian' ? teksBriefingHarian(model, url, kerja) : teksBriefingMingguan(model, url, kerja, kesiapanInvestasi(model, data));
       kunci = `${jenis}:${model.hariIni}`;
     }
 

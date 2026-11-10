@@ -7,6 +7,7 @@ import { kodeWa, type KerjaCfo, type RingkasBulan } from './kerja';
 import type { ModelCfo } from './model';
 import type { Peringatan } from './tipe';
 import { labelBulan, labelTanggal, persen, rp, rpRingkas } from './util';
+import { barisKesiapanWa, type RingkasanKesiapan } from '@/lib/keuangan/kesiapan-investasi';
 
 const IKON: Record<Peringatan['tingkat'], string> = { kritis: '🔴', tinggi: '🟠', sedang: '🟡', info: 'ℹ️' };
 const MAKS = 3900;
@@ -113,7 +114,7 @@ export function teksBriefingHarian(m: ModelCfo, url: string, kerja?: KerjaCfo): 
   );
 }
 
-export function teksBriefingMingguan(m: ModelCfo, url: string, kerja?: KerjaCfo): string {
+export function teksBriefingMingguan(m: ModelCfo, url: string, kerja?: KerjaCfo, kesiapan?: RingkasanKesiapan): string {
   const n = m.arusKas.skenario.normal;
   const minggu = n.mingguan.slice(0, 4).map((w) => `   ${w.label} (${labelTanggal(w.mulai)}): masuk ${rpRingkas(w.masuk)}, keluar ${rpRingkas(w.keluar)}, saldo ${rpRingkas(w.saldoAkhir)}`);
   const unit = m.l2.unit
@@ -146,6 +147,7 @@ export function teksBriefingMingguan(m: ModelCfo, url: string, kerja?: KerjaCfo)
         : ['🧾 *Urutan bayar yang disarankan:*', ...prioritas]),
       ...barisKerja(kerja, 6),
       ...(selisih.length ? ['', '🔎 *Rekonsiliasi belum cocok:*', ...selisih] : []),
+      ...(kesiapan ? barisKesiapanWa(kesiapan, url) : []),
       '',
       '⚠️ *Peringatan:*',
       ...barisPeringatan(m, 8, (p) => p.tingkat !== 'info'),

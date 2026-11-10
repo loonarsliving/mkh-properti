@@ -3,6 +3,11 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-10 — AI CFO: Kesiapan Investasi + pemeriksaan kelengkapan Loonars 2
+
+- `/cfo/kesiapan-investasi`: 13 butir yang biasa diminta investor, status dari pemeriksaan Data Quality, langkah berikutnya, bahan yang sudah bisa dibagikan; ringkasannya masuk laporan mingguan WA. Tanpa skor. Penutup butir "Incomplete" terbesar tetap rencana bertahap di `docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md` §6 — berikutnya **Tahap 2a** (buku besar tunggal, kunci periode, saldo awal; perlu persetujuan skema).
+- Loonars 2 (migrasi 0064–0068, LIVE): total DP ditanya & disimpan sebagai kontrak D-n, pesan ke pelaksana tanpa nama owner, nota wajib ≥ Rp 1 jt, penahanan pengajuan dobel, tanda harga janggal, pelunasan tanpa DP ditanya. Lihat CHANGELOG.md 2026-11-10.
+
 ## 2026-11-03 — Keputusan owner D-1…D-8; D-1 diterapkan — LIVE (PR #47, disetujui owner "bawa ke production")
 
 Keputusan lengkap: `docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md` §8.
