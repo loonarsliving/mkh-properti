@@ -26,6 +26,9 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0064_loonars2_dp_tany
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0065_loonars2_kontrak_dp.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0066_loonars2_minta_total_dp_susulan.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0067_loonars2_pesan_pelaksana_suara_cfo.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0068_loonars2_cfo_periksa_kelengkapan.sql
+# Uji lama ditulis sebelum nota wajib (0068); diaktifkan lagi di loonars2_uji_periksa_kelengkapan.sql.
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -c "update public.loonars2_settings set nota_wajib_minimal = 0"
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_utang.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_pelaksana.sql
@@ -39,3 +42,4 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_bukti_gabunga
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_dp.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_kontrak_dp.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_total_dp_susulan.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_periksa_kelengkapan.sql

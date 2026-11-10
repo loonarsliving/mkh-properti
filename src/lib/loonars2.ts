@@ -33,6 +33,8 @@ export const AKSI_WA_LOONARS2 = [
   'tanpa_rekening',
   'total_dp',
   'tanpa_total_dp',
+  'nota',
+  'tanpa_nota',
   'ya',
   'batal',
   'outbox_ambil',

@@ -2,6 +2,14 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-10 — Loonars 2: CFO memeriksa kelengkapan pengajuan (migrasi 0068 — diterapkan ke produksi 2026-11-10)
+- Owner memilih keempat pemeriksaan dan meminta langsung ke production. Urutan di pintu WA pelaksana: rekening → total DP/pelunasan → **nota** → unit → **dobel + harga**.
+- Nota: baris material/lain ≥ `loonars2_settings.nota_wajib_minimal` (kolom baru, bawaan Rp 1.000.000; 0 = nonaktif) tanpa nota ditahan; balasan foto "L2 nota [n]" (aksi `nota`) atau "L2 tanpa nota <alasan>" (aksi `tanpa_nota`, rincian diberi "[tanpa nota: …]"). DP/pelunasan kontrak dikecualikan. Pengajuan satu baris yang dikirim sebagai keterangan foto kini membawa fotonya sebagai nota (MK Connect).
+- Dobel: kunci barang + nilai sama dari pelaksana yang sama ≤ 14 hari → ditahan; YA = lanjut dengan tanda "[dikonfirmasi bukan dobel dari M-n]", BATAL = tidak dicatat.
+- Harga janggal: rincian dengan jumlah + satuan dibanding median harga per satuan item sama (≥ 2 pembelian, 180 hari); > 20% → "[⚠️ harga …]" di rincian & pesan owner (tidak menahan).
+- Pelunasan/termin/sisa tanpa kontrak DP → ditanya total & yang sudah dibayar ("total 10 juta sudah 3 juta"; tanpa "sudah" = melunasi); kontrak dibuat dengan kolom baru `loonars2_kontrak_dp.dibayar_luar` (ikut di view: dibayar, sisa, status; kolom baru di akhir view). Pesan owner menyebut pembayaran sebelum tercatat.
+- Uji: `supabase/tests/loonars2_uji_periksa_kelengkapan.sql`; uji lama memakai `nota_wajib_minimal = 0` (diatur di `jalankan-uji-loonars2.sh`); uji 0065 bagian 7 disesuaikan (pelunasan tanpa kontrak kini ditanya). Seluruh uji Loonars 2 lulus di Postgres 16 lokal.
+
 ## 2026-11-10 — Loonars 2: pesan ke pelaksana tanpa nama owner (migrasi 0067 — diterapkan ke produksi 2026-11-10)
 - Arahan owner: sistem adalah CFO sendiri, jangan membawa owner. Teks pesan ke pelaksana di `_loonars2_ajukan`, `_loonars2_ajukan_mingguan`, `_loonars2_catat_utang`, `_loonars2_pesan_bahan_wa`, `_loonars2_teks_minta_total_dp`, `_loonars2_wa_total_dp`, `loonars2_minta_total_dp` tidak lagi menyebut "Pak Avi"/"persetujuan owner". Prinsip dicatat di AI_AND_AGENTS.md dan CLAUDE.md.
 

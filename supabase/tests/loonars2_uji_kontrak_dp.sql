@@ -54,11 +54,11 @@ select pg_temp.cek('menyebut D-n: tertaut ke kontrak itu',
 update loonars2_material_requests set status = 'ditolak' where deskripsi like 'pelunasan kaca [lanjutan%';
 select pg_temp.cek('pengajuan ditolak tidak dihitung', (select sisa = 7000000 and status = 'berjalan' from loonars2_v_kontrak_dp where item = 'DP kaca'));
 
--- 7. Item tak dikenal: pelunasan biasa tanpa kontrak, tidak ditanya
-select pg_temp.cek('pelunasan item tanpa kontrak: diajukan biasa',
-  (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"material","unit":["14"],"deskripsi":"pelunasan pompa air","nominal":500000,"rekening":"BCA 7855066190 a.n. Naimuddin Irfan"}]}') ->> 'status') = 'diajukan'
-);
-select pg_temp.cek('... tanpa tautan kontrak', exists (select 1 from loonars2_material_requests where deskripsi like 'pelunasan pompa air | rek:%' and kontrak_dp_id is null));
+-- 7. Item tak dikenal: sejak 0068 pelunasan tanpa kontrak ditanya totalnya; "tanpa total" = lanjut tanpa kontrak
+select pg_temp.cek('pelunasan item tanpa kontrak: ditanya total (0068)',
+  (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"material","unit":["14"],"deskripsi":"pelunasan pompa air","nominal":500000,"rekening":"BCA 7855066190 a.n. Naimuddin Irfan"}]}') ->> 'status') = 'menunggu_total_dp');
+select pg_temp.wa('6281100000002', 'tanpa_total_dp') ->> 'status';
+select pg_temp.cek('... "tanpa total": diajukan tanpa tautan kontrak', exists (select 1 from loonars2_material_requests where deskripsi like 'pelunasan pompa air [total belum disebut] | rek:%' and kontrak_dp_id is null));
 
 -- 8. DP kedua item yang sama tanpa total: tertaut, tidak ditanya
 select pg_temp.cek('DP kedua plafon (kontrak sudah lunas sisa 0) -> tidak ada kontrak berjalan, ditanya total',
