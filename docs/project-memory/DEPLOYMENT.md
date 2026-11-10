@@ -26,6 +26,19 @@
 > `supabase functions deploy` manual. Migrasi ini tidak menambah atau mengubah
 > satu pun berkas migrasi.
 
+> **CATATAN ALAT (2026-11-10) — menerapkan migrasi dari sesi Claude.**
+> Supabase MCP (`apply_migration` dan `execute_sql` yang mengubah data/fungsi) meminta
+> persetujuan lewat kartu di aplikasi owner dan batal setelah 60 detik bila tidak dijawab.
+> Di sesi cloud owner kartu itu **tidak muncul** (10 Nov 2026: 0064–0069 sempat lolos, lalu
+> 0070 gagal 5×). Membaca data (SELECT) tidak terpengaruh. Jangan ulangi percobaan: pakai
+> salah satu jalur ini —
+> 1. Owner menyimpan *Supabase access token* sebagai **Network secret** untuk host
+>    `api.supabase.com` di pengaturan environment sesi (menu environment di judul sesi →
+>    Edit → Network secrets); Claude lalu menerapkan migrasi lewat Management API
+>    `POST /v1/projects/gluoioiimapyhchdasfl/database/query`, tanpa persetujuan per migrasi.
+> 2. Owner menjalankan file migrasi di Supabase Dashboard → SQL Editor, lalu Claude
+>    memverifikasi lewat SELECT.
+
 ## Verifikasi setelah deploy (khusus rilis migrasi ini)
 
 Selain checklist umum di bawah, periksa juga:
