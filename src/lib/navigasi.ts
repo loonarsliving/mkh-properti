@@ -38,6 +38,7 @@ export const NAVIGASI: GrupNav[] = [
       { label: 'P&L Institusional', href: '/cfo/laba-rugi', ikon: 'grafik', peran: CFO },
       { label: 'Hospitality Unit Economics', href: '/cfo/unit-economics', ikon: 'rumah', peran: CFO },
       { label: 'Data Quality & Completeness', href: '/cfo/kualitas-data', ikon: 'ceklis', peran: CFO },
+      { label: 'Kesiapan Investasi', href: '/cfo/kesiapan-investasi', ikon: 'grafik', peran: CFO },
       { label: 'Cash Flow Forecast', href: '/cfo/arus-kas', ikon: 'kalender', peran: CFO },
       { label: 'Debt & Liability Center', href: '/cfo/kewajiban', ikon: 'kas-keluar', peran: CFO },
       { label: 'Financial Alerts', href: '/cfo/peringatan', ikon: 'peringatan', peran: CFO },

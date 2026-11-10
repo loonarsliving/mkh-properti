@@ -2,6 +2,11 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-10 — AI CFO: Kesiapan Investasi (tanpa migrasi)
+- Permintaan owner: sistem terus mempelajari pengelolaan keuangan sampai bisa memberikan data yang membuat perusahaan siap menerima investasi. `src/lib/keuangan/kesiapan-investasi.ts` (fungsi murni) menerjemahkan pemeriksaan Data Quality ke 13 butir yang biasa diminta investor (laporan keuangan, kontrol & jejak audit, kinerja usaha, rencana & kebutuhan dana, struktur investasi, legal & pajak), status per butir = pemeriksaan terburuk, langkah berikutnya (keputusan/dokumen owner yang tidak perlu dibangun didahulukan, lalu urutan tahap rencana institutional reporting), dan daftar bahan yang sudah bisa ditunjukkan ke calon investor. Tanpa skor "siap investasi" (keputusan owner 2026-11-02). Butir legal & proyeksi ditandai di luar data sistem.
+- Halaman `/cfo/kesiapan-investasi` (CFO, ekspor CSV) + menu AI CFO. Laporan mingguan WA owner kini memuat bagian "Kesiapan investasi" (jumlah per status + 3 langkah berikutnya), dihitung ulang setiap minggu.
+- Uji vitest: 5 kasus baru di `src/lib/keuangan/keuangan.test.ts`. Tanpa migrasi, tanpa env baru.
+
 ## 2026-11-10 — Loonars 2: CFO memeriksa kelengkapan pengajuan (migrasi 0068 — diterapkan ke produksi 2026-11-10)
 - Owner memilih keempat pemeriksaan dan meminta langsung ke production. Urutan di pintu WA pelaksana: rekening → total DP/pelunasan → **nota** → unit → **dobel + harga**.
 - Nota: baris material/lain ≥ `loonars2_settings.nota_wajib_minimal` (kolom baru, bawaan Rp 1.000.000; 0 = nonaktif) tanpa nota ditahan; balasan foto "L2 nota [n]" (aksi `nota`) atau "L2 tanpa nota <alasan>" (aksi `tanpa_nota`, rincian diberi "[tanpa nota: …]"). DP/pelunasan kontrak dikecualikan. Pengajuan satu baris yang dikirim sebagai keterangan foto kini membawa fotonya sebagai nota (MK Connect).
