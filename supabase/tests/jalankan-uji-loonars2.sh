@@ -25,6 +25,7 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0063_loonars2_bukti_t
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0064_loonars2_dp_tanya_total_nilai.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0065_loonars2_kontrak_dp.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0066_loonars2_minta_total_dp_susulan.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/migrations/0067_loonars2_pesan_pelaksana_suara_cfo.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_utang.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/loonars2_uji_pelaksana.sql

@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-10 — Loonars 2: pesan ke pelaksana tanpa nama owner (migrasi 0067 — diterapkan ke produksi 2026-11-10)
+- Arahan owner: sistem adalah CFO sendiri, jangan membawa owner. Teks pesan ke pelaksana di `_loonars2_ajukan`, `_loonars2_ajukan_mingguan`, `_loonars2_catat_utang`, `_loonars2_pesan_bahan_wa`, `_loonars2_teks_minta_total_dp`, `_loonars2_wa_total_dp`, `loonars2_minta_total_dp` tidak lagi menyebut "Pak Avi"/"persetujuan owner". Prinsip dicatat di AI_AND_AGENTS.md dan CLAUDE.md.
+
 ## 2026-11-10 — Loonars 2: tanya total DP susulan untuk pengajuan lama (migrasi 0066 — diterapkan ke produksi 2026-11-10)
 - `loonars2_minta_total_dp(text[])` (internal, service role): kirim WA ke pelaksana pengaju untuk kode M-n tanpa kontrak dan simpan pending `lengkapi_dp` (24 jam). `_loonars2_wa_total_dp` ditulis ulang: balasan total untuk pending ini membuat kontrak D-n via `_loonars2_lengkapi_dp`, menautkan & menandai rincian lama, dan mengabari owner (`total_dp_susulan`). Dijalankan sekali untuk M-100 (DP kaca) dan M-101 (DP sambungan pipa air panas), atas permintaan owner "tanyakan ke dia". Uji: `supabase/tests/loonars2_uji_total_dp_susulan.sql`.
 

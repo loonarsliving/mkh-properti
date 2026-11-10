@@ -17,6 +17,10 @@ npm run lint
 npm run typecheck
 ```
 
+Aturan owner (2026-11-10): pesan sistem ke pelaksana/staf **tidak pernah** membawa nama
+owner ("Pak Avi") atau "persetujuan owner" — sistem bersuara sebagai CFO sendiri dan
+menanyakan sendiri data yang kurang. Lihat `docs/project-memory/AI_AND_AGENTS.md`.
+
 Before doing any coding work:
 
 1. Read this file.

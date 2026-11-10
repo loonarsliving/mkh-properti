@@ -25,7 +25,7 @@ select pg_temp.cek('minta total: status ditanyakan, pending 24 jam lengkapi_dp',
   and exists (select 1 from loonars2_wa_pending where nomor = '6281100000002' and aksi = 'lengkapi_dp' and kedaluwarsa_pada > now() + interval '23 hours'));
 select pg_temp.cek('WA ke pelaksana berisi kedua kode dan nominal',
   exists (select 1 from loonars2_outbox where nomor = '6281100000002' and jenis = 'minta_total_dp'
-           and pesan like '%Pak Avi minta total harga%1. ' || (select a from kode) || ' DP genteng — Rp 3.000.000%2. ' || (select b from kode) || ' DP rangka baja%'));
+           and pesan like '%Saya memeriksa ulang pengajuan DP%1. ' || (select a from kode) || ' DP genteng — Rp 3.000.000%2. ' || (select b from kode) || ' DP rangka baja%'));
 
 select pg_temp.cek('balasan total untuk baris 1: tersimpan, baris 2 masih ditanya',
   (pg_temp.wa('6281100000002', 'total_dp', '{"daftar":[{"no":1,"total":9000000}]}') ->> 'status') = 'menunggu_total_dp'
@@ -53,3 +53,13 @@ select pg_temp.cek('minta ulang kode yang sudah punya kontrak: tidak ada',
   (public.loonars2_minta_total_dp(array[(select a from kode)]) ->> 'status') = 'tidak_ada');
 
 select 'SEMUA UJI TOTAL DP SUSULAN LULUS';
+
+-- 0067: pesan ke pelaksana tidak menyebut owner
+select pg_temp.cek('tidak ada fungsi loonars2 yang menyebut Pak Avi / persetujuan owner',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname like '%loonars2%' and pg_get_functiondef(p.oid) ~ '(Pak Avi|PERSETUJUAN OWNER|persetujuan owner)'));
+select pg_temp.cek('pertanyaan total DP bersuara sistem sendiri',
+  public._loonars2_teks_minta_total_dp('[{"no":1,"nama":"DP x","nominal":1000}]') like '%Saya perlu totalnya untuk mencatat sisa pembayaran%');
+select pg_temp.cek('ringkasan pengajuan baru tanpa nama owner',
+  (pg_temp.wa('6281100000002', 'ajukan_mingguan', '{"baris":[{"jenis":"lain","unit":["14"],"deskripsi":"Bensin genset","nominal":150000,"rekening":"BCA 7855066190 a.n. Naimuddin Irfan"}]}') ->> 'balasan') like '%MENUNGGU PERSETUJUAN. Tiap baris diproses%');
+select 'SEMUA UJI SUARA CFO LULUS';
