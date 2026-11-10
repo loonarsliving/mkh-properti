@@ -157,7 +157,7 @@ Fungsi baru `_loonars2_kunci_toko`, `_loonars2_cek_utang_double`; `_loonars2_car
 ## 2026-10-13 — migrasi 0046 (tabel `loonars2_akses_web`) — LIVE (0046a–c)
 - Tabel baru `loonars2_akses_web (id, email, nama, dibuat_pada)`, unik `lower(email)`, RLS: CFO kelola, pemilik email hanya baca barisnya, trigger audit. Menggantikan kebutuhan baris kedua di `users_proyek` (email unik di sana). `loonars2_boleh_lihat()` diperbarui. Seed: vando@haluoleo.id.
 
-## 2026-11-10 — migrasi 0069 (Tahap 2a buku besar) — DISIAPKAN, BELUM DITERAPKAN
+## 2026-11-10 — migrasi 0069 (Tahap 2a buku besar) — LIVE (PR #57; terverifikasi: 1.162 baris jurnal terpetakan, 0 akun di luar COA, semua bulan seimbang, 0 bulan ditutup)
 - Tabel baru (RLS, baca via `fin_boleh`): `fin_entitas`, `fin_properti`, `fin_akun`, `fin_pemetaan_proyek`, `fin_jurnal_dimensi`, `fin_peran`, `fin_periode`, `fin_laporan_beku` (append-only). View `fin_v_jurnal` (security_invoker). Fungsi: `fin_peran_saya`, `fin_boleh`, `fin_tutup_periode`, `fin_buka_periode`, `fin_bekukan_laporan`, `_fin_tolak_periode_tertutup`, `_fin_aktor`, `_fin_tolak_ubah_laporan_beku`.
 - Trigger baru di `public.jurnal`: `trg_jurnal_periode_tertutup` (BEFORE INSERT/UPDATE/DELETE) — hanya menolak bila tanggal (lama/baru) jatuh di bulan berstatus `ditutup`. Sinkronisasi MK Connect yang menulis jurnal bertanggal di bulan tertutup akan ditolak (disengaja).
 - `cfo_ambil_data` menambah kunci `fin_periode`.
