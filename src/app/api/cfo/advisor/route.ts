@@ -37,11 +37,14 @@ async function rpcAdvisor<T>(rahasia: string, fn: string, args: Record<string, u
     body: JSON.stringify(args),
     cache: 'no-store',
   });
+  if (res.status === 401 || res.status === 403) throw new GalatAksesAdvisor('Tidak berhak');
   const teks = await res.text();
-  if (res.status === 401 || res.status === 403 || teks.includes('42501') || teks.includes('Tidak berhak')) {
-    throw new GalatAksesAdvisor('Tidak berhak');
+  if (!res.ok) {
+    // Kode galat hanya dibaca dari respons GAGAL: badan sukses berisi angka
+    // rupiah yang bisa kebetulan memuat digit "42501".
+    if (teks.includes('42501') || teks.includes('Tidak berhak')) throw new GalatAksesAdvisor('Tidak berhak');
+    throw new Error(`Supabase ${fn} gagal (${res.status})`);
   }
-  if (!res.ok) throw new Error(`Supabase ${fn} gagal (${res.status})`);
   return JSON.parse(teks) as T;
 }
 
