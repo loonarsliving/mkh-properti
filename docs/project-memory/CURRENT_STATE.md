@@ -3,6 +3,15 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-11 — Memori perusahaan Loonars AI Advisor (migrasi 0074 — DITERAPKAN 2026-11-11)
+- D-2026-008 (direksi AI 12 kursi menuju IPO): tabel `advisor_memori` (kategori model_bisnis/beban/hambatan/pelajaran/tujuan/aturan/lain; status usulan → aktif → arsip). RPC `advisor_memori_tambah` (hanya usulan/aktif), `advisor_memori_ubah` (aktif/arsip), `advisor_memori_daftar`, semuanya lewat `_advisor_wajib()` (0073b). Hanya objek baru. Diuji lokal + produksi (rahasia salah & baca tabel → 42501).
+
+## 2026-11-11 — Register Loonars AI Advisor (migrasi 0073a–d — DITERAPKAN 2026-11-11)
+- D-2026-005/007: data advisor di database ini, tabel tersendiri `advisor_keputusan`, `advisor_syarat`, `advisor_dokumen`, `advisor_pengaturan`, `advisor_log` (append-only). Tabel/fungsi lama tidak disentuh. RLS aktif tanpa policy + akses tabel dicabut dari anon/authenticated; semua akses lewat RPC `advisor_*` security definer yang mewajibkan header `x-advisor-secret` = Vault `advisor_shared_secret` (rahasia yang sama dengan 0072).
+- `advisor_keputusan_simpan` menolak CONFIRMED/REVIEWED dan tidak mengubah keputusan yang sudah disahkan; CONFIRMED hanya lewat `advisor_keputusan_konfirmasi` (dari PROPOSED). Syarat lama ditandai `batal`, tidak dihapus.
+- Versi tunggal 0073 tertahan konfirmasi "destruktif" Supabase MCP (drop/delete/on delete) → dipecah 0073a–d tanpa perintah itu. Diuji di Postgres lokal (rahasia salah, baca tabel langsung, CONFIRMED lewat simpan, ubah setelah CONFIRMED, update log → semua ditolak) lalu di produksi sebagai anon (rahasia salah & baca tabel → 42501). Keputusan D-2026-001…007 diimpor (`sumber = repo`, tanpa angka).
+- Klien: layanan advisor repo `loonarsliving/Istri` (`service/lib/register.ts`).
+
 ## 2026-11-11 — AI CFO advisor: perbaikan 401 palsu
 - `/api/cfo/advisor` menganggap respons sukses sebagai "tidak berhak" bila badan data memuat digit `42501` (mis. dalam nominal rupiah). Kode galat kini hanya dibaca dari respons gagal, sama seperti `rpc()` di `laporan-investor/server.ts`. Secret Vault `advisor_shared_secret` sudah dibuat (2026-11-11).
 
