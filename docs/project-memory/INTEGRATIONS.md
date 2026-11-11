@@ -195,4 +195,4 @@ rahasia baru.
 
 ## Loonars AI Advisor (2026-11-11, migrasi 0072 — DITERAPKAN, PR #61)
 - Masuk: `POST https://finance.haluoleo.id/api/cfo/advisor` dari Loonars AI Advisor (repo `loonarsliving/Istri`). Header `x-advisor-secret`, dicocokkan database dengan Vault `advisor_shared_secret` lewat `cfo_advisor_ambil_data` / `cfo_advisor_ambil_kerja`. Hanya baca; respons = fakta bernomor + jawaban deterministik + putusan CEO challenger.
-- Mengaktifkan: owner `select vault.create_secret('<acak ≥32 karakter>', 'advisor_shared_secret');`. Mencabut: hapus secret itu (endpoint kembali 401).
+- Status: AKTIF sejak 2026-11-11 (secret dibuat, uji produksi lulus; perbaikan 401 palsu di #63). Mencabut: hapus/ganti secret `advisor_shared_secret` di Vault (endpoint kembali 401); rahasia sync MK Connect tidak terpengaruh. Klien menyimpan nilainya di berkas lokal yang di-ignore Git (repo Istri `private/advisor.env`).
