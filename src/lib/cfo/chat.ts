@@ -89,6 +89,33 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo, holding?: LaporanHolding
   add('Loonars 2: TOTAL sisa utang toko (villa Loonars Living + ' + namaProyekLain + ')', bulat(l2.utangToko + l2.utangProyekLain),
     'loonars2_v_toko + snapshot:proyek_konstruksi',
     `${rp(l2.utangToko + l2.utangProyekLain)} = villa ${rp(l2.utangToko)} + ${namaProyekLain} ${rp(l2.utangProyekLain)}`);
+  // Pembayaran kontraktor/tukang (owner 2026-11-11: "total keseluruhan pembayaran
+  // kontraktor L2" sempat dijawab "tidak tersedia" karena fakta ini belum dikirim).
+  const k = l2.kontraktor;
+  const tenagaProyek = bulat(l2.proyek.reduce((a, p) => a + p.realisasiTenaga, 0));
+  add('Loonars 2: TOTAL pembayaran kontraktor/tukang (villa Loonars Living + ' + namaProyekLain + ')', bulat(k.total + tenagaProyek),
+    'loonars2_disbursements (kategori tukang) + snapshot:proyek_konstruksi',
+    `${rp(k.total + tenagaProyek)} = kontraktor villa Loonars Living ${rp(k.total)} + tukang/kontraktor ${namaProyekLain} ${rp(tenagaProyek)}`
+      + (k.tukangL1.total ? `; di luar itu tukang Loonars 1 ${rp(k.tukangL1.total)} dibayar dari rekening C (piutang ke Loonars 1)` : ''));
+  add('Loonars 2: pembayaran kontraktor villa Loonars Living (sejak awal)', k.total, 'loonars2_disbursements (kategori tukang)',
+    k.total
+      ? `${rp(k.total)} dalam ${k.jumlahMinggu} minggu pembayaran (${labelTanggal(k.minggu[0].mulai)} s.d. ${labelTanggal(k.terakhir!)}), terakhir dibayar ${labelTanggal(k.terakhir!)}`
+      : 'belum ada pembayaran kontraktor tercatat');
+  for (const w of k.minggu.slice(-6)) {
+    add(`Loonars 2: kontraktor villa minggu ${labelTanggal(w.mulai)}–${labelTanggal(w.selesai)}`, w.nominal, 'loonars2_disbursements (kategori tukang)',
+      `${rp(w.nominal)} (dibayar ${w.tanggalBayar.map(labelTanggal).join(', ')})`);
+  }
+  if (k.mingguTanpaBayar.length) {
+    add('Loonars 2: minggu tanpa pembayaran kontraktor villa', k.mingguTanpaBayar.length, 'loonars2_disbursements (kategori tukang)',
+      k.mingguTanpaBayar.map((w) => `${labelTanggal(w.mulai)}–${labelTanggal(w.selesai)}`).join('; '));
+  }
+  if (k.tukangL1.total) {
+    add('Loonars 2: tukang Loonars 1 dibayar dari rekening C (piutang ke Loonars 1, bukan biaya villa)', k.tukangL1.total, 'loonars2_disbursements (kategori tukang)',
+      `${rp(k.tukangL1.total)} (${k.tukangL1.pembayaran.map((p) => `${labelTanggal(p.tanggal)} ${rp(p.nominal)}`).join('; ')})`);
+  }
+  for (const p of l2.proyek) {
+    add(`Loonars 2 — ${p.nama}: pembayaran tukang/kontraktor`, p.realisasiTenaga, 'snapshot:proyek_konstruksi');
+  }
   add('Loonars 2: unit terjual', l2.unitTerjual, 'loonars2_v_unit', `${l2.unitTerjual} dari ${l2.jumlahUnit} unit`);
   add('Loonars 2: nilai kontrak penjualan', l2.nilaiKontrak, 'loonars2_v_unit');
   add('Loonars 2: cash-in investor tercatat', l2.cashInInvestor, 'loonars2_receipts');
@@ -208,7 +235,14 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
     const h = fakta.filter((f) => f.label.startsWith('Holding'));
     if (h.length) return ambil((f) => f.label.startsWith('Holding'), 'Laporan holding (Loonars 1 + Loonars 2 + biaya holding):', 'holding');
   }
-  if (/pengeluaran|belanja|biaya|spending|keluar/.test(q) && !/villa|loonars ?1|hotel/.test(q)) {
+  if (/kontraktor|tukang|mandor|borongan|upah/.test(q) && !/\bl1\b|loonars ?1/.test(q)) {
+    return ambil(
+      (f) => f.label.includes('kontraktor') || f.label.startsWith('Loonars 2: tukang Loonars 1'),
+      'Pembayaran kontraktor/tukang Loonars 2 (villa Loonars Living + Loonars Coffee):',
+      'kontraktor_l2',
+    );
+  }
+  if (/pengeluaran|belanja|biaya|spending|keluar/.test(q) && !/villa|loonars ?1|\bl1\b|hotel/.test(q)) {
     return ambil(
       (f) => f.label.startsWith('Loonars 2: TOTAL') || f.label === 'Loonars 2: belanja konstruksi (kas)' || f.label.includes(': realisasi') || f.label.includes('selisih budget') || f.label.includes('utang toko belum lunas') || f.label === 'Loonars 2: utang toko bangunan',
       'Pengeluaran Loonars 2 (villa Loonars Living + Loonars Coffee, digabung):',
@@ -233,10 +267,10 @@ export function jawabDeterministik(pertanyaan: string, m: ModelCfo, fakta: Fakta
   if (/piutang|tagihan|investor|cash.?in|dp\b|pelunasan/.test(q) && !/villa|loonars ?1/.test(q)) {
     return ambil((f) => f.label.includes('piutang') || f.label.includes('Total piutang') || f.label.includes('cash-in') || f.label.includes('nilai kontrak') || f.label.includes('unit terjual') || f.label.includes('Rekonsiliasi'), 'Investor & piutang:', 'piutang');
   }
-  if (/villa|loonars ?1|hotel|okupansi|occupancy|adr|revpar|ota|hospitality|ebitda|kamar/.test(q)) {
+  if (/villa|loonars ?1|\bl1\b|hotel|okupansi|occupancy|adr|revpar|ota|hospitality|ebitda|kamar/.test(q)) {
     return ambil((f) => f.label.startsWith('Loonars 1'), 'Loonars 1 — Hospitality:', 'loonars1');
   }
-  if (/loonars ?2|konstruksi|budget|anggaran|proyek|unit|tanah|bangun|coffee|kopi|kafe|cafe/.test(q)) {
+  if (/loonars ?2|\bl2\b|konstruksi|budget|anggaran|proyek|unit|tanah|bangun|coffee|kopi|kafe|cafe/.test(q)) {
     return ambil((f) => f.label.startsWith('Loonars 2'), 'Loonars 2 — Developer & Konstruksi:', 'loonars2');
   }
   if (/peringatan|risiko|bahaya|alert|masalah|bocor|kebocoran|abnormal/.test(q)) {

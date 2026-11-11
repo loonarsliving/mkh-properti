@@ -77,3 +77,20 @@ describe('Pembayaran kontraktor mingguan (tidak dipecah per unit)', () => {
     );
   });
 });
+
+describe('AI CFO chat: total pembayaran kontraktor L2', () => {
+  it('pertanyaan owner 2026-11-11 dijawab dengan angka total, bukan "tidak tersedia"', async () => {
+    const { susunModelCfo } = await import('./model');
+    const { faktaCfo, jawabDeterministik } = await import('./chat');
+    const m = susunModelCfo(dataSarno(), '2026-11-11');
+    const fakta = faktaCfo(m);
+    for (const q of ['Oke skrng coba total berapa total pembayaran kontraktor L2', 'Total keseluruhan pembayaran kontraktor L2']) {
+      const j = jawabDeterministik(q, m, fakta);
+      expect(j.niat).toBe('kontraktor_l2');
+      expect(j.jawaban).toContain('Rp 58.000.000');
+      expect(j.jawaban).toContain('Rp 19.625.000'); // tukang Loonars 1 disebut terpisah
+    }
+    // "L2" sekarang dikenali sebagai Loonars 2.
+    expect(jawabDeterministik('unit terjual L2', m, fakta).niat).toBe('loonars2');
+  });
+});

@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-11 — AI CFO: total pembayaran kontraktor Loonars 2 di chat WA
+- Owner bertanya "total keseluruhan pembayaran kontraktor L2" dan AI CFO menjawab "tidak tersedia": `pembayaranKontraktorL2` sudah dihitung di `laporanLoonars2` (`l2.kontraktor`) tetapi tidak pernah dikirim sebagai fakta chat, tidak ada niat "kontraktor", dan "L2"/"L1" tidak dikenali (hanya "loonars 2"). `faktaCfo` kini memuat total kontraktor gabungan (villa + realisasi tenaga Loonars Coffee), total villa sejak awal, 6 minggu terakhir, minggu tanpa bayar, dan tukang Loonars 1 dari rekening C (dipisah). Niat baru `kontraktor_l2`; `\bl1\b`/`\bl2\b` dikenali. Tanpa migrasi. Uji: `kontraktor.test.ts`.
+
 ## 2026-11-11 — Memori perusahaan Loonars AI Advisor (migrasi 0074 — DITERAPKAN 2026-11-11)
 - D-2026-008 (direksi AI 12 kursi menuju IPO): tabel `advisor_memori` (kategori model_bisnis/beban/hambatan/pelajaran/tujuan/aturan/lain; status usulan → aktif → arsip). RPC `advisor_memori_tambah` (hanya usulan/aktif), `advisor_memori_ubah` (aktif/arsip), `advisor_memori_daftar`, semuanya lewat `_advisor_wajib()` (0073b). Hanya objek baru. Diuji lokal + produksi (rahasia salah & baca tabel → 42501).
 
