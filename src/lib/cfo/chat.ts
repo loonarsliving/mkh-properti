@@ -99,7 +99,7 @@ export function faktaCfo(m: ModelCfo, kerja?: KerjaCfo, holding?: LaporanHolding
       + (k.tukangL1.total ? `; di luar itu tukang Loonars 1 ${rp(k.tukangL1.total)} dibayar dari rekening C (piutang ke Loonars 1)` : ''));
   add('Loonars 2: pembayaran kontraktor villa Loonars Living (sejak awal)', k.total, 'loonars2_disbursements (kategori tukang)',
     k.total
-      ? `${rp(k.total)} dalam ${k.jumlahMinggu} minggu pembayaran (${labelTanggal(k.minggu[0].mulai)} s.d. ${labelTanggal(k.terakhir!)}), terakhir dibayar ${labelTanggal(k.terakhir!)}`
+      ? `${rp(k.total)} dalam ${k.jumlahMinggu} minggu pembayaran (pembayaran pertama ${labelTanggal(k.minggu[0].tanggalBayar[0])}, terakhir ${labelTanggal(k.terakhir!)})`
       : 'belum ada pembayaran kontraktor tercatat');
   for (const w of k.minggu.slice(-6)) {
     add(`Loonars 2: kontraktor villa minggu ${labelTanggal(w.mulai)}–${labelTanggal(w.selesai)}`, w.nominal, 'loonars2_disbursements (kategori tukang)',
