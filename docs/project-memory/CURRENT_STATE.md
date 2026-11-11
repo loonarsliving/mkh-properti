@@ -3,6 +3,11 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-11 — AI CFO: endpoint hanya-baca untuk Loonars AI Advisor (migrasi 0072 — BELUM DITERAPKAN)
+- Owner: endpoint advisor boleh dibangun "selama tidak merusak sistem yang sudah bekerja". `POST /api/cfo/advisor` (mode `fakta` / `tanya` / `evaluasi`) memakai mesin deterministik yang sama (faktaCfo, jawabDeterministik, evaluasiKeputusan = CEO challenger), tanpa narasi AI dan tanpa data mentah. Auth header `x-advisor-secret` = Vault `advisor_shared_secret` (terpisah dari `mk_sync_shared_secret`).
+- 0072: `_cfo_akses()` dinyatakan ulang identik dengan 0062 + satu cabang yang hanya aktif bila flag transaksi `cfo.advisor_baca='ya'` (dipasang hanya oleh `cfo_advisor_ambil_data(p_mode)` / `cfo_advisor_ambil_kerja()`, pembungkus `cfo_ambil_data`/`cfo_ambil_kerja` yang STABLE) dan rahasia cocok. Audit `cfo_audit_log` aktor `advisor`. Tanpa tabel/kolom baru. Mati sampai owner membuat secret di Vault.
+- Klien: repo `loonarsliving/Istri` (`tools/adapters/sources.py` AiCfoSource). Tes `src/lib/cfo/advisor.test.ts` (5).
+
 ## 2026-11-10 — AI CFO: Kesiapan Investasi + pemeriksaan kelengkapan Loonars 2
 
 - `/cfo/kesiapan-investasi`: 13 butir yang biasa diminta investor, status dari pemeriksaan Data Quality, langkah berikutnya, bahan yang sudah bisa dibagikan; ringkasannya masuk laporan mingguan WA. Tanpa skor. Penutup butir "Incomplete" terbesar tetap rencana bertahap di `docs/ai-cfo/INSTITUTIONAL-REPORTING-AUDIT-DAN-RENCANA.md` §6 — berikutnya **Tahap 2a** (buku besar tunggal, kunci periode, saldo awal; perlu persetujuan skema).
