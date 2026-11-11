@@ -2,6 +2,10 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-11 — Loonars 2: pembayaran Sarno 5 Nov masuk borongan minggu ke-4 (migrasi 0075 — DITERAPKAN 2026-11-11)
+- Keputusan owner: pembayaran 5 Nov (M-89, Rp 20 jt, `loonars2_material_requests` id 179) jelas bagian borongan L2, tetapi tercatat tanpa `borongan_id`/`minggu_ke` sehingga halaman borongan hanya menghitung 4 minggu / Rp 78 jt. Kini tertaut sebagai minggu ke-4; M-107 (11 Nov, id 205–210) bergeser dari minggu ke-4 ke minggu ke-5. Borongan: 5 minggu / Rp 98 jt. Hanya data (label & tautan); nominal, saldo, dan total pengeluaran tidak berubah (diverifikasi: Rp 244.941.500 sebelum = sesudah).
+- Tidak disentuh: M-68 (1 Nov, Rp 9.180.000) dan M-94 (9 Nov, Rp 10.445.000) — diajukan "L2 tukang unit 7" (BANYU-01) ke rekening Sarno, tetapi aturan hari (Sabtu/Minggu/Senin) memperlakukannya sebagai tukang Loonars 1. Menunggu konfirmasi owner.
+
 ## 2026-11-11 — AI CFO: total pembayaran kontraktor Loonars 2 di chat WA
 - Owner bertanya "total keseluruhan pembayaran kontraktor L2" dan AI CFO menjawab "tidak tersedia": `pembayaranKontraktorL2` sudah dihitung di `laporanLoonars2` (`l2.kontraktor`) tetapi tidak pernah dikirim sebagai fakta chat, tidak ada niat "kontraktor", dan "L2"/"L1" tidak dikenali (hanya "loonars 2"). `faktaCfo` kini memuat total kontraktor gabungan (villa + realisasi tenaga Loonars Coffee), total villa sejak awal, 6 minggu terakhir, minggu tanpa bayar, dan tukang Loonars 1 dari rekening C (dipisah). Niat baru `kontraktor_l2`; `\bl1\b`/`\bl2\b` dikenali. Tanpa migrasi. Uji: `kontraktor.test.ts`.
 
