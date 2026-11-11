@@ -2,7 +2,7 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-11-11 — AI CFO: endpoint hanya-baca untuk Loonars AI Advisor (migrasi 0072 — BELUM DITERAPKAN)
+## 2026-11-11 — AI CFO: endpoint hanya-baca untuk Loonars AI Advisor (migrasi 0072 — DITERAPKAN 2026-11-11, PR #61)
 - Owner: endpoint advisor boleh dibangun "selama tidak merusak sistem yang sudah bekerja". `POST /api/cfo/advisor` (mode `fakta` / `tanya` / `evaluasi`) memakai mesin deterministik yang sama (faktaCfo, jawabDeterministik, evaluasiKeputusan = CEO challenger), tanpa narasi AI dan tanpa data mentah. Auth header `x-advisor-secret` = Vault `advisor_shared_secret` (terpisah dari `mk_sync_shared_secret`).
 - 0072: `_cfo_akses()` dinyatakan ulang identik dengan 0062 + satu cabang yang hanya aktif bila flag transaksi `cfo.advisor_baca='ya'` (dipasang hanya oleh `cfo_advisor_ambil_data(p_mode)` / `cfo_advisor_ambil_kerja()`, pembungkus `cfo_ambil_data`/`cfo_ambil_kerja` yang STABLE) dan rahasia cocok. Audit `cfo_audit_log` aktor `advisor`. Tanpa tabel/kolom baru. Mati sampai owner membuat secret di Vault.
 - Klien: repo `loonarsliving/Istri` (`tools/adapters/sources.py` AiCfoSource). Tes `src/lib/cfo/advisor.test.ts` (5).

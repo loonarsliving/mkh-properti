@@ -193,6 +193,6 @@ rahasia baru.
 - **AI:** narasi AI memakai layanan AI MK Connect (`POST https://mkh.haluoleo.id/api/mkh-property/ai-cfo/narasi`, ditandatangani database lewat RPC `cfo_tanda_ai` — HMAC rahasia sync yang sudah ada, 5 menit, terikat isi). MKH Property tidak punya kunci AI sendiri dan tidak butuh env baru. Angka dari `src/lib/cfo/`.
 - **Mutasi kas villa** (Loonars 1): snapshot `villa_kas_masuk` / `villa_kas_keluar` dari pengirim yang sama; dipakai bersama saldo `cfo_saldo_rekening`.
 
-## Loonars AI Advisor (2026-11-11, migrasi 0072 — belum diterapkan)
+## Loonars AI Advisor (2026-11-11, migrasi 0072 — DITERAPKAN, PR #61)
 - Masuk: `POST https://finance.haluoleo.id/api/cfo/advisor` dari Loonars AI Advisor (repo `loonarsliving/Istri`). Header `x-advisor-secret`, dicocokkan database dengan Vault `advisor_shared_secret` lewat `cfo_advisor_ambil_data` / `cfo_advisor_ambil_kerja`. Hanya baca; respons = fakta bernomor + jawaban deterministik + putusan CEO challenger.
 - Mengaktifkan: owner `select vault.create_secret('<acak ≥32 karakter>', 'advisor_shared_secret');`. Mencabut: hapus secret itu (endpoint kembali 401).
