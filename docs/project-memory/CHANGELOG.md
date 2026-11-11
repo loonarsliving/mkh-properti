@@ -2,6 +2,9 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-11 — Memori perusahaan Loonars AI Advisor (migrasi 0074 — DITERAPKAN 2026-11-11)
+- D-2026-008 (direksi AI 12 kursi menuju IPO): tabel `advisor_memori` (kategori model_bisnis/beban/hambatan/pelajaran/tujuan/aturan/lain; status usulan → aktif → arsip). RPC `advisor_memori_tambah` (hanya usulan/aktif), `advisor_memori_ubah` (aktif/arsip), `advisor_memori_daftar`, semuanya lewat `_advisor_wajib()` (0073b). Hanya objek baru. Diuji lokal + produksi (rahasia salah & baca tabel → 42501).
+
 ## 2026-11-11 — Register Loonars AI Advisor (migrasi 0073a–d — DITERAPKAN 2026-11-11)
 - D-2026-005/007: data advisor di database ini, tabel tersendiri `advisor_keputusan`, `advisor_syarat`, `advisor_dokumen`, `advisor_pengaturan`, `advisor_log` (append-only). Tabel/fungsi lama tidak disentuh. RLS aktif tanpa policy + akses tabel dicabut dari anon/authenticated; semua akses lewat RPC `advisor_*` security definer yang mewajibkan header `x-advisor-secret` = Vault `advisor_shared_secret` (rahasia yang sama dengan 0072).
 - `advisor_keputusan_simpan` menolak CONFIRMED/REVIEWED dan tidak mengubah keputusan yang sudah disahkan; CONFIRMED hanya lewat `advisor_keputusan_konfirmasi` (dari PROPOSED). Syarat lama ditandai `batal`, tidak dihapus.
