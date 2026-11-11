@@ -3,10 +3,11 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
-## 2026-11-11 — AI CFO: endpoint hanya-baca untuk Loonars AI Advisor (migrasi 0072 — BELUM DITERAPKAN)
+## 2026-11-11 — AI CFO: endpoint hanya-baca untuk Loonars AI Advisor (migrasi 0072 — DITERAPKAN 2026-11-11, PR #61)
 - Owner: endpoint advisor boleh dibangun "selama tidak merusak sistem yang sudah bekerja". `POST /api/cfo/advisor` (mode `fakta` / `tanya` / `evaluasi`) memakai mesin deterministik yang sama (faktaCfo, jawabDeterministik, evaluasiKeputusan = CEO challenger), tanpa narasi AI dan tanpa data mentah. Auth header `x-advisor-secret` = Vault `advisor_shared_secret` (terpisah dari `mk_sync_shared_secret`).
 - 0072: `_cfo_akses()` dinyatakan ulang identik dengan 0062 + satu cabang yang hanya aktif bila flag transaksi `cfo.advisor_baca='ya'` (dipasang hanya oleh `cfo_advisor_ambil_data(p_mode)` / `cfo_advisor_ambil_kerja()`, pembungkus `cfo_ambil_data`/`cfo_ambil_kerja` yang STABLE) dan rahasia cocok. Audit `cfo_audit_log` aktor `advisor`. Tanpa tabel/kolom baru. Mati sampai owner membuat secret di Vault.
 - Klien: repo `loonarsliving/Istri` (`tools/adapters/sources.py` AiCfoSource). Tes `src/lib/cfo/advisor.test.ts` (5).
+- Diterapkan via Supabase MCP 2026-11-11 setelah memastikan `_cfo_akses` produksi identik dengan 0062. Verifikasi (SELECT): tanpa header → null; rahasia sync → `sistem` / `wa:…` seperti sebelumnya; header advisor tanpa flag → null; flag tanpa secret Vault → null; sebagai `anon`, `cfo_advisor_ambil_data` dan `cfo_catat` dengan header advisor → 42501. Secret `advisor_shared_secret` BELUM dibuat (endpoint 401 sampai owner membuatnya).
 
 ## 2026-11-10 — AI CFO: Kesiapan Investasi + pemeriksaan kelengkapan Loonars 2
 
