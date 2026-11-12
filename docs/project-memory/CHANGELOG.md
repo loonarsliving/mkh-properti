@@ -2,6 +2,13 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
+## 2026-11-12 — Lapisan gerak UI (animasi) — DI BRANCH `claude/ui-animation-repo-villa-property-wcsa7p`, BELUM di `main`
+- Permintaan owner: tampilan dibuat lebih menarik & enak dipakai, termasuk AI CFO Chat. Hanya tampilan -- tidak ada perubahan perhitungan, API, maupun database.
+- Dependensi baru: `motion` (versi ringan lewat `PenyediaGerak` di `src/components/ui/Gerak.tsx`; dipakai untuk Toast). `AngkaBergerak` = angka berhitung; bingkai terakhir selalu nilai asli.
+- `src/app/globals.css`: kelas gerak (`anim-muncul`, `anim-naik`, `anim-letup`, `anim-gelembung-*`, `berurutan`, `kerangka`, `titik-ketik`, `kilau`, `garis-gambar`), `.card`/`.card-pad` muncul halus, efek tekan tombol global, animasi dimatikan saat cetak dan untuk `prefers-reduced-motion`.
+- Kerangka: penanda menu aktif di sidebar meluncur, transisi antar-halaman (Web Animations API, tanpa `key` supaya `CfoProvider` tidak dimuat ulang), `Memuat` jadi kerangka berkilau, Toast beranimasi, KPI berhitung (`KartuKpi`, `KartuPil`, `Kpi`), garis `GrafikSaldo` tergambar.
+- AI CFO Chat (`/cfo/chat`): tata letak percakapan baru (gelembung, avatar, indikator "menghitung", jawaban diketik bertahap, rujukan fakta bisa dibuka). Alur `tanya()`/`kirim()` dan isi yang dikirim ke `/api/cfo/chat` tidak berubah.
+
 ## 2026-11-11 — Loonars 2: pembayaran Sarno 5 Nov masuk borongan minggu ke-4 (migrasi 0075 — DITERAPKAN 2026-11-11)
 - Keputusan owner: pembayaran 5 Nov (M-89, Rp 20 jt, `loonars2_material_requests` id 179) jelas bagian borongan L2, tetapi tercatat tanpa `borongan_id`/`minggu_ke` sehingga halaman borongan hanya menghitung 4 minggu / Rp 78 jt. Kini tertaut sebagai minggu ke-4; M-107 (11 Nov, id 205–210) bergeser dari minggu ke-4 ke minggu ke-5. Borongan: 5 minggu / Rp 98 jt. Hanya data (label & tautan); nominal, saldo, dan total pengeluaran tidak berubah (diverifikasi: Rp 244.941.500 sebelum = sesudah).
 - Tidak disentuh: M-68 (1 Nov, Rp 9.180.000) dan M-94 (9 Nov, Rp 10.445.000) — diajukan "L2 tukang unit 7" (BANYU-01) ke rekening Sarno, tetapi aturan hari (Sabtu/Minggu/Senin) memperlakukannya sebagai tukang Loonars 1. Menunggu konfirmasi owner.

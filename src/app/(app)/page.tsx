@@ -85,7 +85,7 @@ function IsiDashboard() {
   return (
     <div className="space-y-4">
       {/* Sapaan */}
-      <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 text-white shadow-card">
+      <div className="anim-naik kilau rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 px-5 py-4 text-white shadow-lg shadow-blue-600/20">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-bold">

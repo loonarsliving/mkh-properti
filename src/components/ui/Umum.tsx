@@ -1,20 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 import { Icon, type NamaIkon } from './Icon';
 
 export function Memuat({ pesan = 'Memuat data…' }: { pesan?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16">
-      <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-slate-200 border-t-blue-600" />
-      <p className="font-mono text-xs text-slate-500">{pesan}</p>
+    <div role="status" aria-live="polite" className="anim-muncul space-y-4 py-6">
+      {/* Kerangka halaman berkilau: terasa lebih cepat daripada lingkaran berputar. */}
+      <div aria-hidden className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`kerangka h-[92px] ${i > 1 ? 'hidden xl:block' : i === 1 ? 'hidden sm:block' : ''}`} />
+        ))}
+      </div>
+      <div aria-hidden className="kerangka h-40" />
+      <div className="flex items-center justify-center gap-2.5">
+        <span className="titik-ketik text-blue-600" aria-hidden>
+          <i />
+          <i />
+          <i />
+        </span>
+        <p className="font-mono text-xs text-slate-500">{pesan}</p>
+      </div>
     </div>
   );
 }
 
 export function PesanGalat({ pesan, onCoba }: { pesan: string; onCoba?: () => void }) {
   return (
-    <div className="card-pad border-red-200 bg-red-50">
+    <div role="alert" className="card-pad border-red-200 bg-red-50">
       <div className="flex items-start gap-2.5">
         <Icon name="peringatan" className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
         <div className="min-w-0 flex-1">
@@ -33,8 +47,10 @@ export function PesanGalat({ pesan, onCoba }: { pesan: string; onCoba?: () => vo
 
 export function Kosong({ pesan, ikon = 'info' }: { pesan: string; ikon?: NamaIkon }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-12 text-center">
-      <Icon name={ikon} className="h-7 w-7 text-slate-300" />
+    <div className="anim-naik flex flex-col items-center gap-2 py-12 text-center">
+      <span className="anim-melayang flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+        <Icon name={ikon} className="h-6 w-6 text-slate-300" />
+      </span>
       <p className="text-sm text-slate-400">{pesan}</p>
     </div>
   );
@@ -80,21 +96,34 @@ export function Toast({ isi, onSelesai }: { isi: IsiToast | null; onSelesai: () 
     return () => clearTimeout(t);
   }, [isi, onSelesai]);
 
-  if (!isi) return null;
-
   const warna =
-    isi.nada === 'sukses'
-      ? 'bg-emerald-500 text-white'
-      : isi.nada === 'galat'
-        ? 'bg-red-500 text-white'
-        : 'bg-brand-amber text-slate-900';
+    isi?.nada === 'sukses'
+      ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+      : isi?.nada === 'galat'
+        ? 'bg-red-500 text-white shadow-red-500/30'
+        : 'bg-brand-amber text-slate-900 shadow-amber-500/30';
+  const tanda = isi?.nada === 'sukses' ? '✓' : isi?.nada === 'galat' ? '!' : 'i';
 
   return (
-    <div
-      role="status"
-      className={`fixed bottom-5 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-lg ${warna}`}
-    >
-      {isi.pesan}
+    <div className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
+      <AnimatePresence>
+        {isi ? (
+          <m.div
+            key={`${isi.nada}:${isi.pesan}`}
+            role="status"
+            initial={{ opacity: 0, y: 24, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            className={`pointer-events-auto flex max-w-[90vw] items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg ${warna}`}
+          >
+            <span className="anim-letup flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/25 text-[11px] font-bold [animation-delay:0.12s]">
+              {tanda}
+            </span>
+            {isi.pesan}
+          </m.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -114,7 +143,7 @@ export function useToast() {
 export function OverlaySimpan({ pesan }: { pesan: string | null }) {
   if (!pesan) return null;
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-slate-900/45">
+    <div className="anim-muncul fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-slate-900/50 backdrop-blur-[2px]">
       <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
       <p className="font-mono text-xs text-white">{pesan}</p>
     </div>

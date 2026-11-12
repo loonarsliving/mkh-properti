@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon, type NamaIkon } from './Icon';
+import { AngkaBergerak } from './Gerak';
 import { fmtRingkas, rupiah } from '@/lib/format';
 
 export type NadaKartu = 'emerald' | 'amber' | 'rose' | 'blue' | 'violet' | 'slate';
@@ -68,14 +69,18 @@ export function KartuKpi({
   const naik = (perubahan ?? 0) >= 0;
 
   return (
-    <div className={`rounded-xl border bg-gradient-to-br p-4 shadow-card ${n.kartu}`}>
+    <div
+      className={`anim-naik kilau group rounded-xl border bg-gradient-to-br p-4 shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-cardHover ${n.kartu}`}
+    >
       <div className="mb-3 flex items-start justify-between">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-white ${n.ikon}`}>
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 ${n.ikon}`}
+        >
           <Icon name={ikon} className="h-[18px] w-[18px]" />
         </div>
         {perubahan === null || perubahan === undefined ? null : (
           <span
-            className={`chip ${
+            className={`chip anim-letup [animation-delay:0.35s] ${
               naik ? 'bg-white/70 text-emerald-700' : 'bg-white/70 text-rose-700'
             }`}
           >
@@ -86,14 +91,14 @@ export function KartuKpi({
 
       <div className="font-mono text-[9.5px] uppercase tracking-[0.09em] text-slate-500">{label}</div>
       <div className={`mt-1 text-[21px] font-bold leading-tight ${n.teks}`} title={rupiah(nilai)}>
-        {rupiah(nilai)}
+        <AngkaBergerak nilai={nilai} format={rupiah} />
       </div>
 
       {progres !== null && progres !== undefined ? (
         <div className="mt-2.5 flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70">
             <div
-              className={`h-full rounded-full ${n.bar}`}
+              className={`anim-batang h-full rounded-full transition-[width] duration-700 ${n.bar}`}
               style={{ width: `${Math.max(0, Math.min(100, progres))}%` }}
             />
           </div>
@@ -122,8 +127,10 @@ export function KartuStat({
 }) {
   const n = NADA[nada];
   return (
-    <div className="card-pad flex items-center gap-3">
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${n.ikon}`}>
+    <div className="card-pad group flex items-center gap-3">
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 ${n.ikon}`}
+      >
         <Icon name={ikon} className="h-[18px] w-[18px]" />
       </div>
       <div className="min-w-0">
@@ -149,14 +156,16 @@ export function KartuPil({
 }) {
   const n = NADA[nada];
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-nav-bg px-3.5 py-3 shadow-card">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white ${n.ikon}`}>
+    <div className="anim-naik group flex items-center gap-2.5 rounded-xl bg-nav-bg px-3.5 py-3 shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-cardHover">
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover:scale-110 ${n.ikon}`}
+      >
         <Icon name={ikon} className="h-4 w-4" />
       </div>
       <div className="min-w-0">
         <div className="font-mono text-[9px] uppercase tracking-[0.09em] text-slate-400">{label}</div>
         <div className="truncate text-[15px] font-bold text-white" title={rupiah(nilai)}>
-          Rp {fmtRingkas(nilai)}
+          <AngkaBergerak nilai={nilai} format={(v) => `Rp ${fmtRingkas(v)}`} />
         </div>
       </div>
     </div>

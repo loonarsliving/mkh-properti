@@ -188,10 +188,10 @@ export function FormLogin() {
           backgroundSize: '40px 40px',
         }}
       />
-      <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-brand-amber/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-brand-green/10 blur-3xl" />
+      <div className="anim-melayang pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-brand-amber/10 blur-3xl [animation-duration:9s]" />
+      <div className="anim-melayang pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-brand-green/10 blur-3xl [animation-delay:-4s] [animation-duration:12s]" />
 
-      <div className="relative z-10 w-full max-w-[400px] animate-fadeIn">
+      <div className="berurutan relative z-10 w-full max-w-[400px]">
         <div className="mb-7 flex items-center gap-3.5">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-amber to-brand-green text-base font-bold text-slate-900 shadow-lg shadow-amber-500/25">
             MK
@@ -306,7 +306,7 @@ export function FormLogin() {
             <button
               type="submit"
               disabled={sibuk}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-amber py-2.5 text-[13px] font-bold text-slate-900 transition hover:brightness-95 disabled:opacity-60"
+              className="kilau flex w-full items-center justify-center gap-2 rounded-lg bg-brand-amber py-2.5 text-[13px] font-bold text-slate-900 shadow-lg shadow-amber-500/20 hover:brightness-105 hover:shadow-amber-500/40 disabled:opacity-60"
             >
               {sibuk ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/30 border-t-slate-900" />

@@ -3,6 +3,11 @@
 _Audit awal: 2026-08-21, HEAD `a47daa8` di `main`._
 _Diperbarui: 2026-08-22 — migrasi frontend ke Next.js (branch `claude/html-nextjs-migration-financial-reports-vb7l50`, belum di-merge ke `main`)._
 
+## 2026-11-12 — Lapisan gerak UI (animasi) — di branch, BELUM di `main`
+- Branch `claude/ui-animation-repo-villa-property-wcsa7p`. Murni tampilan; perhitungan, API, database tidak disentuh. Dependensi baru `motion`.
+- ATURAN untuk pekerjaan UI berikutnya: jangan memberi `transform`/`filter` PERMANEN pada `<main>` atau `.card` (overlay `fixed` di dalamnya akan salah posisi), dan jangan memberi `key` per-halaman pada `<main>` di `src/app/(app)/layout.tsx` (akan memuat ulang `CfoProvider` tiap pindah menu).
+- Diverifikasi: typecheck, lint, vitest (126 lulus), `next build`, dan uji browser dengan data tiruan (dashboard, AI CFO Chat PC/HP, sidebar, login). BELUM diuji dengan akun & data asli.
+
 ## 2026-11-11 — Memori perusahaan Loonars AI Advisor (migrasi 0074 — DITERAPKAN 2026-11-11)
 - D-2026-008 (direksi AI 12 kursi menuju IPO): tabel `advisor_memori` (kategori model_bisnis/beban/hambatan/pelajaran/tujuan/aturan/lain; status usulan → aktif → arsip). RPC `advisor_memori_tambah` (hanya usulan/aktif), `advisor_memori_ubah` (aktif/arsip), `advisor_memori_daftar`, semuanya lewat `_advisor_wajib()` (0073b). Hanya objek baru. Diuji lokal + produksi (rahasia salah & baca tabel → 42501).
 
