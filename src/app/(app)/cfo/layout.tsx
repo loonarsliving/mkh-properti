@@ -39,14 +39,14 @@ function NavCfo() {
           <Link
             key={m.href}
             href={m.href}
-            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold ${aktif ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300'}`}
+            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold ${aktif ? 'anim-letup border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'border-slate-200 bg-white text-slate-600 hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 hover:shadow-sm'}`}
           >
             {m.label}
           </Link>
         );
       })}
       <button onClick={muatUlang} disabled={memuat} className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11.5px] text-slate-600">
-        <Icon name="segar" className="h-3.5 w-3.5" /> {memuat ? 'Memuat…' : 'Muat ulang'}
+        <Icon name="segar" className={`h-3.5 w-3.5 ${memuat ? 'animate-spin' : ''}`} /> {memuat ? 'Memuat…' : 'Muat ulang'}
       </button>
       {model ? (
         <span className="w-full font-mono text-[10px] text-slate-400">

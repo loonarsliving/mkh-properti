@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
 }
@@ -19,12 +21,20 @@ body {
 
 /* ── Komponen berulang ────────────────────────────────────────── */
 @layer components {
+  /* Kilau yang menyapu sekali saat hover (tombol utama). */
+  .kilau {
+    position: relative;
+    overflow: hidden;
+  }
+
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    @apply rounded-xl border border-slate-200 bg-white shadow-card transition-shadow duration-300 hover:shadow-cardHover;
+    animation: naik-muncul 0.45s var(--ease-out) backwards;
   }
 
   .card-pad {
-    @apply rounded-xl border border-slate-200 bg-white p-4 shadow-card sm:p-5;
+    @apply rounded-xl border border-slate-200 bg-white p-4 shadow-card transition-shadow duration-300 hover:shadow-cardHover sm:p-5;
+    animation: naik-muncul 0.45s var(--ease-out) backwards;
   }
 
   .label-mono {
@@ -37,7 +47,7 @@ body {
 
   .input {
     @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-      outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15
+      outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15
       disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
   }
 
@@ -47,15 +57,15 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700;
+    @apply btn kilau bg-blue-600 text-white shadow-sm shadow-blue-600/30 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30;
   }
 
   .btn-amber {
-    @apply btn bg-brand-amber text-slate-900 hover:brightness-95;
+    @apply btn kilau bg-brand-amber text-slate-900 shadow-sm shadow-amber-500/30 hover:brightness-95 hover:shadow-md hover:shadow-amber-500/30;
   }
 
   .btn-green {
-    @apply btn bg-brand-green text-white hover:brightness-95;
+    @apply btn kilau bg-brand-green text-white shadow-sm shadow-emerald-500/30 hover:brightness-95 hover:shadow-md hover:shadow-emerald-500/30;
   }
 
   .btn-danger {
@@ -80,7 +90,7 @@ body {
   }
 
   .tbl tbody td {
-    @apply border-b border-slate-100 px-3 py-2.5 align-top text-slate-700;
+    @apply border-b border-slate-100 px-3 py-2.5 align-top text-slate-700 transition-colors duration-150;
   }
 
   .tbl tbody tr:hover td {
@@ -233,4 +243,274 @@ body {
 
 .thin-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ══ Lapisan gerak (2026-11-12) ═════════════════════════════════════════
+   Aturan penting: JANGAN memberi transform/filter permanen pada pembungkus
+   halaman atau .card -- elemen `position: fixed` di dalamnya (overlay simpan)
+   akan salah posisi. Animasi masuk memakai fill-mode `backwards` (transform
+   hilang begitu selesai) dan efek tekan memakai properti `scale`. */
+@layer base {
+  button,
+  a,
+  [role='button'] {
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.2s ease,
+      opacity 0.18s ease,
+      filter 0.18s ease,
+      transform 0.22s var(--ease-out),
+      scale 0.14s var(--ease-out);
+  }
+
+  button:not(:disabled):active,
+  [role='button']:active {
+    scale: 0.96;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.5);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes muncul {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes naik-muncul {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes letup {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes gelembung {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+}
+
+@keyframes kilap {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes titik-loncat {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes melayang {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes sapu-kilau {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+
+  to {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+
+@keyframes batang-tumbuh {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes garis-gambar {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes denyut-cincin {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  }
+
+  100% {
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+  }
+}
+
+.anim-muncul {
+  animation: muncul 0.35s ease backwards;
+}
+
+.anim-naik {
+  animation: naik-muncul 0.45s var(--ease-out) backwards;
+}
+
+.anim-letup {
+  animation: letup 0.3s var(--ease-spring) backwards;
+}
+
+.anim-melayang {
+  animation: melayang 3.4s ease-in-out infinite;
+}
+
+.anim-denyut {
+  animation: denyut-cincin 1.8s ease-out infinite;
+}
+
+.anim-gelembung-kiri,
+.anim-gelembung-kanan {
+  animation: gelembung 0.3s var(--ease-out) backwards;
+}
+
+.anim-gelembung-kiri {
+  transform-origin: bottom left;
+}
+
+.anim-gelembung-kanan {
+  transform-origin: bottom right;
+}
+
+.anim-batang {
+  transform-origin: left;
+  animation: batang-tumbuh 0.9s var(--ease-out) backwards;
+}
+
+/* Anak langsung muncul bergantian (grid kartu, daftar). */
+.berurutan > * {
+  animation: naik-muncul 0.45s var(--ease-out) backwards;
+}
+
+.berurutan > *:nth-child(2),
+.grid > .card:nth-child(2),
+.grid > .card-pad:nth-child(2),
+.grid > .anim-naik:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.berurutan > *:nth-child(3),
+.grid > .card:nth-child(3),
+.grid > .card-pad:nth-child(3),
+.grid > .anim-naik:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+.berurutan > *:nth-child(4),
+.grid > .card:nth-child(4),
+.grid > .card-pad:nth-child(4),
+.grid > .anim-naik:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+.berurutan > *:nth-child(5),
+.grid > .card:nth-child(5),
+.grid > .card-pad:nth-child(5),
+.grid > .anim-naik:nth-child(5) {
+  animation-delay: 0.2s;
+}
+
+.berurutan > *:nth-child(n + 6),
+.grid > .card:nth-child(n + 6),
+.grid > .card-pad:nth-child(n + 6),
+.grid > .anim-naik:nth-child(n + 6) {
+  animation-delay: 0.25s;
+}
+
+/* Kerangka pemuatan berkilau. */
+.kerangka {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 37%, #e2e8f0 63%);
+  background-size: 200% 100%;
+  animation: kilap 1.4s linear infinite;
+}
+
+.titik-ketik {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.titik-ketik > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: titik-loncat 1.2s ease-in-out infinite;
+}
+
+.titik-ketik > i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.titik-ketik > i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.kilau::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+}
+
+.kilau:hover::after {
+  animation: sapu-kilau 0.8s ease;
+}
+
+/* Garis grafik "tergambar" saat muncul (pakai pathLength=1 pada elemen SVG). */
+.garis-gambar {
+  stroke-dasharray: 1;
+  animation: garis-gambar 1.2s var(--ease-out) backwards;
+}
+
+/* Cetak & "kurangi gerakan": tanpa animasi sama sekali. */
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

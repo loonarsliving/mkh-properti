@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { DM_Mono, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { APP_NAME, PERUSAHAAN } from '@/lib/config';
+import { PenyediaGerak } from '@/components/ui/Gerak';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -35,7 +36,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${dmSans.variable} ${dmMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <PenyediaGerak>{children}</PenyediaGerak>
+      </body>
     </html>
   );
 }

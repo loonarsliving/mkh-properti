@@ -5,6 +5,7 @@ import type { Peringatan, Sumber, Tingkat } from '@/lib/cfo/tipe';
 import { labelTanggal, rp, rpRingkas } from '@/lib/cfo/util';
 import { Icon, type NamaIkon } from '@/components/ui/Icon';
 import { Memuat, PesanGalat } from '@/components/ui/Umum';
+import { AngkaBergerak } from '@/components/ui/Gerak';
 import { useCfo } from './CfoProvider';
 import type { ModelCfo } from '@/lib/cfo/model';
 
@@ -26,13 +27,21 @@ export function Kpi({ label, nilai, catatan, ikon, nada = 'slate', ringkas = tru
 }) {
   const warna = { emerald: 'bg-emerald-500', amber: 'bg-amber-500', rose: 'bg-rose-500', blue: 'bg-blue-600', violet: 'bg-violet-500', slate: 'bg-slate-500' }[nada];
   return (
-    <div className="card-pad flex items-start gap-3">
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${warna}`}>
+    <div className="card-pad group flex items-start gap-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 ${warna}`}>
         <Icon name={ikon} className="h-[18px] w-[18px]" />
       </div>
       <div className="min-w-0">
         <div className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-slate-500">{label}</div>
-        <div className="truncate text-[17px] font-bold text-slate-800"><Uang n={nilai} ringkas={ringkas} /></div>
+        <div className="truncate text-[17px] font-bold text-slate-800">
+          {nilai === null ? (
+            <Uang n={nilai} ringkas={ringkas} />
+          ) : (
+            <span className={nilai < 0 ? 'text-rose-600' : undefined} title={rp(nilai)}>
+              <AngkaBergerak nilai={nilai} format={ringkas ? rpRingkas : rp} />
+            </span>
+          )}
+        </div>
         {catatan ? <div className="text-[10.5px] leading-snug text-slate-500">{catatan}</div> : null}
       </div>
     </div>
@@ -60,7 +69,7 @@ export function DaftarSumber({ sumber }: { sumber: Sumber[] }) {
 
 export function KartuPeringatan({ p }: { p: Peringatan }) {
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${WARNA_TINGKAT[p.tingkat]}`}>
+    <div className={`anim-naik rounded-lg border px-3 py-2.5 transition-shadow duration-300 hover:shadow-card ${WARNA_TINGKAT[p.tingkat]}`}>
       <div className="flex flex-wrap items-center gap-2">
         <ChipTingkat t={p.tingkat} />
         <span className="chip bg-white/70 text-slate-600">{p.lini}</span>
@@ -101,6 +110,9 @@ export function GrafikSaldo({ skenario, kasMinimum, hari = 91 }: { skenario: Has
         {seri.map((s, k) => (
           <polyline
             key={skenario[k].nama}
+            pathLength={1}
+            className="garis-gambar"
+            style={{ animationDelay: `${k * 0.15}s` }}
             fill="none"
             stroke={warna[skenario[k].nama]}
             strokeWidth={skenario[k].nama === 'normal' ? 2.4 : 1.6}
