@@ -2,7 +2,7 @@
 
 Built directly from `git log` on `main` (55 commits, oldest first). No entries are fabricated — this mirrors actual commit history. Earliest commits (bulk file uploads, no granular history) are summarized as a block; later commits are listed individually as they became feature-scoped.
 
-## 2026-11-12 — Lapisan gerak UI (animasi) — DI BRANCH `claude/ui-animation-repo-villa-property-wcsa7p`, BELUM di `main`
+## 2026-11-12 — Lapisan gerak UI (animasi) — LIVE (PR #68, owner: "bawa ke production")
 - Permintaan owner: tampilan dibuat lebih menarik & enak dipakai, termasuk AI CFO Chat. Hanya tampilan -- tidak ada perubahan perhitungan, API, maupun database.
 - Dependensi baru: `motion` (versi ringan lewat `PenyediaGerak` di `src/components/ui/Gerak.tsx`; dipakai untuk Toast). `AngkaBergerak` = angka berhitung; bingkai terakhir selalu nilai asli.
 - `src/app/globals.css`: kelas gerak (`anim-muncul`, `anim-naik`, `anim-letup`, `anim-gelembung-*`, `berurutan`, `kerangka`, `titik-ketik`, `kilau`, `garis-gambar`), `.card`/`.card-pad` muncul halus, efek tekan tombol global, animasi dimatikan saat cetak dan untuk `prefers-reduced-motion`.
